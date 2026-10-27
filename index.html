@@ -139,6 +139,10 @@ ul.checks li.bad::before { color: var(--bad); }
         <label class="small" for="sets">Hands-fours</label>
         <select id="sets"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option></select>
       </div>
+      <div class="grp">
+        <label class="small" for="swingRate">Swings turn once every</label>
+        <select id="swingRate"><option value="2">2 beats</option><option value="3">3 beats</option><option value="4" selected>4 beats</option><option value="5">5 beats</option><option value="6">6 beats</option></select>
+      </div>
       <label class="small"><input id="trails" type="checkbox" checked> Trails</label>
     </div>
 
@@ -178,7 +182,7 @@ const Contra = (() => {
     lineSpacing: 3.0,       // m between line centers
     handHold: 0.7,          // m between dancers holding forearms
     swingRadius: 0.25,      // m from the swing's center to each dancer
-    swingBeatsPerTurn: 2,
+    swingBeatsPerTurn: 4,
     linesStep: 0.4,         // m forward in long lines
     balanceStep: 0.15,      // m
     passOffset: 0.2,        // m sideways when passing by
@@ -251,16 +255,18 @@ const Contra = (() => {
       });
     } },
 
-    boxTheGnat: { group: 'pair', plan([lark, robin]) {
-      const c = mid(lark, robin), r = dist(lark, robin) / 2;
-      // The pair trade places clockwise (right hands joined); the lark turns right, the robin turns left under the arch.
+    boxTheGnat: { group: 'pair', plan([lark, robin], call, ctx) {
+      const c = mid(lark, robin), r0 = dist(lark, robin) / 2, rh = Math.min(r0, ctx.p.handHold / 2);
+      // Reach out with right hands and step in toward each other, then trade places clockwise:
+      // the lark turns to the right, the robin turns to the left under the arch.
       return [[lark, robin, -1], [robin, lark, 1]].map(([d, o, turn]) => {
         const a0 = angleTo(c, d);
         let delta = wrap(angleTo(o, d) - d.a);
         if (turn < 0 && delta > 0) delta -= TAU;
         if (turn > 0 && delta < 0) delta += TAU;
         return u => {
-          const s = mj(u), ang = a0 - Math.PI * s;
+          const s = mj((u - 0.3) / 0.7), ang = a0 - Math.PI * s;
+          const r = u < 0.35 ? lerp(r0, rh, mj(u / 0.35)) : lerp(rh, r0, mj((u - 0.35) / 0.65));
           return { x: c.x + r * Math.cos(ang), y: c.y + r * Math.sin(ang), a: d.a + delta * s };
         };
       });
@@ -520,7 +526,7 @@ function recall(key) { try { return localStorage.getItem(key); } catch (e) { ret
 
 function build() {
   const dance = Contra.parseDance($('danceText').value);
-  state.c = Contra.compile(dance, { lines: +$('lines').value, sets: +$('sets').value });
+  state.c = Contra.compile(dance, { lines: +$('lines').value, sets: +$('sets').value, params: { swingBeatsPerTurn: +$('swingRate').value } });
   state.t = Math.min(state.t, state.c.total);
   $('danceTitle').textContent = dance.title ? `${dance.title}${dance.author ? ' by ' + dance.author : ''}` : 'Untitled dance';
   $('scrub').max = state.c.total;
@@ -667,7 +673,7 @@ $('fwd').onclick = () => { setPlaying(false); seek(Math.floor(state.t + 1e-6) + 
 $('scrub').oninput = e => { setPlaying(false); seek(+e.target.value); };
 $('run').onclick = () => { store('contra.dance', $('danceText').value); build(); };
 $('reset').onclick = () => { $('danceText').value = SAMPLE; store('contra.dance', SAMPLE); build(); };
-for (const id of ['lines', 'sets']) $(id).onchange = build;
+for (const id of ['lines', 'sets', 'swingRate']) $(id).onchange = build;
 document.addEventListener('keydown', e => {
   if (/^(TEXTAREA|INPUT|SELECT)$/.test(e.target.tagName)) return;
   if (e.key === ' ') { e.preventDefault(); setPlaying(!state.playing); }
