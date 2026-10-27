@@ -150,7 +150,19 @@ ul.checks li::before { content: "●"; font-size: 11px; line-height: 20px; }
 ul.checks li.ok::before { color: var(--ok); }
 ul.checks li.warn::before { color: var(--warn); }
 ul.checks li.bad::before { color: var(--bad); }
-ul.checks li.info::before { color: var(--muted); }
+ul.checks li.info::before { color: var(--warn); }
+ul.checks li.passed { color: var(--muted); }
+#checksBox summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; cursor: pointer; list-style: none; }
+#checksBox summary::-webkit-details-marker { display: none; }
+#checksBox summary h2::after { content: " ▸"; color: var(--muted); font-size: 12px; }
+#checksBox[open] summary h2::after { content: " ▾"; }
+#checksBox[open] summary { margin-bottom: 10px; }
+.lights { display: flex; gap: 6px; }
+.light { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 999px; font: 600 12.5px var(--font-body);
+  border: 1px solid var(--rule); font-variant-numeric: tabular-nums; }
+.light::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: currentColor; }
+.light.bad { color: var(--bad); } .light.warn { color: var(--warn); } .light.ok { color: var(--ok); }
+.light.zero { color: var(--muted); opacity: 0.6; }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }
 </style>
 </head><body><!--wrap-->
@@ -230,6 +242,13 @@ ul.checks li.info::before { color: var(--muted); }
 
   <aside class="side">
     <section class="card">
+      <details id="checksBox">
+        <summary><h2>Checks</h2><span class="lights" id="lights"></span></summary>
+        <ul class="checks" id="checks"></ul>
+      </details>
+      <p class="hint">Click a dancer to follow their couple. Space plays and pauses; the arrow keys step one beat.</p>
+    </section>
+    <section class="card">
       <h2>Dance text</h2>
       <p class="hint">The dance in the layout The Caller's Box uses: a part label, then one figure per line with its beats in brackets. It updates as you edit; paste a dance here and press Run.</p>
       <textarea id="danceText" wrap="off" spellcheck="false" aria-label="Dance text"></textarea>
@@ -239,11 +258,6 @@ ul.checks li.info::before { color: var(--muted); }
       <h2 id="followTitle">Follow a couple</h2>
       <p class="hint" id="followHint">Click a dancer on the floor to see who their couple meets each time through.</p>
       <ol class="journey" id="journey" hidden></ol>
-    </section>
-    <section class="card">
-      <h2>Checks</h2>
-      <ul class="checks" id="checks"></ul>
-      <p class="hint">Click a dancer to follow their couple. Space plays and pauses; the arrow keys step one beat.</p>
     </section>
   </aside>
 </div>
@@ -1053,17 +1067,26 @@ function renderInspector() {
   $('insDelete').onclick = () => { state.doc.parts[sel.part].calls.splice(sel.index, 1); state.sel = null; commit(true); };
 }
 
+// Checks: a red / yellow / green count on the summary line; open it to see what failed.
 function showChecks() {
-  const c = state.c, ul = $('checks');
-  ul.innerHTML = '';
-  const add = (level, text) => { const li = document.createElement('li'); li.className = level; li.textContent = text; ul.appendChild(li); };
+  const c = state.c, ul = $('checks'), items = [];
   const pr = c.progression, word = pr.expected === 1 ? 'one place' : `${pr.expected} places`;
   const times = pr.passes === 1 ? 'after one time through' : `every time through (${pr.passes} times)`;
-  if (pr.firstBad < 0) add('ok', `Progression works ${times}: dancing couples move ${word} (ones down, twos up), on their own side and facing their new neighbors; couples out at the ends cross over and come back in.`);
-  else add('bad', `Progression breaks in time ${pr.firstBad + 1}: ${pr.total - pr.good} of ${pr.total} dancers don't end ${word} along, on their own side, facing across. Watch the end of that time through to see where they go.`);
-  const order = { bad: 0, warn: 1, info: 2 };
-  for (const w of c.warnings.slice().sort((a, b) => order[a.level] - order[b.level])) add(w.level, w.text);
-  if (!c.warnings.some(w => w.level !== 'info')) add('ok', 'Every figure is recognised and every part is 16 beats.');
+  if (pr.firstBad < 0) items.push(['ok', `Progression works ${times}: dancing couples move ${word} (ones down, twos up), on their own side and facing their new neighbors; couples out at the ends cross over and come back in.`]);
+  else items.push(['bad', `Progression breaks in time ${pr.firstBad + 1}: ${pr.total - pr.good} of ${pr.total} dancers don't end ${word} along, on their own side, facing across. Watch the end of that time through to see where they go.`]);
+  for (const w of c.warnings) items.push([w.level === 'info' ? 'warn' : w.level, w.text]);
+  if (!c.warnings.some(w => w.level === 'bad')) items.push(['ok', 'Every figure is one the simulator knows.']);
+  if (!c.warnings.some(w => /beats long/.test(w.text))) items.push(['ok', 'Every part is 16 beats and the dance is 64.']);
+  if (!c.warnings.some(w => /musical phrase/.test(w.text))) items.push(['ok', '8- and 16-beat figures start on a phrase.']);
+  const count = l => items.filter(i => i[0] === l).length;
+  $('lights').innerHTML = [['bad', 'problems'], ['warn', 'cautions'], ['ok', 'passed']]
+    .map(([l, name]) => `<span class="light ${l}${count(l) ? '' : ' zero'}" title="${count(l)} ${name}">${count(l)}</span>`).join('');
+  $('checksBox').querySelector('summary').setAttribute('aria-label', `Checks: ${count('bad')} problems, ${count('warn')} cautions, ${count('ok')} passed`);
+  ul.innerHTML = '';
+  const order = { bad: 0, warn: 1, ok: 2 };
+  for (const [level, text] of items.sort((a, b) => order[a[0]] - order[b[0]])) {
+    const li = document.createElement('li'); li.className = level === 'ok' ? 'ok passed' : level; li.textContent = text; ul.appendChild(li);
+  }
 }
 
 function seek(t) { state.t = Math.max(0, Math.min(state.c.total, t)); music.next = null; }
