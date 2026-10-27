@@ -74,6 +74,16 @@ check(facing('0.1R', 16, '0.1L') && facing('0.1L', 16, '0.1R'), 'after the robin
 check(facing('0.1L', 24, '0.2R') && facing('0.2R', 24, '0.1L'), "after the men's pull by, neighbors already face each other for the neighbor balance");
 check(facing('0.1L', 20, '0.1R') && facing('0.1R', 20, '0.1L'), 'after the partner balance, partners face each other to pull by');
 
+check(facing('0.1R', 8, '0.2R') && facing('0.2R', 8, '0.1R'), 'robins face each other as the allemande starts');
+let closestR = 9; for (let t = 9; t < 15; t += 0.05) { const a = at('0.1R', t), b = at('0.2R', t); closestR = Math.min(closestR, Math.hypot(a.x - b.x, a.y - b.y)); }
+check(Math.abs(closestR - 0.6) < 0.03, `robins allemande close together (${closestR.toFixed(2)} m apart)`);
+let circleFacesIn = true;
+for (let t = 48; t <= 52.5; t += 0.25) {
+  const ps = ['0.1L', '0.1R', '0.2L', '0.2R'].map(id => at(id, t)), cx = ps.reduce((s, p) => s + p.x, 0) / 4, cy = ps.reduce((s, p) => s + p.y, 0) / 4;
+  for (const p of ps) if (Math.cos(p.a - Math.atan2(cy - p.y, cx - p.x)) < 0.98) circleFacesIn = false;
+}
+check(circleFacesIn, 'everyone faces the center during the circle');
+
 // Speeds per figure, at 120 beats per minute (2 beats per second). Not a pass/fail check yet.
 console.log('\nPeak speed per figure at 120 bpm:');
 for (const k of c.calls) {

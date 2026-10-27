@@ -183,7 +183,9 @@ const Contra = (() => {
     partnerGap: 1.2,        // m across the set
     neighborGap: 1.2,       // m along the line between couples
     lineSpacing: 3.0,       // m between line centers
-    handHold: 0.7,          // m between dancers holding forearms
+    handHold: 0.7,          // m between dancers holding hands at arm's length
+    allemandeGap: 0.6,      // m between dancers turning in an allemande (a swing is 0.5)
+    allemandeLook: 1.05,    // rad (60 degrees): how far from facing each other dancers turn while allemanding
     swingRadius: 0.25,      // m from the swing's center to each dancer
     swingBeatsPerTurn: 4,
     gnatClose: 0.5,         // m apart when box the gnat pulls in
@@ -229,15 +231,18 @@ const Contra = (() => {
     } },
 
     allemande: { group: 'pair', plan([p, q], call, ctx) {
-      const c = mid(p, q), r0 = dist(p, q) / 2, rh = Math.min(r0, ctx.p.handHold / 2);
+      const c = mid(p, q), r0 = dist(p, q) / 2, rh = Math.min(r0, ctx.p.allemandeGap / 2);
       const dir = call.hand === 'L' ? 1 : -1;            // left hand turns counter-clockwise seen from above
       const sweep = dir * call.turns * TAU;
+      // They face each other as they meet, then turn close together looking partly at each other.
       return [p, q].map(d => {
         const a0 = angleTo(c, d);
         return u => {
           const ang = a0 + sweep * trap(u, 0.25);
           const r = lerp(r0, rh, u < 0.2 ? mj(u / 0.2) : u > 0.8 ? mj((1 - u) / 0.2) : 1);
-          return { x: c.x + r * Math.cos(ang), y: c.y + r * Math.sin(ang), a: settle(d.a, ang + dir * Math.PI / 2, u) };
+          const toward = ang + Math.PI, turning = toward - dir * ctx.p.allemandeLook;
+          const face = u < 0.2 ? lerpAngle(toward, turning, mj(u / 0.2)) : turning;
+          return { x: c.x + r * Math.cos(ang), y: c.y + r * Math.sin(ang), a: settle(d.a, face, u) };
         };
       });
     } },
@@ -304,7 +309,9 @@ const Contra = (() => {
         : u > 0.85 ? lerp(P.swingRadius, half, mj((u - 0.85) / 0.15)) : P.swingRadius);
       return [[lark, 0], [robin, Math.PI]].map(([d, off]) => u => {
         const ang = a0 + off + sweep * trap(u, 0.15), r = radius(u);
-        let a = settle(d.a, ang + Math.PI * 1.25, u, 0.15);  // partner at the right front: right hip to right hip
+        // Face each other as they come together, then the hold: partner at the right front, right hip to right hip.
+        const hold = u < 0.15 ? lerpAngle(ang + Math.PI, ang + Math.PI * 1.25, mj(u / 0.15)) : ang + Math.PI * 1.25;
+        let a = settle(d.a, hold, u, 0.15);
         if (u > 0.85) a = lerpAngle(a, F, mj((u - 0.85) / 0.15));
         return { x: m.x + r * Math.cos(ang), y: m.y + r * Math.sin(ang), a };
       });
@@ -318,7 +325,7 @@ const Contra = (() => {
         const a0 = angleTo(c, d), r = dist(c, d);
         return u => {
           const ang = a0 + sweep * trap(u, 0.2);
-          return { x: c.x + r * Math.cos(ang), y: c.y + r * Math.sin(ang), a: settle(d.a, ang + Math.PI - dir * Math.PI / 6, u) };
+          return { x: c.x + r * Math.cos(ang), y: c.y + r * Math.sin(ang), a: settle(d.a, ang + Math.PI, u) };  // everyone faces the center
         };
       });
     } },
