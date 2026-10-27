@@ -79,6 +79,7 @@ label.small { font-size: 13px; color: var(--muted); display: inline-flex; align-
 #scrub { flex: 1 1 200px; accent-color: var(--accent); min-width: 0; }
 #trailLen { width: 110px; accent-color: var(--accent); }
 #trailVal { min-width: 56px; font-variant-numeric: tabular-nums; }
+.genderNote { max-width: 340px; line-height: 1.3; color: var(--accent); }
 
 .timeline { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 4px; }
 .editor { display: grid; grid-template-columns: minmax(0, 1fr) 270px; gap: 14px; margin-top: 8px; align-items: start; }
@@ -177,7 +178,7 @@ ul.checks li.passed { color: var(--muted); }
     <div class="floorwrap">
       <canvas id="floor" aria-label="Dance floor seen from above. The band is at the top."></canvas>
       <div class="now"><span class="where" id="where">A1 · beat 1 of 16</span><span class="what" id="what"></span></div>
-      <div class="legend"><span><i class="sw lark"></i>Larks</span><span><i class="sw robin"></i>Robins</span></div>
+      <div class="legend"><span><i class="sw lark"></i><span id="larkName">Larks</span></span><span><i class="sw robin"></i><span id="robinName">Robins</span></span></div>
     </div>
 
     <div class="card transport">
@@ -211,6 +212,11 @@ ul.checks li.passed { color: var(--muted); }
         <label class="small" for="trailLen">Trail</label>
         <input id="trailLen" type="range" min="0" max="8" step="0.5" value="3" aria-describedby="trailVal">
         <span class="small" id="trailVal">3 beats</span>
+      </div>
+      <div class="grp">
+        <label class="small" for="roleNames">Role names</label>
+        <select id="roleNames"><option value="larks">Larks / Robins</option><option value="gents">Gents / Ladies</option><option value="men">Men / Women</option></select>
+        <span class="small genderNote" id="genderNote" hidden title="Gender-free terms let anyone dance either role.">ⓘ Many dance communities now call gender-free, with Larks and Robins, so anyone can dance either role. Give it a try!</span>
       </div>
       <label class="small"><input id="music" type="checkbox" checked> Music</label>
       <label class="small"><input id="melody" type="checkbox" checked> Melody</label>
@@ -861,6 +867,15 @@ function showJourney() {
 
 // ---------- Dance editor: four part rows, a pool of moves, and figure settings ----------
 const PART_NAMES = ['A1', 'A2', 'B1', 'B2'];
+// Role names: the dance is shown (and new figures written) with the chosen pair of names.
+const ROLE_SETS = { larks: ['Larks', 'Robins', 'Lark', 'Robin'], gents: ['Gents', 'Ladies', 'Gent', 'Lady'], men: ['Men', 'Women', 'Man', 'Woman'] };
+const roleSet = () => ROLE_SETS[$('roleNames').value] || ROLE_SETS.larks;
+function roleWords(text) {
+  const [L, R, l1, r1] = roleSet(), match = (w, to) => (w[0] === w[0].toUpperCase() ? to : to.toLowerCase());
+  return text
+    .replace(/\b(larks|gents|men)\b/gi, w => match(w, L)).replace(/\b(robins|ladies|women)\b/gi, w => match(w, R))
+    .replace(/\b(lark|gent|man)\b/gi, w => match(w, l1)).replace(/\b(robin|lady|woman)\b/gi, w => match(w, r1));
+}
 const FIG_NAMES = { longLines: 'Long lines', allemande: 'Allemande', balance: 'Balance', pullBy: 'Pull by', boxTheGnat: 'Box the gnat', swing: 'Swing', circle: 'Circle' };
 const POOL = [
   { fig: 'longLines' },
@@ -873,7 +888,7 @@ const POOL = [
 ];
 const newCall = def => {
   const k = { beats: def.beats || Contra.TYPICAL_BEATS[def.fig] || 4, ...def };
-  k.text = Contra.callText(k);
+  k.text = roleWords(Contra.callText(k));
   return k;
 };
 const history = { list: [], at: -1 };
@@ -915,9 +930,9 @@ function renderRows() {
       b.className = 'fblk' + (compiled && compiled.flagged ? ' flag' : '') + (state.sel && state.sel.part === pi && state.sel.index === ci ? ' sel' : '');
       b.dataset.part = pi; b.dataset.index = ci; b.dataset.flat = flat - 1;
       b.style.left = `calc(${(at / scale) * 100}% + 1px)`; b.style.width = `calc(${(k.beats / scale) * 100}% - 2px)`;
-      b.title = `${k.text} (${k.beats} beats)`;
+      b.title = `${roleWords(k.text)} (${k.beats} beats)`;
       b.innerHTML = `<span class="name"></span><span class="len">${k.beats}</span><span class="grip" aria-hidden="true"></span>`;
-      b.querySelector('.name').textContent = k.text;
+      b.querySelector('.name').textContent = roleWords(k.text);
       b.addEventListener('pointerdown', e => startDrag(e, e.target.classList.contains('grip') ? 'resize' : 'move', { part: pi, index: ci, el: b, track }));
       track.appendChild(b);
       at += k.beats;
@@ -969,7 +984,7 @@ function onDragMove(e) {
   }
   if (!drag.ghost) {
     drag.ghost = document.createElement('div'); drag.ghost.className = 'ghost';
-    drag.ghost.textContent = drag.kind === 'pool' ? FIG_NAMES[drag.def.fig] : state.doc.parts[drag.part].calls[drag.index].text;
+    drag.ghost.textContent = drag.kind === 'pool' ? FIG_NAMES[drag.def.fig] : roleWords(state.doc.parts[drag.part].calls[drag.index].text);
     document.body.appendChild(drag.ghost);
     if (drag.kind === 'move') drag.el.classList.add('dragging');
   }
@@ -1049,7 +1064,7 @@ function renderInspector() {
   const field = (label, html) => `<label>${label}</label>${html}`;
   const options = (list, val) => list.map(([v, t]) => `<option value="${v}"${String(v) === String(val) ? ' selected' : ''}>${t}</option>`).join('');
   let html = `<h3>${FIG_NAMES[k.fig] || 'Unknown figure'} <span class="small">in ${state.doc.parts[sel.part].name}</span></h3>`;
-  if (info && info.group === 'pair') html += field('Who', `<select id="insWho">${options([['partners', 'Partners'], ['neighbors', 'Neighbors'], ['larks', 'Larks'], ['robins', 'Robins'], ['ones', 'Ones'], ['twos', 'Twos']], k.who)}</select>`);
+  if (info && info.group === 'pair') html += field('Who', `<select id="insWho">${options([['partners', 'Partners'], ['neighbors', 'Neighbors'], ['larks', roleSet()[0]], ['robins', roleSet()[1]], ['ones', 'Ones'], ['twos', 'Twos']], k.who)}</select>`);
   if (k.fig === 'allemande' || k.fig === 'pullBy') html += field('Hand', `<select id="insHand">${options([['R', 'Right'], ['L', 'Left']], k.hand)}</select>`);
   if (k.fig === 'balance') html += field('Hands', `<select id="insHand">${options([['', 'None'], ['R', 'Right'], ['L', 'Left']], k.hand || '')}</select>`);
   if (k.fig === 'circle') html += field('Direction', `<select id="insDir">${options([['L', 'Left (clockwise)'], ['R', 'Right (counter-clockwise)']], k.dir)}</select>`);
@@ -1057,8 +1072,8 @@ function renderInspector() {
   html += field('Beats', `<input id="insBeats" type="number" min="1" max="32" step="1" value="${k.beats}">`);
   html += `<div class="line"></div><div class="actions"><button id="insDelete" type="button">Remove</button></div>`;
   box.innerHTML = html;
-  box.querySelector('.line').textContent = `(${k.beats}) ${k.text}`;
-  const change = (id, apply) => { const el = $(id); if (el) el.onchange = () => { apply(el.value); if (k.fig) k.text = Contra.callText(k); commit(true); }; };
+  box.querySelector('.line').textContent = `(${k.beats}) ${roleWords(k.text)}`;
+  const change = (id, apply) => { const el = $(id); if (el) el.onchange = () => { apply(el.value); if (k.fig) k.text = roleWords(Contra.callText(k)); commit(true); }; };
   change('insWho', v => (k.who = v));
   change('insHand', v => (k.hand = v || null));
   change('insDir', v => (k.dir = v));
@@ -1085,7 +1100,7 @@ function showChecks() {
   ul.innerHTML = '';
   const order = { bad: 0, warn: 1, ok: 2 };
   for (const [level, text] of items.sort((a, b) => order[a[0]] - order[b[0]])) {
-    const li = document.createElement('li'); li.className = level === 'ok' ? 'ok passed' : level; li.textContent = text; ul.appendChild(li);
+    const li = document.createElement('li'); li.className = level === 'ok' ? 'ok passed' : level; li.textContent = roleWords(text); ul.appendChild(li);
   }
 }
 
@@ -1282,7 +1297,7 @@ function updateReadout() {
   const beat = Math.floor(local - part.t0) + 1;
   const passText = c.passes.length > 1 ? `Time ${p + 1} of ${c.passes.length} · ` : '';
   $('where').textContent = `${passText}${part.name} · beat ${beat} of ${part.t1 - part.t0} · bar ${Math.ceil(beat / 2)}`;
-  $('what').textContent = k.text;
+  $('what').textContent = roleWords(k.text);
   $('passLabel').textContent = `Time ${p + 1} of ${c.passes.length}`;
   for (const el of $('rows').querySelectorAll('.fblk')) el.classList.toggle('active', +el.dataset.flat === i - p * perPassCalls);
   const pi = c.parts.indexOf(part);
@@ -1321,6 +1336,13 @@ $('whole').oninput = e => { setPlaying(false); seek(+e.target.value); };
 $('music').onchange = () => { music.next = null; if ($('music').checked && state.playing) startAudio(); };
 $('run').onclick = () => { state.sel = null; build(); commit(true); };
 $('reset').onclick = () => { $('danceText').value = SAMPLE; state.sel = null; build(); commit(true); };
+$('roleNames').onchange = () => {
+  const v = $('roleNames').value, [L, R] = roleSet();
+  store('contra.roles', v);
+  $('genderNote').hidden = v === 'larks';
+  $('larkName').textContent = L; $('robinName').textContent = R;
+  renderPool(); renderRows(); showChecks(); updateReadout();
+};
 $('newDance').onclick = () => { state.doc = { title: 'New dance', author: '', meta: {}, metaLines: [['FormationBase', 'Duple Minor - Improper'], ['Progression', 'Single']], parts: [], warnings: [] }; ensureParts(state.doc); state.sel = null; state.t = 0; commit(true); };
 $('undo').onclick = () => undoTo(history.at - 1);
 $('redo').onclick = () => undoTo(history.at + 1);
@@ -1356,8 +1378,10 @@ new MutationObserver(readTokens).observe(document.documentElement, { attributes:
 
 $('danceText').value = recall('contra.dance') || SAMPLE;
 readTokens();
+if (ROLE_SETS[recall('contra.roles')]) $('roleNames').value = recall('contra.roles');
 renderPool();
 build();
+$('roleNames').onchange();
 history.list = [$('danceText').value]; history.at = 0;
 requestAnimationFrame(frame);
 </script>
