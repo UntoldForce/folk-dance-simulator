@@ -322,8 +322,10 @@ const Contra = (() => {
     } },
   };
 
-  // Typical lengths in beats from the ContraLab timing chart (contralab.org), for figures built so far.
-  const TYPICAL_BEATS = { longLines: 8, allemande: 8, balance: 4, boxTheGnat: 4, swing: 4, circle: 8 };
+  // Typical lengths in beats, for figures built so far: the ContraLab timing chart (contralab.org),
+  // and Contrafusion for pull by (4 beats; 2 when done rapidly as a single change).
+  const TYPICAL_BEATS = { longLines: 8, allemande: 8, balance: 4, boxTheGnat: 4, swing: 4, circle: 8, pullBy: 4 };
+  const SOURCE = { pullBy: 'Contrafusion' };
 
   // ---------- Reading a dance (The Caller's Box layout) ----------
   const WHO = [
@@ -485,7 +487,7 @@ const Contra = (() => {
         for (const d of dancers) { const s = segs[d.id]; pose[d.id] = s[s.length - 1].f(1); }
         for (const n of notes) warnings.push({ level: 'warn', text: `${part.name}: “${call.text}”: ${n}.` });
         const typical = TYPICAL_BEATS[call.fig];
-        if (typical && call.beats < typical) warnings.push({ level: 'info', text: `${part.name}: “${call.text}” gets ${call.beats} beats; the ContraLab timing chart gives it ${typical}. Expect it to feel quick.` });
+        if (typical && call.beats < typical) warnings.push({ level: 'info', text: `${part.name}: “${call.text}” gets ${call.beats} beats; ${SOURCE[call.fig] || 'the ContraLab timing chart'} gives it ${typical}. Expect it to feel quick.` });
         if ((call.beats === 8 && t0 % 8) || (call.beats === 16 && t0 % 16)) warnings.push({ level: 'info', text: `${part.name}: “${call.text}” is ${call.beats} beats but starts partway through a musical phrase.` });
         calls.push({ ...call, part: part.name, t0, t1, flagged: notes.size > 0 || !fig });
         t = t1;

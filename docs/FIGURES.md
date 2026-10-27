@@ -8,7 +8,7 @@ and add what the engine needs (paths, turn direction, where people end). They ar
 Status: **built** = in the simulator now; **planned** = in the figure library (Phase 3) or later.
 
 Typical beats come from the [ContraLab](https://contralab.org/) Contra Timing Chart where it lists the figure
-(Ryan supplied the chart). The simulator notes any figure given fewer beats than the chart, and any 8- or 16-beat
+(Ryan supplied the chart). Pull by isn't in the chart; per Contrafusion it typically takes 4 beats, or 2 when done rapidly as a single change. The simulator notes any figure given fewer beats than the chart, and any 8- or 16-beat
 figure that doesn't start on a phrase boundary (8-beat calls start an 8-beat phrase; 16-beat calls start A1, A2, B1 or B2).
 
 ## Conventions
@@ -45,7 +45,7 @@ figure that doesn't start on a phrase boundary (8-beat calls start an 8-beat phr
 | [Long lines forward and back](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#long-lines-go-forward-and-back) | Everyone, hands joined along each side | 8 (forward and back) | Four small steps toward the center, four back | Where they started | built |
 | [Balance](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#balance) | Pair (or ring, wave, line) | 4 | Footwork in place, usually toward and away from someone. `(RH)` = right hands joined | Where they started | built (pairs) |
 | [Allemande](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#allemande) | Pair | 8 | Forearm grip, walk around each other: right = clockwise, left = counter-clockwise | Depends on amount; 1½ trades places | built |
-| [Pull by](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#pull-by) | Pair | 2 | Take the named hand and pass by that shoulder, keep going | On the far side, facing on | built |
+| [Pull by](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#pull-by) | Pair | 4 (2 when done rapidly) | Take the named hand and pass by that shoulder, keep going | On the far side, facing on | built |
 | [Box the gnat](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#box-the-gnat) | Pair facing, right hands | 4 | Ryan's beat-by-beat: beat 1 both pull in close; beat 2 push back out a little; beats 3–4 circle around each other to trade places while the lark turns right and the robin turns left under the arch | Traded, facing, at arm's length; lark lets go at the end of beat 4 | built |
 | [Swing](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#swing) | Pair | 4–8 or longer; balance and swing is usually 4 + 12 (or a double balance 8 + 8) | Ballroom-style hold, clockwise around each other (walk or buzz step) | Lark left, robin right, facing as the next figure needs | built |
 | [Circle left / right](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#circle-left-right) | Hands-four | 8 | Hands in a ring; left = clockwise, right = counter-clockwise, by the amount | Facing as the next figure needs | built |
