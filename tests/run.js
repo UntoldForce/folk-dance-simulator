@@ -47,11 +47,15 @@ const near = (p, x, y) => Math.hypot(p.x - x, p.y - y) < 0.05;
 check(near(at('0.1R', 16), 0.6, -0.6) && near(at('0.2R', 16), -0.6, 0.6), 'after the robins allemande 1½ the robins have swapped corners');
 check(near(at('0.1L', 64), 0.6, -0.6) && near(at('0.1R', 64), -0.6, -0.6), 'ones end at the bottom, on the same side they started');
 
-// Box the gnat (A2, beats 28-32): neighbors step in to a hand-hold before trading places.
+// Box the gnat (A2, beats 28-32): they walk in under a tight arch, then trade places.
 const gnatGap = t => { const a = at('0.1L', t), b = at('0.2R', t); return Math.hypot(a.x - b.x, a.y - b.y); };
-check(gnatGap(28) > 1.1 && gnatGap(29.4) < 0.75 && gnatGap(32) > 1.1, `box the gnat closes to a hand-hold mid-figure (${gnatGap(28).toFixed(2)} -> ${gnatGap(29.4).toFixed(2)} -> ${gnatGap(32).toFixed(2)} m)`);
-const g0 = at('0.1L', 28), g1 = at('0.1L', 32), r0 = at('0.2R', 28);
-check(Math.hypot(g1.x - r0.x, g1.y - r0.y) < 0.05, 'box the gnat: lark ends where the robin started');
+let closest = 9; for (let t = 28; t <= 32; t += 0.05) closest = Math.min(closest, gnatGap(t));
+check(gnatGap(28) > 1.1 && closest < 0.5 && gnatGap(32) > 1.1, `box the gnat turns tight under the arch (${gnatGap(28).toFixed(2)} m apart -> ${closest.toFixed(2)} m at the closest -> ${gnatGap(32).toFixed(2)} m)`);
+const g1 = at('0.1L', 32), r0 = at('0.2R', 28), g0 = at('0.1L', 28), r1 = at('0.2R', 32);
+check(Math.hypot(g1.x - r0.x, g1.y - r0.y) < 0.05 && Math.hypot(r1.x - g0.x, r1.y - g0.y) < 0.05, 'box the gnat: they end in each other\'s places');
+const turned = (id) => Math.abs(Math.abs(at(id, 32).a - at(id, 28).a) - Math.PI) < 0.05;
+check(turned('0.1L') && turned('0.2R') && at('0.1L', 32).a < at('0.1L', 28).a && at('0.2R', 32).a > at('0.2R', 28).a,
+  'box the gnat: lark turns 180 degrees to the right, robin 180 degrees to the left');
 
 // Speeds per figure, at 120 beats per minute (2 beats per second). Not a pass/fail check yet.
 console.log('\nPeak speed per figure at 120 bpm:');

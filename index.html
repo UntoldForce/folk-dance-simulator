@@ -183,6 +183,8 @@ const Contra = (() => {
     handHold: 0.7,          // m between dancers holding forearms
     swingRadius: 0.25,      // m from the swing's center to each dancer
     swingBeatsPerTurn: 4,
+    gnatLarkRadius: 0.32,   // m: the lark walks around the robin
+    gnatRobinRadius: 0.12,  // m: the robin's tight turn under the arch
     linesStep: 0.4,         // m forward in long lines
     balanceStep: 0.15,      // m
     passOffset: 0.2,        // m sideways when passing by
@@ -256,18 +258,19 @@ const Contra = (() => {
     } },
 
     boxTheGnat: { group: 'pair', plan([lark, robin], call, ctx) {
-      const c = mid(lark, robin), r0 = dist(lark, robin) / 2, rh = Math.min(r0, ctx.p.handHold / 2);
-      // Reach out with right hands and step in toward each other, then trade places clockwise:
-      // the lark turns to the right, the robin turns to the left under the arch.
-      return [[lark, robin, -1], [robin, lark, 1]].map(([d, o, turn]) => {
+      const c = mid(lark, robin), r0 = dist(lark, robin) / 2;
+      // Facing each other, they reach right hands forward and walk in, raising an arch.
+      // The robin turns left and goes under it on a tight path; the lark turns right and walks around her.
+      // Each turns 180 degrees and they end in each other's places, facing again.
+      return [[lark, robin, -1, ctx.p.gnatLarkRadius], [robin, lark, 1, ctx.p.gnatRobinRadius]].map(([d, o, turn, rIn]) => {
         const a0 = angleTo(c, d);
         let delta = wrap(angleTo(o, d) - d.a);
         if (turn < 0 && delta > 0) delta -= TAU;
         if (turn > 0 && delta < 0) delta += TAU;
         return u => {
-          const s = mj((u - 0.3) / 0.7), ang = a0 - Math.PI * s;
-          const r = u < 0.35 ? lerp(r0, rh, mj(u / 0.35)) : lerp(rh, r0, mj((u - 0.35) / 0.65));
-          return { x: c.x + r * Math.cos(ang), y: c.y + r * Math.sin(ang), a: d.a + delta * s };
+          const ang = a0 - Math.PI * mj((u - 0.25) / 0.6);
+          const r = u < 0.3 ? lerp(r0, rIn, mj(u / 0.3)) : u < 0.65 ? rIn : lerp(rIn, r0, mj((u - 0.65) / 0.35));
+          return { x: c.x + r * Math.cos(ang), y: c.y + r * Math.sin(ang), a: d.a + delta * mj((u - 0.25) / 0.75) };
         };
       });
     } },
@@ -590,7 +593,7 @@ function draw() {
   g.clearRect(0, 0, v.w, v.h);
 
   g.fillStyle = tokens.muted; g.font = '600 11px "Instrument Sans", system-ui, sans-serif'; g.textAlign = 'center';
-  g.fillText('BAND  ↑  TOP OF THE HALL', v.w / 2, Math.max(16, v.Y(c.bounds.maxY + 1.3)));
+  g.fillText('BAND  ↑  TOP OF THE HALL', v.w / 2, Math.max(62, v.Y(c.bounds.maxY + 1.3)));
 
   // Hands-four outlines from the start of the dance.
   g.strokeStyle = tokens.rule; g.lineWidth = 1; g.setLineDash([4, 4]);
