@@ -144,6 +144,7 @@ ul.checks li.bad::before { color: var(--bad); }
         <select id="swingRate"><option value="2">2 beats</option><option value="3">3 beats</option><option value="4" selected>4 beats</option><option value="5">5 beats</option><option value="6">6 beats</option></select>
       </div>
       <label class="small"><input id="trails" type="checkbox" checked> Trails</label>
+      <label class="small"><input id="music" type="checkbox" checked> Music</label>
     </div>
 
     <div class="card timeline">
@@ -574,8 +575,57 @@ function showChecks() {
   if (!c.warnings.length) add('ok', 'Every figure is recognised and every part is 16 beats.');
 }
 
-function seek(t) { state.t = Math.max(0, Math.min(state.c.total, t)); }
-function setPlaying(on) { state.playing = on; $('play').textContent = on ? 'Pause' : 'Play'; state.last = performance.now(); }
+function seek(t) { state.t = Math.max(0, Math.min(state.c.total, t)); music.next = null; }
+function setPlaying(on) {
+  state.playing = on; $('play').textContent = on ? 'Pause' : 'Play'; state.last = performance.now(); music.next = null;
+  if (on) startAudio();
+}
+
+// ---------- Music: a boom-chuck backing in D, 32 bars (AABB) per time through ----------
+// Bass on the first beat of each bar, a short chord on the second, like a contra band's piano.
+const music = { ctx: null, out: null, next: null };
+const PHRASES = { A: ['D', 'D', 'G', 'A', 'D', 'D', 'G/A', 'D'], B: ['D', 'G', 'D', 'A', 'D', 'G', 'A', 'D'] };
+const VOICES = { D: { root: 38, fifth: 45, chord: [62, 66, 69] }, G: { root: 43, fifth: 38, chord: [62, 67, 71] }, A: { root: 45, fifth: 40, chord: [61, 64, 69] } };
+const hz = m => 440 * Math.pow(2, (m - 69) / 12);
+
+function startAudio() {
+  if (!$('music').checked) return;
+  try {
+    if (!music.ctx) {
+      music.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      music.out = music.ctx.createGain(); music.out.gain.value = 0.5; music.out.connect(music.ctx.destination);
+    }
+    if (music.ctx.state === 'suspended') music.ctx.resume();
+  } catch (e) { music.ctx = null; }
+}
+
+function tone(m, when, dur, level, type) {
+  const ac = music.ctx, osc = ac.createOscillator(), g = ac.createGain(), f = ac.createBiquadFilter();
+  osc.type = type; osc.frequency.value = hz(m);
+  f.type = 'lowpass'; f.frequency.value = type === 'triangle' ? 900 : 2200;
+  g.gain.setValueAtTime(0, when);
+  g.gain.linearRampToValueAtTime(level, when + 0.008);
+  g.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+  osc.connect(f); f.connect(g); g.connect(music.out);
+  osc.start(when); osc.stop(when + dur + 0.02);
+}
+
+function playBeat(b, when) {
+  const bar = Math.floor(b / 2) % 32, part = bar < 16 ? 'A' : 'B', names = PHRASES[part][bar % 8].split('/');
+  const v = VOICES[names[Math.min(b % 2, names.length - 1)]];
+  if (b % 2 === 0) tone(bar % 2 ? v.fifth : v.root, when, 0.32, b % 16 === 0 ? 0.55 : 0.4, 'triangle');
+  else for (const m of v.chord) tone(m, when, 0.13, 0.07, 'sawtooth');
+}
+
+function scheduleMusic(beatsPerSec) {
+  if (!music.ctx || music.ctx.state !== 'running') return;
+  const ahead = state.t + 0.25 * beatsPerSec;
+  if (music.next === null) music.next = Math.ceil(state.t - 1e-6);
+  while (music.next < ahead) {
+    playBeat(((music.next % state.c.total) + state.c.total) % state.c.total, music.ctx.currentTime + (music.next - state.t) / beatsPerSec);
+    music.next++;
+  }
+}
 
 // ---------- Drawing ----------
 let tokens = {};
@@ -670,9 +720,10 @@ function updateReadout() {
 
 function frame(now) {
   if (state.playing) {
-    const dt = Math.min(0.1, (now - state.last) / 1000);
-    state.t += dt * (+$('tempo').value || 120) / 60 * +$('speed').value;
-    if (state.t >= state.c.total) state.t -= state.c.total;
+    const dt = Math.min(0.1, (now - state.last) / 1000), bps = (+$('tempo').value || 120) / 60 * +$('speed').value;
+    state.t += dt * bps;
+    if (state.t >= state.c.total) { state.t -= state.c.total; if (music.next !== null) music.next -= state.c.total; }
+    if ($('music').checked) scheduleMusic(bps);
   }
   state.last = now;
   draw(); updateReadout();
@@ -684,6 +735,7 @@ $('play').onclick = () => setPlaying(!state.playing);
 $('back').onclick = () => { setPlaying(false); seek(Math.ceil(state.t - 1e-6) - 1); };
 $('fwd').onclick = () => { setPlaying(false); seek(Math.floor(state.t + 1e-6) + 1); };
 $('scrub').oninput = e => { setPlaying(false); seek(+e.target.value); };
+$('music').onchange = () => { music.next = null; if ($('music').checked && state.playing) startAudio(); };
 $('run').onclick = () => { store('contra.dance', $('danceText').value); build(); };
 $('reset').onclick = () => { $('danceText').value = SAMPLE; store('contra.dance', SAMPLE); build(); };
 for (const id of ['lines', 'sets', 'swingRate']) $(id).onchange = build;
