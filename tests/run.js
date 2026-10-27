@@ -47,12 +47,12 @@ for (const [lines, sets] of [[1, 1], [2, 3], [4, 6]]) {
 const c = Contra.compile(dance, { lines: 1, sets: 1 });
 const at = (id, t) => Contra.poseAt(c, id, t);
 const near = (p, x, y) => Math.hypot(p.x - x, p.y - y) < 0.05;
-check(near(at('0.1R', 16), 0.6, -0.6) && near(at('0.2R', 16), -0.6, 0.6), 'after the robins allemande 1½ the robins have swapped corners');
-check(near(at('0.1L', 64), 0.6, -0.6) && near(at('0.1R', 64), -0.6, -0.6), 'ones end at the bottom, on the same side they started');
+check(near(at('0.1R', 16), 0.6, -0.5) && near(at('0.2R', 16), -0.6, 0.5), 'after the robins allemande 1½ the robins have swapped corners');
+check(near(at('0.1L', 64), 0.6, -0.5) && near(at('0.1R', 64), -0.6, -0.5), 'ones end at the bottom, on the same side they started');
 
 // Box the gnat (A2, beats 28-32): pull in close, push back out, then circle around each other while turning.
 const gap = t => { const a = at('0.1L', t), b = at('0.2R', t); return Math.hypot(a.x - b.x, a.y - b.y); };
-check(gap(28) > 1.1 && gap(29) < 0.55 && gap(30) > 0.85, `box the gnat: pull in close on beat 1, push out on beat 2 (${gap(28).toFixed(2)} -> ${gap(29).toFixed(2)} -> ${gap(30).toFixed(2)} m)`);
+check(gap(28) > 0.95 && gap(29) < 0.55 && gap(30) > 0.85, `box the gnat: pull in close on beat 1, push out on beat 2 (${gap(28).toFixed(2)} -> ${gap(29).toFixed(2)} -> ${gap(30).toFixed(2)} m)`);
 const L0 = at('0.1L', 28), R0 = at('0.2R', 28), L30 = at('0.1L', 30), L1 = at('0.1L', 32), R1 = at('0.2R', 32);
 const d2 = (p, q) => Math.hypot(p.x - q.x, p.y - q.y);
 check(d2(L30, L0) < d2(L30, R0), 'box the gnat: no trading of places before beat 3');
@@ -61,7 +61,7 @@ const turned = id => Math.abs(Math.abs(at(id, 32).a - at(id, 30).a) - Math.PI) <
 check(turned('0.1L') && turned('0.2R') && at('0.1L', 32).a < at('0.1L', 30).a && at('0.2R', 32).a > at('0.2R', 30).a,
   'box the gnat: lark turns 180 degrees to the right, robin 180 degrees to the left');
 const L34 = at('0.1L', 34);
-check(Math.abs(L34.x - (-0.6)) < 0.05 && Math.abs(L34.y - 0.6) < 0.05, 'the neighbor pull by after box the gnat carries the lark on to a full place');
+check(Math.abs(L34.x - (-0.6)) < 0.05 && Math.abs(L34.y - 0.5) < 0.05, 'the neighbor pull by after box the gnat carries the lark on to a full place');
 
 // Robins stand still during the men's pull by, so they finish the partner pull by facing into the set.
 const facesIn = (id, t) => { const p = at(id, t); return Math.cos(p.a) * Math.sign(-p.x) > 0.95; };

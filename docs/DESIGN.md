@@ -23,7 +23,7 @@ Nothing found combines dance entry, timing/speed checks and progression checks.
 - **World frame in meters**, shared by all lines. Time in **beats**; a measure (bar) is 2 beats and is the main unit for entering and displaying figure lengths. Tempo converts beats to seconds.
 - +y points up the hall toward the band; +x runs across the hall. Facing angle in radians, measured the standard math way: 0 = facing +x, π/2 = facing up the hall.
 - **Each line has its own placement** (origin and direction) in the world frame. Lines default to side by side across the hall, but are not assumed to be parallel or equally spaced, so later formations (squares, grid squares) fit the same model.
-- Defaults (configurable): partners 1.2 m apart across the line, neighbors 1.2 m apart along it, one hands-four = 2.4 m of line, hand-hold radius ≈ 0.4 m, line centers 3 m apart.
+- Defaults (configurable): partners 1.2 m apart across the line, neighbors 1.0 m apart along it (holding hands in long lines), one hands-four = 2.0 m of line, hand-hold radius ≈ 0.4 m, line centers 3 m apart.
 
 ## Data model
 

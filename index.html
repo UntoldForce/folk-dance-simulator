@@ -187,7 +187,7 @@ const Contra = (() => {
   const TAU = Math.PI * 2;
   const DEFAULTS = {
     partnerGap: 1.2,        // m across the set
-    neighborGap: 1.2,       // m along the line between couples
+    neighborGap: 1.0,       // m along the line between couples (neighbors holding hands in long lines)
     lineSpacing: 3.0,       // m between line centers
     handHold: 0.7,          // m between dancers holding hands at arm's length
     ringGap: 0.9,           // m between neighbors holding hands in a circle
@@ -315,7 +315,7 @@ const Contra = (() => {
       const sweep = base - Math.round((base - nominal) / TAU) * TAU;
       const r0 = dist(lark, robin) / 2;
       const radius = u => (u < 0.15 ? lerp(r0, P.swingRadius, mj(u / 0.15))
-        : u > 0.85 ? lerp(P.swingRadius, half, mj((u - 0.85) / 0.15)) : P.swingRadius);
+        : u > 0.85 ? lerp(P.swingRadius, P.neighborGap / 2, mj((u - 0.85) / 0.15)) : P.swingRadius);
       return [[lark, 0], [robin, Math.PI]].map(([d, off]) => u => {
         const ang = a0 + off + sweep * trap(u, 0.15), r = radius(u), m = { x: lerp(m0.x, m1.x, mj(u)), y: lerp(m0.y, m1.y, mj(u)) };
         // Face each other as they come together, then the hold: partner at the right front, right hip to right hip.
@@ -332,10 +332,15 @@ const Contra = (() => {
       const sweep = dir * call.turns * TAU;
       // Take hands: the ring draws in until neighbors in it are ringGap apart.
       const rRing = ctx.p.ringGap / (2 * Math.sin(Math.PI / ps.length));
-      return ps.map(d => {
-        const a0 = angleTo(c, d), r0 = dist(c, d);
+      // Spread evenly around the ring as hands are taken, keeping everyone's order.
+      const n = ps.length, a0s = ps.map(d => angleTo(c, d));
+      const order = a0s.map((a, i) => i).sort((i, j) => a0s[i] - a0s[j]), even = {};
+      const offset = Math.atan2(...['sin', 'cos'].map(fn => order.reduce((s, i, k) => s + Math[fn](a0s[i] - (TAU * k) / n), 0)));
+      order.forEach((i, k) => (even[i] = a0s[i] + wrap(offset + (TAU * k) / n - a0s[i])));
+      return ps.map((d, i) => {
+        const a0 = a0s[i], r0 = dist(c, d);
         return u => {
-          const ang = a0 + sweep * trap(u, 0.2), r = lerp(r0, Math.min(r0, rRing), mj(u / 0.2));
+          const ang = lerp(a0, even[i], mj(u / 0.2)) + sweep * trap(u, 0.2), r = lerp(r0, Math.min(r0, rRing), mj(u / 0.2));
           return { x: c.x + r * Math.cos(ang), y: c.y + r * Math.sin(ang), a: settle(d.a, ang + Math.PI, u) };  // everyone faces the center
         };
       });
