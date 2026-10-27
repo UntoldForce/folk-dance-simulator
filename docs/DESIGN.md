@@ -128,12 +128,34 @@ Each figure already declares which hand holds whom and for how long, so the simp
 
 Crossed arms and body twist need dancers modeled as bodies rather than dots; left out.
 
-## Startup questions (open)
+## Startup decisions
 
-1. **Multi-line effects:** which interactions between lines must the engine support (e.g. figures with a dancer in the next line, crossing between lines, lines merging or splitting)?
-2. **Acceleration:** flag acceleration as well as speed (sharp swings, sudden reversals)? If yes, paths must join smoothly between figures.
-3. **Speed thresholds:** proposed defaults are 120 beats/min, a warning above 2.0 m/s and an alert above 2.5 m/s.
-4. **Entry units:** should `swing 8` mean 8 beats or 8 bars?
-5. **Reference dances:** 1–2 dances you know well, for testing Phases 1–2.
-6. **Screens:** desktop only, or tablets and phones as well?
-7. **Workflow:** merge each phase into main by pull request after review? GitHub Pages on?
+1. **Multiple lines:** always modeled by the engine; figures between lines are rare, so their controls and checks live under **Advanced settings**.
+2. **Acceleration and direction of travel are first-class checks**, not extras. Many dances fail because they *feel* wrong even though they work on paper; that feeling comes from acceleration. See "Motion and flow" below.
+3. **Every number is adjustable**, starting from: 120 beats/min, speed warning above 2.0 m/s, alert above 2.5 m/s.
+4. **Entry units:** bars by default (`swing 4` = 4 bars); `8b` for beats.
+5. **Test dances:** contradb's figure vocabulary (49 figure types, see below) is the reference for the figure library. The dances themselves are not in that repository.
+6. **Desktop first**; phone and tablet layout later.
+
+## Motion and flow (the "feel" checks)
+
+The engine measures, for every dancer at every moment:
+
+- **Speed** (m/s) — rushed or dawdling.
+- **Speeding up / slowing down** (tangential acceleration, m/s²) — sudden starts and stops.
+- **Turning force** (centripetal acceleration v²/r, m/s²) — tight, fast curves; swings and fast allemandes.
+- **Spin rate** of the body (°/s) — twirls, swings, turn-alones; a dizziness measure.
+- **Flow reversals** — a figure that ends travelling or turning one way followed by one that starts the opposite way (e.g. clockwise into counter-clockwise).
+
+To make these numbers meaningful, figure paths must **join smoothly**: each figure declares how dancers enter and leave it (direction and speed), and the engine blends the joins instead of letting dots jump or turn instantly. Where a smooth join needs more acceleration than is comfortable, that is exactly what gets flagged.
+
+## Basic vs Advanced settings
+
+The engine always computes everything; the interface only decides what to show.
+
+- **Basic:** the animation, the A1/A2/B1/B2 timeline, tempo, play/scrub, and red/yellow flags on the timeline where something is too fast, too abrupt, or reverses flow.
+- **Advanced settings:** floor dimensions, every threshold, which checks are on, number and placement of lines, figures and checks between lines (e.g. lines too close together), per-dancer graphs of speed and acceleration over time.
+
+## Figure vocabulary reference
+
+contradb (github.com/contradb/contra, AGPL) defines these figure types, used here as a checklist for the figure library (vocabulary only; no code copied): allemande, allemande orbit, arch & dive, balance, balance the ring, box circulate, box the gnat, butterfly whirl, California twirl, chain, circle, contra corners, cross trails, do-si-do, dolphin hey, down/up the hall, figure 8, form long waves / a long wave / an ocean wave, gate, give & take, facing star, gyre, hey, long lines, mad robin, pass by, pass through, petronella, poussette, promenade, pull by (dancers / direction), revolving door, right left through, Rory O'More, roll away, slice, slide along set, square through, star, star promenade, stand still, swing, turn alone, zig zag.
