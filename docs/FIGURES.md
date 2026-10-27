@@ -39,6 +39,24 @@ figure that doesn't start on a phrase boundary (8-beat calls start an 8-beat phr
 | `~` | Partial pass, ending shoulder to shoulder |
 | `&`, `/` | Numbers: `1 & 1/2` |
 
+## Categories in the editor
+
+Moves are grouped by what they do to the dancers' positions. Each category has a color and an icon in the editor.
+
+| # | Category | What it does |
+|---|---|---|
+| 1 | Turn with one person | Two dancers connect and revolve around each other; where they end depends on the amount |
+| 2 | Trade places | Two dancers swap spots |
+| 3 | Go out and come back | Dancers move but end where they started |
+| 4 | Hands-four rotations | All four turn together as a unit, by an amount |
+| 5 | Couple turns | Two dancers side by side turn as a pair to face a new direction |
+| 6 | Two-couple exchanges | Couples swap sides of the set through a structured pattern |
+| 7 | Weaves | Dancers thread past each other along a figure-eight path |
+| 8 | Travel and progress | Couples move along the set or to new neighbors |
+
+The full list of moves in each category is the `POOL` list in `index.html`. Moves that aren't animated yet can still be
+placed in a dance; dancers stand still during them and the checks show a caution.
+
 ## Figures
 
 | Figure | Who | Typical beats | How it moves | Ends | Status |

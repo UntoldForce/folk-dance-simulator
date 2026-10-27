@@ -18,6 +18,7 @@
   --accent-ink: #ffffff;
   --lark: #2c5ea8;
   --robin: #c4533b;
+  --c1: #7454b8; --c2: #1d8282; --c3: #a8701c; --c4: #3c8a4c; --c5: #b0457a; --c6: #8a5a3c; --c7: #7a861f; --c8: #5c6e82;
   --ok: #2f7d4f;
   --warn: #a8641a;
   --bad: #b3322a;
@@ -29,13 +30,15 @@
   :root:not([data-theme="light"]) {
     --bg: #111614; --panel: #19201d; --floor: #1e2522; --ink: #e3e9e6; --muted: #9aa7a1; --rule: #2d3733;
     --accent: #72c4a8; --accent-ink: #0d1412; --lark: #78a3ea; --robin: #f08d72;
+    --c1: #a990e8; --c2: #5cc4c0; --c3: #e0a85a; --c4: #79c98a; --c5: #e584b5; --c6: #c9977a; --c7: #bcc75a; --c8: #9db0c4;
     --ok: #6cc28c; --warn: #e2a457; --bad: #f0796e; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #111614; --panel: #19201d; --floor: #1e2522; --ink: #e3e9e6; --muted: #9aa7a1; --rule: #2d3733;
   --accent: #72c4a8; --accent-ink: #0d1412; --lark: #78a3ea; --robin: #f08d72;
-  --ok: #6cc28c; --warn: #e2a457; --bad: #f0796e; color-scheme: dark;
+  --c1: #a990e8; --c2: #5cc4c0; --c3: #e0a85a; --c4: #79c98a; --c5: #e584b5; --c6: #c9977a; --c7: #bcc75a; --c8: #9db0c4;
+    --ok: #6cc28c; --warn: #e2a457; --bad: #f0796e; color-scheme: dark;
 }
 html, body { height: 100%; }
 body {
@@ -117,6 +120,25 @@ label.small { font-size: 13px; color: var(--muted); display: inline-flex; align-
 .ghost { position: fixed; z-index: 20; pointer-events: none; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--accent);
   background: var(--panel); font-size: 13px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18); }
 .pool { display: flex; flex-wrap: wrap; gap: 6px; }
+.pgroup { border-left: 3px solid var(--cat); padding-left: 8px; }
+.pgroup summary { display: flex; align-items: center; gap: 6px; cursor: pointer; list-style: none; font: 600 13px var(--font-display); color: var(--cat); padding: 2px 0; }
+.pgroup summary::-webkit-details-marker { display: none; }
+.pgroup summary small { margin-left: auto; font: 500 11px var(--font-mono); color: var(--muted); }
+.pgroup .chips { display: flex; flex-wrap: wrap; gap: 5px; padding: 4px 0 8px; }
+.pool { flex-direction: column; flex-wrap: nowrap; gap: 4px; max-height: 460px; overflow-y: auto; padding-right: 4px; }
+.cicon { width: 14px; height: 14px; flex: none; vertical-align: -2px; }
+.cat0 { --cat: var(--muted); } .cat1 { --cat: var(--c1); } .cat2 { --cat: var(--c2); } .cat3 { --cat: var(--c3); } .cat4 { --cat: var(--c4); }
+.cat5 { --cat: var(--c5); } .cat6 { --cat: var(--c6); } .cat7 { --cat: var(--c7); } .cat8 { --cat: var(--c8); }
+.chip.soon { border-style: dashed; color: var(--muted); }
+.pgroup .chip:hover { border-color: var(--cat); }
+.fblk { border-left: 4px solid var(--cat); }
+.fblk .len { display: flex; align-items: center; gap: 4px; }
+.fblk .len .cicon { color: var(--cat); }
+.fblk.soon { border-style: dashed; border-left-style: solid; background: var(--bg); }
+.inspector h3 { display: flex; align-items: center; gap: 6px; color: var(--cat); }
+.inspector h3 .small { color: var(--muted); font-weight: 500; }
+.soonnote { grid-column: 1 / -1; margin: 0; font-size: 12.5px; color: var(--muted); }
+#insText { width: 100%; font: 13px var(--font-body); }
 .chip { border: 1px solid var(--rule); border-radius: 999px; padding: 5px 11px; font-size: 13px; background: var(--panel); cursor: grab; touch-action: none; user-select: none; }
 .chip:hover { border-color: var(--accent); }
 .chip small { color: var(--muted); font-family: var(--font-mono); margin-left: 4px; }
@@ -478,7 +500,7 @@ const Contra = (() => {
     if ((m = t.match(/allemande\s+(left|right)(.*)/))) return { fig: 'allemande', who, hand: m[1][0].toUpperCase(), turns: parseTurns(m[2], 1) };
     if (/box the gnat/.test(t)) return { fig: 'boxTheGnat', who };
     if ((m = t.match(/pull\s*-?\s*by\s*(right|left)?/))) return { fig: 'pullBy', who, hand: m[1] ? m[1][0].toUpperCase() : 'R' };
-    if (/balance the ring/.test(t)) return { fig: null, who };
+    if (/balance (the )?(ring|wave)|wavy line|broken circle/.test(t)) return { fig: null, who };
     if (/balance/.test(t)) return { fig: 'balance', who, hand: handTag ? handTag[0].toUpperCase() : null };
     if (/swing/.test(t)) return { fig: 'swing', who };
     if ((m = t.match(/circle\s*(left|right)?(.*)/))) return { fig: 'circle', who: 'all', dir: m[1] === 'right' ? 'R' : 'L', turns: parseTurns(m[2], 1) };
@@ -500,7 +522,7 @@ const Contra = (() => {
       if (fig) {
         if (!part) { part = { name: 'A1', calls: [] }; dance.parts.push(part); }
         const call = { beats: Number(fig[1]), text: fig[2].trim(), ...parseFigure(fig[2]) };
-        if (!call.fig) dance.warnings.push({ level: 'bad', text: `${part.name}: “${call.text}” isn't a figure the simulator knows yet. Dancers stand still for those ${call.beats} beats.` });
+        if (!call.fig) dance.warnings.push({ level: 'bad', call, part: part.name, text: `${part.name}: “${call.text}” isn't a figure the simulator knows yet. Dancers stand still for those ${call.beats} beats.` });
         part.calls.push(call);
         continue;
       }
@@ -881,19 +903,92 @@ function roleWords(text) {
     .replace(/\b(larks|gents|men)\b/gi, w => match(w, L)).replace(/\b(robins|ladies|women)\b/gi, w => match(w, R))
     .replace(/\b(lark|gent|man)\b/gi, w => match(w, l1)).replace(/\b(robin|lady|woman)\b/gi, w => match(w, r1));
 }
-const FIG_NAMES = { longLines: 'Long lines', allemande: 'Allemande', balance: 'Balance', pullBy: 'Pull by', boxTheGnat: 'Box the gnat', swing: 'Swing', circle: 'Circle' };
-const POOL = [
-  { fig: 'longLines' },
-  { fig: 'balance', who: 'neighbors', hand: 'R' },
-  { fig: 'swing', who: 'partners', beats: 8 },
-  { fig: 'allemande', who: 'neighbors', hand: 'R', turns: 1 },
-  { fig: 'pullBy', who: 'partners', hand: 'R' },
-  { fig: 'boxTheGnat', who: 'neighbors' },
-  { fig: 'circle', dir: 'L', turns: 1 },
+// The move categories, by what a move does to the dancers' positions. Each has a color and an icon.
+const CATEGORIES = [
+  { id: 1, name: 'Turn with one person', icon: '<path d="M12.6 5.2A5.2 5.2 0 1 0 13.2 9.4"/><path d="M13.4 2.6l-.5 3-3-.4"/>' },
+  { id: 2, name: 'Trade places', icon: '<path d="M2.5 5.5h10M10 3l2.5 2.5L10 8"/><path d="M13.5 10.5h-10M6 8l-2.5 2.5L6 13"/>' },
+  { id: 3, name: 'Go out and come back', icon: '<path d="M3 5.5h7.5a2.75 2.75 0 0 1 0 5.5H5"/><path d="M7.2 8.6L4.8 11l2.4 2.4"/>' },
+  { id: 4, name: 'Hands-four rotations', icon: '<circle cx="8" cy="8" r="5" stroke-dasharray="2.6 2.6"/><circle cx="8" cy="3" r="1.4" fill="currentColor"/><circle cx="13" cy="8" r="1.4" fill="currentColor"/><circle cx="8" cy="13" r="1.4" fill="currentColor"/><circle cx="3" cy="8" r="1.4" fill="currentColor"/>' },
+  { id: 5, name: 'Couple turns', icon: '<circle cx="5.5" cy="11.5" r="1.6" fill="currentColor"/><circle cx="10.5" cy="11.5" r="1.6" fill="currentColor"/><path d="M3.2 8a4.8 4.8 0 0 1 9.6 0"/><path d="M12.8 8l1.5-2.1M12.8 8l-2.2-.8"/>' },
+  { id: 6, name: 'Two-couple exchanges', icon: '<path d="M4 4l8 8M12 4l-8 8"/><circle cx="3" cy="3" r="1.4" fill="currentColor"/><circle cx="13" cy="3" r="1.4" fill="currentColor"/><circle cx="3" cy="13" r="1.4" fill="currentColor"/><circle cx="13" cy="13" r="1.4" fill="currentColor"/>' },
+  { id: 7, name: 'Weaves', icon: '<path d="M8 8C6 5 2.5 5 2.5 8S6 11 8 8s5.5-3 5.5 0S10 11 8 8z"/>' },
+  { id: 8, name: 'Travel and progress', icon: '<path d="M3 4l4 4-4 4M8.5 4l4 4-4 4"/>' },
 ];
+const icon = cat => `<svg class="cicon" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${(CATEGORIES.find(c => c.id === cat) || { icon: '<circle cx="8" cy="8" r="2"/>' }).icon}</svg>`;
+
+// Every move in the pool. Moves with `fig` are animated; the others can be placed in a dance
+// (dancers stand still during them) until their animation is built. `re` recognises a move in dance text.
+const POOL = [
+  { cat: 1, label: 'Allemande', fig: 'allemande', who: 'neighbors', hand: 'R', turns: 1 },
+  { cat: 1, label: 'Swing', fig: 'swing', who: 'partners', beats: 8 },
+  { cat: 1, label: 'Gypsy', text: 'Partner gypsy', beats: 8, re: /gyps|shoulder round/ },
+  { cat: 1, label: 'Arm turn', text: 'Neighbor arm right 1', beats: 8, re: /\barm (right|left)|arm turn/ },
+  { cat: 1, label: 'Two-hand turn', text: 'Partner two-hand turn', beats: 8, re: /two-hand turn/ },
+  { cat: 2, label: 'Pull by', fig: 'pullBy', who: 'partners', hand: 'R' },
+  { cat: 2, label: 'Box the gnat', fig: 'boxTheGnat', who: 'neighbors' },
+  { cat: 2, label: 'Pass through', text: 'Pass through across', beats: 4, re: /pass (through|thru)/ },
+  { cat: 2, label: 'Swat the flea', text: 'Neighbor swat the flea', beats: 4, re: /swat the flea/ },
+  { cat: 2, label: 'California twirl', text: 'Partner California twirl', beats: 4, re: /california twirl/ },
+  { cat: 2, label: 'Star through', text: 'Neighbor star through', beats: 4, re: /star (through|thru)/ },
+  { cat: 2, label: 'Roll away', text: 'Partner roll away with a half sashay', beats: 4, re: /roll ?away/ },
+  { cat: 2, label: 'Half sashay', text: 'Partner half sashay', beats: 4, re: /half sashay/ },
+  { cat: 2, label: 'Trade', text: 'Robins trade by right', beats: 4, re: /\btrade\b/ },
+  { cat: 2, label: 'Cross', text: 'Robins cross by right', beats: 4, re: /\bcross\b/ },
+  { cat: 3, label: 'Balance', fig: 'balance', who: 'neighbors', hand: 'R' },
+  { cat: 3, label: 'Long lines', fig: 'longLines' },
+  { cat: 3, label: 'Do-si-do', text: 'Neighbor do-si-do', beats: 8, re: /do-?s[ia]-?do|dosido|dosado/ },
+  { cat: 3, label: 'Seesaw', text: 'Partner seesaw', beats: 8, re: /see-?saw/ },
+  { cat: 3, label: 'Mad robin', text: 'Mad robin around neighbor', beats: 8, re: /mad robin/ },
+  { cat: 3, label: 'Set', text: 'Set to partner', beats: 4, re: /^set\b|\bset to\b/ },
+  { cat: 3, label: 'Turn single', text: 'Turn single', beats: 4, re: /turn single/ },
+  { cat: 3, label: 'Balance the wave', text: 'Balance the wave', beats: 4, re: /balance (the )?wave|wavy line/ },
+  { cat: 3, label: 'Balance the ring', text: 'Balance the ring', beats: 4, re: /balance (the )?ring/ },
+  { cat: 4, label: 'Circle', fig: 'circle', dir: 'L', turns: 1 },
+  { cat: 4, label: 'Star', text: 'Star right 1', beats: 8, re: /^star (right|left)|hands across/ },
+  { cat: 4, label: 'Petronella', text: 'Petronella turn', beats: 4, re: /petronella/ },
+  { cat: 4, label: 'Poussette', text: 'Partner poussette clockwise 1/2', beats: 8, re: /poussette/ },
+  { cat: 4, label: 'Broken circle', text: 'Broken circle left 1/4', beats: 4, re: /broken circle/ },
+  { cat: 4, label: 'Star promenade', text: 'Star promenade 1/2', beats: 4, re: /star promenade/ },
+  { cat: 4, label: 'Weathervane', text: 'Weathervane', beats: 8, re: /weathervane/ },
+  { cat: 5, label: 'Courtesy turn', text: 'Partner courtesy turn', beats: 4, re: /courtesy turn/ },
+  { cat: 5, label: 'Turn as a couple', text: 'Partner turn as a couple', beats: 4, re: /turn as (a )?couples?|wheel around/ },
+  { cat: 5, label: 'Gate', text: 'Neighbor gate', beats: 4, re: /\bgate\b/ },
+  { cat: 5, label: 'Butterfly whirl', text: 'Partner butterfly whirl', beats: 4, re: /butterfly whirl/ },
+  { cat: 5, label: 'Dixie twirl', text: 'Dixie twirl', beats: 4, re: /dixie twirl/ },
+  { cat: 6, label: 'Robins chain', text: 'Robins chain', beats: 8, re: /(robins|ladies|women)'? chain/ },
+  { cat: 6, label: 'Larks chain', text: 'Larks chain', beats: 8, re: /(larks|gents|men)'? chain/ },
+  { cat: 6, label: 'Right and left through', text: 'Right and left through', beats: 8, re: /right and left (through|thru)/ },
+  { cat: 6, label: 'Flutterwheel', text: 'Flutterwheel', beats: 8, re: /flutterwheel/ },
+  { cat: 6, label: 'Square through', text: 'Square through 2', beats: 8, re: /square (through|thru)/ },
+  { cat: 6, label: 'Give and take', text: 'Robins give and take partner', beats: 4, re: /give.and.take/ },
+  { cat: 7, label: 'Hey for four', text: 'Hey for four', beats: 16, re: /^(full )?hey( for four)?$/ },
+  { cat: 7, label: 'Half hey', text: 'Half hey', beats: 8, re: /half hey|hey 1\/2/ },
+  { cat: 7, label: 'Hey for three', text: 'Hey for three', beats: 12, re: /hey for three/ },
+  { cat: 7, label: 'Half figure eight', text: 'Ones half figure eight', beats: 8, re: /half figure (8|eight)/ },
+  { cat: 7, label: 'Figure eight', text: 'Ones figure eight', beats: 16, re: /figure (8|eight)/ },
+  { cat: 8, label: 'Slice', text: 'Slice left', beats: 8, re: /\bslice\b/ },
+  { cat: 8, label: 'Lead down', text: 'Ones lead down the center', beats: 8, re: /lead (down|up)/ },
+  { cat: 8, label: 'Down the hall', text: 'Down the hall in a line of four', beats: 8, re: /down the (hall|center)/ },
+  { cat: 8, label: 'Up the hall', text: 'Up the hall in a line of four', beats: 8, re: /up the (hall|center)|come back/ },
+  { cat: 8, label: 'Cast off', text: 'Ones cast off', beats: 4, re: /cast off/ },
+  { cat: 8, label: 'Cast down', text: 'Ones cast down', beats: 4, re: /cast down/ },
+  { cat: 8, label: 'Shift', text: 'Shift left', beats: 4, re: /^shift\b/ },
+  { cat: 8, label: 'Veer', text: 'Veer left', beats: 2, re: /^veer\b/ },
+  { cat: 8, label: 'Contra corners', text: 'Ones turn contra corners', beats: 16, re: /contra corners/ },
+];
+const FIG_NAMES = Object.fromEntries(POOL.filter(d => d.fig).map(d => [d.fig, d.label]));
+const FIG_CAT = Object.fromEntries(POOL.filter(d => d.fig).map(d => [d.fig, d.cat]));
+// Which pool move a figure in the dance is: by its animated figure, or by recognising its text.
+function moveOf(k) {
+  if (k.fig) return POOL.find(d => d.fig === k.fig);
+  const t = k.text.toLowerCase().replace(/^(partners?|neighbou?rs?|ones|twos|larks|robins|men|women|gents|ladies)\s+/, '');
+  return POOL.find(d => d.re && (d.re.test(t) || d.re.test(k.text.toLowerCase()))) || null;
+}
 const newCall = def => {
   const k = { beats: def.beats || Contra.TYPICAL_BEATS[def.fig] || 4, ...def };
-  k.text = roleWords(Contra.callText(k));
+  delete k.cat; delete k.label; delete k.re;
+  k.text = roleWords(def.fig ? Contra.callText(k) : def.text);
+  if (!def.fig) Object.assign(k, Contra.parseDance('A1\n(1) ' + k.text).parts[0].calls[0], { beats: k.beats, text: k.text });
   return k;
 };
 const history = { list: [], at: -1 };
@@ -932,11 +1027,12 @@ function renderRows() {
     let at = 0;
     part.calls.forEach((k, ci) => {
       const b = document.createElement('div'), compiled = c.calls[flat++];
-      b.className = 'fblk' + (compiled && compiled.flagged ? ' flag' : '') + (state.sel && state.sel.part === pi && state.sel.index === ci ? ' sel' : '');
+      const move = moveOf(k);
+      b.className = `fblk cat${move ? move.cat : 0}` + (k.fig ? '' : ' soon') + (compiled && compiled.flagged && k.fig ? ' flag' : '') + (state.sel && state.sel.part === pi && state.sel.index === ci ? ' sel' : '');
       b.dataset.part = pi; b.dataset.index = ci; b.dataset.flat = flat - 1;
       b.style.left = `calc(${(at / scale) * 100}% + 1px)`; b.style.width = `calc(${(k.beats / scale) * 100}% - 2px)`;
       b.title = `${roleWords(k.text)} (${k.beats} beats)`;
-      b.innerHTML = `<span class="name"></span><span class="len">${k.beats}</span><span class="grip" aria-hidden="true"></span>`;
+      b.innerHTML = `<span class="name"></span><span class="len">${icon(move ? move.cat : 0)}${k.beats}</span><span class="grip" aria-hidden="true"></span>`;
       b.querySelector('.name').textContent = roleWords(k.text);
       b.addEventListener('pointerdown', e => startDrag(e, e.target.classList.contains('grip') ? 'resize' : 'move', { part: pi, index: ci, el: b, track }));
       track.appendChild(b);
@@ -951,11 +1047,19 @@ function renderRows() {
 function renderPool() {
   const pool = $('pool');
   pool.innerHTML = '';
-  for (const def of POOL) {
-    const chip = document.createElement('button'); chip.className = 'chip'; chip.type = 'button';
-    chip.innerHTML = `${FIG_NAMES[def.fig]}<small>${newCall(def).beats}</small>`;
-    chip.addEventListener('pointerdown', e => startDrag(e, 'pool', { def, el: chip }));
-    pool.appendChild(chip);
+  for (const cat of CATEGORIES) {
+    const group = document.createElement('details'); group.className = `pgroup cat${cat.id}`; group.open = true;
+    const moves = POOL.filter(d => d.cat === cat.id);
+    group.innerHTML = `<summary>${icon(cat.id)}<span>${cat.name}</span><small>${moves.filter(d => d.fig).length}/${moves.length}</small></summary><div class="chips"></div>`;
+    for (const def of moves) {
+      const chip = document.createElement('button'); chip.type = 'button';
+      chip.className = 'chip' + (def.fig ? '' : ' soon');
+      chip.title = def.fig ? `${def.label}: drag into a part` : `${def.label}: not animated yet. You can still place it; dancers stand still during it.`;
+      chip.innerHTML = `${def.label}<small>${newCall(def).beats}</small>`;
+      chip.addEventListener('pointerdown', e => startDrag(e, 'pool', { def, el: chip }));
+      group.querySelector('.chips').appendChild(chip);
+    }
+    pool.appendChild(group);
   }
 }
 
@@ -989,7 +1093,7 @@ function onDragMove(e) {
   }
   if (!drag.ghost) {
     drag.ghost = document.createElement('div'); drag.ghost.className = 'ghost';
-    drag.ghost.textContent = drag.kind === 'pool' ? FIG_NAMES[drag.def.fig] : roleWords(state.doc.parts[drag.part].calls[drag.index].text);
+    drag.ghost.textContent = drag.kind === 'pool' ? drag.def.label : roleWords(state.doc.parts[drag.part].calls[drag.index].text);
     document.body.appendChild(drag.ghost);
     if (drag.kind === 'move') drag.el.classList.add('dragging');
   }
@@ -1068,7 +1172,9 @@ function renderInspector() {
   const info = Contra.FIGURE_INFO[k.fig];
   const field = (label, html) => `<label>${label}</label>${html}`;
   const options = (list, val) => list.map(([v, t]) => `<option value="${v}"${String(v) === String(val) ? ' selected' : ''}>${t}</option>`).join('');
-  let html = `<h3>${FIG_NAMES[k.fig] || 'Unknown figure'} <span class="small">in ${state.doc.parts[sel.part].name}</span></h3>`;
+  const move = moveOf(k);
+  let html = `<h3 class="cat${move ? move.cat : 0}">${icon(move ? move.cat : 0)} ${move ? move.label : 'Unknown figure'} <span class="small">in ${state.doc.parts[sel.part].name}</span></h3>`;
+  if (!k.fig) html += `<p class="soonnote">Not animated yet: dancers stand still during it. Edit the line to say who dances it.</p>` + field('Line', `<input id="insText" type="text" value="">`);
   if (info && info.group === 'pair') html += field('Who', `<select id="insWho">${options([['partners', 'Partners'], ['neighbors', 'Neighbors'], ['larks', roleSet()[0]], ['robins', roleSet()[1]], ['ones', 'Ones'], ['twos', 'Twos']], k.who)}</select>`);
   if (k.fig === 'allemande' || k.fig === 'pullBy') html += field('Hand', `<select id="insHand">${options([['R', 'Right'], ['L', 'Left']], k.hand)}</select>`);
   if (k.fig === 'balance') html += field('Hands', `<select id="insHand">${options([['', 'None'], ['R', 'Right'], ['L', 'Left']], k.hand || '')}</select>`);
@@ -1078,6 +1184,7 @@ function renderInspector() {
   html += `<div class="line"></div><div class="actions"><button id="insDelete" type="button">Remove</button></div>`;
   box.innerHTML = html;
   box.querySelector('.line').textContent = `(${k.beats}) ${roleWords(k.text)}`;
+  if ($('insText')) { $('insText').value = roleWords(k.text); $('insText').onchange = () => { k.text = $('insText').value.trim() || k.text; commit(true); }; }
   const change = (id, apply) => { const el = $(id); if (el) el.onchange = () => { apply(el.value); if (k.fig) k.text = roleWords(Contra.callText(k)); commit(true); }; };
   change('insWho', v => (k.who = v));
   change('insHand', v => (k.hand = v || null));
@@ -1094,8 +1201,13 @@ function showChecks() {
   const times = pr.passes === 1 ? 'after one time through' : `every time through (${pr.passes} times)`;
   if (pr.firstBad < 0) items.push(['ok', `Progression works ${times}: dancing couples move ${word} (ones down, twos up), on their own side and facing their new neighbors; couples out at the ends cross over and come back in.`]);
   else items.push(['bad', `Progression breaks in time ${pr.firstBad + 1}: ${pr.total - pr.good} of ${pr.total} dancers don't end ${word} along, on their own side, facing across. Watch the end of that time through to see where they go.`]);
-  for (const w of c.warnings) items.push([w.level === 'info' ? 'warn' : w.level, w.text]);
-  if (!c.warnings.some(w => w.level === 'bad')) items.push(['ok', 'Every figure is one the simulator knows.']);
+  // A move from the pool that isn't animated yet is a caution; text the simulator can't recognise is a problem.
+  const notYet = w => w.call && moveOf(w.call);
+  for (const w of c.warnings) {
+    if (notYet(w)) items.push(['warn', `${w.part}: “${w.call.text}” (${notYet(w).label}) isn't animated yet. Dancers stand still for those ${w.call.beats} beats.`]);
+    else items.push([w.level === 'info' ? 'warn' : w.level, w.text]);
+  }
+  if (!c.warnings.some(w => w.call)) items.push(['ok', 'Every figure is animated.']);
   if (!c.warnings.some(w => /beats long/.test(w.text))) items.push(['ok', 'Every part is 16 beats and the dance is 64.']);
   if (!c.warnings.some(w => /musical phrase/.test(w.text))) items.push(['ok', '8- and 16-beat figures start on a phrase.']);
   const count = l => items.filter(i => i[0] === l).length;
