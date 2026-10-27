@@ -83,6 +83,9 @@ for (let t = 48; t <= 52.5; t += 0.25) {
   for (const p of ps) if (Math.cos(p.a - Math.atan2(cy - p.y, cx - p.x)) < 0.98) circleFacesIn = false;
 }
 check(circleFacesIn, 'everyone faces the center during the circle');
+const ringGap = Math.hypot(at('0.1L', 51).x - at('0.2R', 51).x, at('0.1L', 51).y - at('0.2R', 51).y);
+check(Math.abs(ringGap - 0.9) < 0.03 || Math.abs(Math.hypot(at('0.1L', 51).x - at('0.1R', 51).x, at('0.1L', 51).y - at('0.1R', 51).y) - 0.9) < 0.03,
+  `the circle is drawn in so hands can reach (neighbors in the ring ${ringGap.toFixed(2)} m apart)`);
 
 // Speeds per figure, at 120 beats per minute (2 beats per second). Not a pass/fail check yet.
 console.log('\nPeak speed per figure at 120 bpm:');

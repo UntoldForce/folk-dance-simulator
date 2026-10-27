@@ -76,6 +76,8 @@ button.primary { background: var(--accent); color: var(--accent-ink); border-col
 input[type=number] { width: 72px; font-family: var(--font-mono); }
 label.small { font-size: 13px; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; }
 #scrub { flex: 1 1 200px; accent-color: var(--accent); min-width: 0; }
+#trailLen { width: 110px; accent-color: var(--accent); }
+#trailVal { min-width: 56px; font-variant-numeric: tabular-nums; }
 
 .timeline { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 4px; }
 .track { position: relative; height: 26px; }
@@ -144,7 +146,11 @@ ul.checks li.info::before { color: var(--muted); }
         <label class="small" for="swingRate">Swings turn once every</label>
         <select id="swingRate"><option value="2">2 beats</option><option value="3">3 beats</option><option value="4" selected>4 beats</option><option value="5">5 beats</option><option value="6">6 beats</option></select>
       </div>
-      <label class="small"><input id="trails" type="checkbox" checked> Trails</label>
+      <div class="grp">
+        <label class="small" for="trailLen">Trail</label>
+        <input id="trailLen" type="range" min="0" max="8" step="0.5" value="3" aria-describedby="trailVal">
+        <span class="small" id="trailVal">3 beats</span>
+      </div>
       <label class="small"><input id="music" type="checkbox" checked> Music</label>
       <label class="small"><input id="melody" type="checkbox" checked> Melody</label>
     </div>
@@ -184,6 +190,7 @@ const Contra = (() => {
     neighborGap: 1.2,       // m along the line between couples
     lineSpacing: 3.0,       // m between line centers
     handHold: 0.7,          // m between dancers holding hands at arm's length
+    ringGap: 0.9,           // m between neighbors holding hands in a circle
     allemandeGap: 0.6,      // m between dancers turning in an allemande (a swing is 0.5)
     allemandeLook: 1.05,    // rad (60 degrees): how far from facing each other dancers turn while allemanding
     swingRadius: 0.25,      // m from the swing's center to each dancer
@@ -296,10 +303,12 @@ const Contra = (() => {
     } },
 
     swing: { group: 'pair', plan([lark, robin], call, ctx) {
-      const P = ctx.p, m = mid(lark, robin);
+      const P = ctx.p, m0 = mid(lark, robin);
       // Unless told otherwise, a swing ends facing across into the set, robin on the lark's right.
-      const F = call.end != null ? call.end : (m.x > ctx.cx ? Math.PI : 0);
+      const F = call.end != null ? call.end : (m0.x > ctx.cx ? Math.PI : 0);
       const half = P.partnerGap / 2;
+      // Ending facing across, the couple drifts back to its side of the set while swinging.
+      const m1 = call.end != null ? m0 : { x: ctx.cx + (m0.x > ctx.cx ? half : -half), y: m0.y };
       const a0 = angleTo(robin, lark), af = F + Math.PI / 2;  // lark ends on the left of the facing direction
       const nominal = -(call.beats / P.swingBeatsPerTurn) * TAU; // swings turn clockwise
       const base = wrap(af - a0);
@@ -308,7 +317,7 @@ const Contra = (() => {
       const radius = u => (u < 0.15 ? lerp(r0, P.swingRadius, mj(u / 0.15))
         : u > 0.85 ? lerp(P.swingRadius, half, mj((u - 0.85) / 0.15)) : P.swingRadius);
       return [[lark, 0], [robin, Math.PI]].map(([d, off]) => u => {
-        const ang = a0 + off + sweep * trap(u, 0.15), r = radius(u);
+        const ang = a0 + off + sweep * trap(u, 0.15), r = radius(u), m = { x: lerp(m0.x, m1.x, mj(u)), y: lerp(m0.y, m1.y, mj(u)) };
         // Face each other as they come together, then the hold: partner at the right front, right hip to right hip.
         const hold = u < 0.15 ? lerpAngle(ang + Math.PI, ang + Math.PI * 1.25, mj(u / 0.15)) : ang + Math.PI * 1.25;
         let a = settle(d.a, hold, u, 0.15);
@@ -317,14 +326,16 @@ const Contra = (() => {
       });
     } },
 
-    circle: { group: 'four', plan(ps, call) {
+    circle: { group: 'four', plan(ps, call, ctx) {
       const c = { x: ps.reduce((s, d) => s + d.x, 0) / ps.length, y: ps.reduce((s, d) => s + d.y, 0) / ps.length };
       const dir = call.dir === 'R' ? 1 : -1;               // circle left travels clockwise seen from above
       const sweep = dir * call.turns * TAU;
+      // Take hands: the ring draws in until neighbors in it are ringGap apart.
+      const rRing = ctx.p.ringGap / (2 * Math.sin(Math.PI / ps.length));
       return ps.map(d => {
-        const a0 = angleTo(c, d), r = dist(c, d);
+        const a0 = angleTo(c, d), r0 = dist(c, d);
         return u => {
-          const ang = a0 + sweep * trap(u, 0.2);
+          const ang = a0 + sweep * trap(u, 0.2), r = lerp(r0, Math.min(r0, rRing), mj(u / 0.2));
           return { x: c.x + r * Math.cos(ang), y: c.y + r * Math.sin(ang), a: settle(d.a, ang + Math.PI, u) };  // everyone faces the center
         };
       });
@@ -725,6 +736,8 @@ function readTokens() {
   for (const k of ['floor', 'ink', 'muted', 'rule', 'accent', 'lark', 'robin', 'panel']) tokens[k] = cs.getPropertyValue('--' + k).trim();
 }
 
+const rgb = hex => { const h = hex.replace('#', ''); return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)); };
+
 function view() {
   const c = state.c, b = c.bounds, r = canvas.getBoundingClientRect();
   const pad = { l: 1.0, r: 1.0, t: 1.6, b: 0.9 };
@@ -755,20 +768,31 @@ function draw() {
   g.setLineDash([]);
 
   const t = state.t, focus = state.highlight;
-  if ($('trails').checked) {
+  // Trails: thick and solid at the dancer, thinning and fading toward the oldest point.
+  const span = +$('trailLen').value;
+  if (span > 0) {
+    const step = span <= 4 ? 0.1 : 0.2, n = Math.ceil(span / step);
+    const maxW = Math.max(2.5, (focus ? 0.08 : 0.06) * v.s), base = focus ? 0.75 : 0.5;
+    g.lineCap = 'round';
     for (const d of c.dancers) {
       if (focus && d.couple !== focus) continue;
-      g.strokeStyle = d.role === 'lark' ? tokens.lark : tokens.robin;
-      g.globalAlpha = focus ? 0.55 : 0.28; g.lineWidth = focus ? 2 : 1.5;
-      g.beginPath();
-      for (let k = 0; k <= 32; k++) {
-        const tt = t - 4 + k * 0.125; if (tt < 0) continue;
-        const p = Contra.poseAt(c, d.id, tt);
-        if (k === 0 || tt - 0.125 < 0) g.moveTo(v.X(p.x), v.Y(p.y)); else g.lineTo(v.X(p.x), v.Y(p.y));
+      const ink = rgb(d.role === 'lark' ? tokens.lark : tokens.robin), floor = rgb(tokens.floor);
+      let prev = null;
+      for (let k = n; k >= 0; k--) {
+        const tt = t - k * step;
+        if (tt < 0) continue;
+        const p = Contra.poseAt(c, d.id, tt), pt = [v.X(p.x), v.Y(p.y)];
+        if (prev) {
+          const f = 1 - k / n;
+          // Fade by mixing toward the floor color rather than transparency, so overlapping joins don't show as beads.
+          const w = base * f;
+          g.strokeStyle = `rgb(${ink.map((v, i) => Math.round(floor[i] + (v - floor[i]) * w)).join(',')})`;
+          g.lineWidth = 0.5 + (maxW - 0.5) * f;
+          g.beginPath(); g.moveTo(prev[0], prev[1]); g.lineTo(pt[0], pt[1]); g.stroke();
+        }
+        prev = pt;
       }
-      g.stroke();
     }
-    g.globalAlpha = 1;
   }
 
   const rad = Math.max(5, 0.19 * v.s);
@@ -830,6 +854,7 @@ $('music').onchange = () => { music.next = null; if ($('music').checked && state
 $('run').onclick = () => { store('contra.dance', $('danceText').value); build(); };
 $('reset').onclick = () => { $('danceText').value = SAMPLE; store('contra.dance', SAMPLE); build(); };
 for (const id of ['lines', 'sets', 'swingRate']) $(id).onchange = build;
+$('trailLen').oninput = e => { const b = +e.target.value; $('trailVal').textContent = b ? `${b} beat${b === 1 ? '' : 's'}` : 'Off'; };
 document.addEventListener('keydown', e => {
   if (/^(TEXTAREA|INPUT|SELECT)$/.test(e.target.tagName)) return;
   if (e.key === ' ') { e.preventDefault(); setPlaying(!state.playing); }
