@@ -21,7 +21,7 @@ Nothing found combines dance entry, timing/speed checks and progression checks.
 ## Coordinate system
 
 - **World frame in meters**, shared by all lines. Time in **beats**; a measure (bar) is 2 beats and is the main unit for entering and displaying figure lengths. Tempo converts beats to seconds.
-- +y points up the hall toward the band; +x runs across the hall. Facing θ in radians, 0 = up the hall.
+- +y points up the hall toward the band; +x runs across the hall. Facing angle in radians, measured the standard math way: 0 = facing +x, π/2 = facing up the hall.
 - **Each line has its own placement** (origin and direction) in the world frame. Lines default to side by side across the hall, but are not assumed to be parallel or equally spaced, so later formations (squares, grid squares) fit the same model.
 - Defaults (configurable): partners 1.2 m apart across the line, neighbors 1.2 m apart along it, one hands-four = 2.4 m of line, hand-hold radius ≈ 0.4 m, line centers 3 m apart.
 
@@ -110,7 +110,7 @@ One HTML file, plain JavaScript, Canvas 2D for the floor, ordinary HTML for cont
 
 | Phase | Delivers | Size |
 |---|---|---|
-| 1 | Duple improper with 2–4 hands-fours in 1 or more lines, beat clock, play/pause/scrub/step, A/B timeline; balance, swing, circle left, long lines | ~600 lines |
+| 1 | Animate all of "111" by Chris Page once through: duple improper, 1–4 lines, play/pause/scrub/step, A/B timeline, Caller's Box text entry; long lines, allemande, balance, pull by, box the gnat, swing, circle | ~900 lines |
 | 2 | Groups re-formed each time through, progression, end effects, highlight one couple, "who met whom" log | +300 |
 | 3 | Text entry format, full figure library (~25 figures at 30–60 lines each) | +1,000 |
 | 4 | Speed per dancer and per figure, configurable threshold, rush warnings | +200 |
@@ -133,7 +133,7 @@ Crossed arms and body twist need dancers modeled as bodies rather than dots; lef
 1. **Multiple lines:** always modeled by the engine; figures between lines are rare, so their controls and checks live under **Advanced settings**.
 2. **Acceleration and direction of travel are first-class checks**, not extras. Many dances fail because they *feel* wrong even though they work on paper; that feeling comes from acceleration. See "Motion and flow" below.
 3. **Every number is adjustable**, starting from: 120 beats/min, speed warning above 2.0 m/s, alert above 2.5 m/s.
-4. **Entry units:** bars by default (`swing 4` = 4 bars); `8b` for beats.
+4. **Entry format:** the layout The Caller's Box uses: part labels (A1, A2, B1, B2) and one figure per line with its length in beats in brackets, e.g. `(8) Women allemande left 1 & 1/2`. Men/Women and Gents/Ladies are read as Larks/Robins. Lengths can be displayed in bars.
 5. **Test dances:** contradb's figure vocabulary (49 figure types, see below) is the reference for the figure library. The dances themselves are not in that repository.
 6. **Desktop first**; phone and tablet layout later.
 
