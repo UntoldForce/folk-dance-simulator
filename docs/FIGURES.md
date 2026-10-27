@@ -19,7 +19,7 @@ Status: **built** = in the simulator now; **planned** = in the figure library (P
 - **Allemande amounts** count from when the two are first close. In the center of the set they are in halves:
   a half means someone crosses the set.
 - **Sitting out the next figure:** anyone who stands still in the next figure finishes the current one facing into the set
-  (e.g. in "111" the robins end the partner pull by facing in while the larks pull by). Our assumption, confirmed by Ryan.
+  (e.g. in "111" the robins end the partner pull by facing in while the larks pull by). Ryan pointed this out for the partner pull by; applying it to every figure is our assumption.
 - **Hey amounts:** ¼ = two passes; ½ = three or four passes (everyone crosses); full = seven or eight passes.
 
 ### How dances are written (The Caller's Box layout)
