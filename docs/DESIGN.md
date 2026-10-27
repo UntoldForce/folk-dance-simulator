@@ -151,7 +151,7 @@ Crossed arms and body twist need dancers modeled as bodies rather than dots; lef
 - A part that goes over 16 beats keeps its figures and is flagged in red; the dance still runs.
 - A pool of moves (the figures the simulator knows) sits right beside the part rows, so drags are short and need no scrolling; drag one into a part, or click it to add it to the end of the part that's playing. The Caller's Box text has its own panel on the right.
 - The part that's playing is highlighted as the music goes.
-- **Role names** are a choice: Larks / Robins (default), Gents / Ladies, or Men / Women. The floor, editor, readout and checks use the chosen names, and new figures are written with them; the dance text keeps its original wording otherwise. Choosing a gendered pair shows a short note encouraging gender-free calling.
+- **Role names** are a choice: Larks / Robins (default), Gents / Ladies, or Men / Women. The floor, editor, readout and checks use the chosen names, and new figures are written with them; the dance text keeps its original wording otherwise. Choosing a gendered pair shows an info icon whose tooltip encourages gender-free calling.
 - Clicking a block opens its settings (who, hand, amount, direction, beats, remove). Every change rewrites the text, re-runs the dance, and can be undone.
 
 ## Motion and flow (the "feel" checks)

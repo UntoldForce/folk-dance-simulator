@@ -79,7 +79,12 @@ label.small { font-size: 13px; color: var(--muted); display: inline-flex; align-
 #scrub { flex: 1 1 200px; accent-color: var(--accent); min-width: 0; }
 #trailLen { width: 110px; accent-color: var(--accent); }
 #trailVal { min-width: 56px; font-variant-numeric: tabular-nums; }
-.genderNote { max-width: 340px; line-height: 1.3; color: var(--accent); }
+.info { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px;
+  border-radius: 50%; color: var(--accent); font-size: 15px; cursor: help; }
+.info .tip { position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); width: 250px; z-index: 30;
+  padding: 8px 10px; border-radius: 8px; background: var(--ink); color: var(--panel); font: 13px/1.35 var(--font-body);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18); opacity: 0; visibility: hidden; transition: opacity 0.12s; pointer-events: none; }
+.info:hover .tip, .info:focus .tip { opacity: 1; visibility: visible; }
 
 .timeline { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 4px; }
 .editor { display: grid; grid-template-columns: minmax(0, 1fr) 270px; gap: 14px; margin-top: 8px; align-items: start; }
@@ -216,7 +221,7 @@ ul.checks li.passed { color: var(--muted); }
       <div class="grp">
         <label class="small" for="roleNames">Role names</label>
         <select id="roleNames"><option value="larks">Larks / Robins</option><option value="gents">Gents / Ladies</option><option value="men">Men / Women</option></select>
-        <span class="small genderNote" id="genderNote" hidden title="Gender-free terms let anyone dance either role.">ⓘ Many dance communities now call gender-free, with Larks and Robins, so anyone can dance either role. Give it a try!</span>
+        <span class="info" id="genderNote" hidden tabindex="0" role="note" aria-label="About gender-free calling">ⓘ<span class="tip">Many dance communities now call gender-free, with Larks and Robins, so anyone can dance either role. Give it a try!</span></span>
       </div>
       <label class="small"><input id="music" type="checkbox" checked> Music</label>
       <label class="small"><input id="melody" type="checkbox" checked> Melody</label>
