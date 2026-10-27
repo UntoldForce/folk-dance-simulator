@@ -145,6 +145,7 @@ ul.checks li.bad::before { color: var(--bad); }
       </div>
       <label class="small"><input id="trails" type="checkbox" checked> Trails</label>
       <label class="small"><input id="music" type="checkbox" checked> Music</label>
+      <label class="small"><input id="melody" type="checkbox" checked> Melody</label>
     </div>
 
     <div class="card timeline">
@@ -610,6 +611,14 @@ const music = { ctx: null, out: null, next: null };
 const PHRASES = { A: ['D', 'D', 'G', 'A', 'D', 'D', 'G/A', 'D'], B: ['D', 'G', 'D', 'A', 'D', 'G', 'A', 'D'] };
 const VOICES = { D: { root: 38, fifth: 45, chord: [62, 66, 69] }, G: { root: 43, fifth: 38, chord: [62, 67, 71] }, A: { root: 45, fifth: 40, chord: [61, 64, 69] } };
 const hz = m => 440 * Math.pow(2, (m - 69) / 12);
+// An original reel in D for the simulator: eighth notes, four per bar; 0 holds the previous note.
+// Each strain is 8 bars, played AABB to fill 32 bars.
+const TUNE = {
+  A: [69, 66, 69, 74,  78, 76, 74, 69,  71, 67, 71, 74,  73, 76, 81, 76,
+      74, 78, 81, 78,  76, 74, 73, 74,  71, 74, 73, 76,  74, 69, 74, 0],
+  B: [81, 78, 74, 78,  79, 74, 71, 74,  78, 81, 78, 74,  76, 73, 69, 73,
+      74, 78, 81, 78,  79, 78, 76, 74,  73, 76, 81, 79,  78, 76, 74, 0],
+};
 
 function startAudio() {
   if (!$('music').checked) return;
@@ -633,11 +642,38 @@ function tone(m, when, dur, level, type) {
   osc.start(when); osc.stop(when + dur + 0.02);
 }
 
-function playBeat(b, when) {
+function playBeat(b, when, beatsPerSec) {
   const bar = Math.floor(b / 2) % 32, part = bar < 16 ? 'A' : 'B', names = PHRASES[part][bar % 8].split('/');
   const v = VOICES[names[Math.min(b % 2, names.length - 1)]];
   if (b % 2 === 0) tone(bar % 2 ? v.fifth : v.root, when, 0.32, b % 16 === 0 ? 0.55 : 0.4, 'triangle');
   else for (const m of v.chord) tone(m, when, 0.13, 0.07, 'sawtooth');
+  if (!$('melody').checked) return;
+  const strain = TUNE[part], eighth = 0.5 / beatsPerSec;
+  for (let k = 0; k < 2; k++) {
+    const i = (bar % 8) * 4 + (b % 2) * 2 + k;
+    if (!strain[i]) continue;
+    let len = 1;
+    while (i + len < strain.length && strain[i + len] === 0) len++;
+    fiddle(strain[i], when + k * eighth, len * eighth);
+  }
+}
+
+// A bowed-string sound: bright sawtooth, softened, with a little vibrato on longer notes.
+function fiddle(m, when, dur) {
+  const ac = music.ctx, osc = ac.createOscillator(), g = ac.createGain(), f = ac.createBiquadFilter();
+  osc.type = 'sawtooth'; osc.frequency.value = hz(m);
+  if (dur > 0.3) {
+    const lfo = ac.createOscillator(), depth = ac.createGain();
+    lfo.frequency.value = 5.5; depth.gain.setValueAtTime(0, when); depth.gain.linearRampToValueAtTime(hz(m) * 0.006, when + 0.25);
+    lfo.connect(depth); depth.connect(osc.frequency); lfo.start(when); lfo.stop(when + dur + 0.05);
+  }
+  f.type = 'lowpass'; f.frequency.value = 2600; f.Q.value = 1.2;
+  g.gain.setValueAtTime(0, when);
+  g.gain.linearRampToValueAtTime(0.085, when + 0.02);
+  g.gain.setValueAtTime(0.07, when + dur * 0.85);
+  g.gain.linearRampToValueAtTime(0, when + dur * 0.98);
+  osc.connect(f); f.connect(g); g.connect(music.out);
+  osc.start(when); osc.stop(when + dur + 0.02);
 }
 
 function scheduleMusic(beatsPerSec) {
@@ -645,7 +681,7 @@ function scheduleMusic(beatsPerSec) {
   const ahead = state.t + 0.25 * beatsPerSec;
   if (music.next === null) music.next = Math.ceil(state.t - 1e-6);
   while (music.next < ahead) {
-    playBeat(((music.next % state.c.total) + state.c.total) % state.c.total, music.ctx.currentTime + (music.next - state.t) / beatsPerSec);
+    playBeat(((music.next % state.c.total) + state.c.total) % state.c.total, music.ctx.currentTime + (music.next - state.t) / beatsPerSec, beatsPerSec);
     music.next++;
   }
 }
