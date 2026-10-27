@@ -1,0 +1,28 @@
+111
+by Chris Page
+
+Permission: full
+Source: The Caller's Box (https://www.ibiblio.org/contradance/thecallersbox/), supplied by Ryan
+
+FormationBase:	Duple Minor - Improper
+Progression:	Single
+Figures:
+A1
+(8) In long lines, go forward and back
+(8) Women allemande left 1 & 1/2
+
+A2
+(4) Partner balance (RH)
+(2) Partner pull by right
+(2) Men pull by left
+(4) Neighbor balance (RH)
+(4) Neighbor box the gnat
+
+B1
+(2) Neighbor pull by right
+(2) Men pull by left
+(12) Partner swing
+
+B2
+(6) Circle left 3/4
+(10) Neighbor swing
