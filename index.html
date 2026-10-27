@@ -92,6 +92,8 @@ label.small { font-size: 13px; color: var(--muted); display: inline-flex; align-
 .tlhead { display: flex; align-items: center; gap: 8px; font: 600 13px var(--font-display); }
 .tlhead button { padding: 2px 8px; }
 #passLabel { min-width: 96px; text-align: center; font-variant-numeric: tabular-nums; }
+.tlhead { flex-wrap: wrap; }
+#whole { flex: 1 1 160px; min-width: 0; accent-color: var(--muted); }
 ol.journey { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 3px; font-size: 13.5px; font-variant-numeric: tabular-nums; }
 ol.journey li.current { font-weight: 600; color: var(--accent); }
 ol.journey .muted { color: var(--muted); }
@@ -133,7 +135,7 @@ ul.checks li.info::before { color: var(--muted); }
         <button id="play" class="primary" title="Play or pause (space)">Play</button>
         <button id="fwd" title="Forward one beat (→)" aria-label="Forward one beat">beat ▶</button>
       </div>
-      <input id="scrub" type="range" min="0" max="64" step="0.01" value="0" aria-label="Position in the dance">
+      <input id="scrub" type="range" min="0" max="64" step="0.01" value="0" aria-label="Position in this time through">
       <div class="grp">
         <label class="small" for="tempo">Tempo</label>
         <input id="tempo" type="number" min="40" max="200" step="1" value="120"><span class="small">beats/min</span>
@@ -168,6 +170,8 @@ ul.checks li.info::before { color: var(--muted); }
         <button id="prevPass" aria-label="Previous time through">◀</button>
         <span id="passLabel">Time 1 of 8</span>
         <button id="nextPass" aria-label="Next time through">▶</button>
+        <input id="whole" type="range" min="0" max="512" step="0.01" value="0" aria-label="Position in the whole run">
+        <label class="small"><input id="repeatPass" type="checkbox"> Repeat this time through</label>
       </div>
       <div class="tlwrap">
         <div class="track" id="partsTrack"></div>
@@ -728,7 +732,8 @@ function build() {
   state.c = Contra.compile(dance, { lines: +$('lines').value, sets: +$('sets').value, passes, params: { swingBeatsPerTurn: +$('swingRate').value } });
   state.t = Math.min(state.t, state.c.total);
   $('danceTitle').textContent = dance.title ? `${dance.title}${dance.author ? ' by ' + dance.author : ''}` : 'Untitled dance';
-  $('scrub').max = state.c.total;
+  $('scrub').max = state.c.perPass;
+  $('whole').max = state.c.total;
   buildTimeline();
   showChecks(dance);
   if (state.highlight && !state.c.dancers.some(d => d.couple === state.highlight)) state.highlight = null;
@@ -982,14 +987,18 @@ function updateReadout() {
   for (const el of $('partsTrack').children) el.classList.toggle('active', el.textContent === part.name);
   for (const el of $('journey').children) el.classList.toggle('current', +el.dataset.p === p);
   $('cursor').style.left = `${(local / c.perPass) * 100}%`;
-  $('scrub').value = state.t;
+  $('scrub').value = local;
+  $('whole').value = state.t;
 }
 
 function frame(now) {
   if (state.playing) {
     const dt = Math.min(0.1, (now - state.last) / 1000), bps = (+$('tempo').value || 120) / 60 * +$('speed').value;
+    const p0 = passAt(state.t);
     state.t += dt * bps;
-    if (state.t >= state.c.total) { state.t -= state.c.total; if (music.next !== null) music.next -= state.c.total; }
+    // With "Repeat this time through" on, playback loops within the current time through.
+    const wrapAt = $('repeatPass').checked ? (p0 + 1) * state.c.perPass : state.c.total, back = $('repeatPass').checked ? state.c.perPass : state.c.total;
+    if (state.t >= wrapAt) { state.t -= back; if (music.next !== null) music.next -= back; }
     if ($('music').checked) scheduleMusic(bps);
   }
   state.last = now;
@@ -1001,7 +1010,8 @@ function frame(now) {
 $('play').onclick = () => setPlaying(!state.playing);
 $('back').onclick = () => { setPlaying(false); seek(Math.ceil(state.t - 1e-6) - 1); };
 $('fwd').onclick = () => { setPlaying(false); seek(Math.floor(state.t + 1e-6) + 1); };
-$('scrub').oninput = e => { setPlaying(false); seek(+e.target.value); };
+$('scrub').oninput = e => { setPlaying(false); seek(passAt(state.t) * state.c.perPass + Math.min(+e.target.value, state.c.perPass - 1e-6)); };
+$('whole').oninput = e => { setPlaying(false); seek(+e.target.value); };
 $('music').onchange = () => { music.next = null; if ($('music').checked && state.playing) startAudio(); };
 $('run').onclick = () => { store('contra.dance', $('danceText').value); build(); };
 $('reset').onclick = () => { $('danceText').value = SAMPLE; store('contra.dance', SAMPLE); build(); };
