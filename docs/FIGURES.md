@@ -43,7 +43,7 @@ figure that doesn't start on a phrase boundary (8-beat calls start an 8-beat phr
 
 | Figure | Who | Typical beats | How it moves | Ends | Status |
 |---|---|---|---|---|---|
-| [Long lines forward and back](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#long-lines-go-forward-and-back) | Everyone, hands joined along each side | 8 (forward and back) | Four small steps toward the center, four back | Where they started | built |
+| [Long lines forward and back](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#long-lines-go-forward-and-back) | Everyone, hands joined along each side | 8 (forward and back) | Four small steps toward the center, four back. Partners come close enough to clap or bump (about 0.4 m apart, center to center); this is intended, and collision checks must not flag it | Where they started | built |
 | [Balance](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#balance) | Pair (or ring, wave, line) | 4 | Footwork in place, usually toward and away from someone. `(RH)` = right hands joined | Where they started | built (pairs) |
 | [Allemande](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#allemande) | Pair | 8 | Face each other as you meet, then forearm grip and turn close together (about 0.6 m apart, near swing distance): right = clockwise, left = counter-clockwise | Depends on amount; 1½ trades places | built |
 | [Pull by](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#pull-by) | Pair | 4 (2 when done rapidly) | Take the named hand and pass by that shoulder, keep going | On the far side, facing on | built |
