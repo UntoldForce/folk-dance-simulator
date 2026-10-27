@@ -18,6 +18,8 @@ Status: **built** = in the simulator now; **planned** = in the figure library (P
   **Shadow:** someone in your hands-four, not your partner, who takes your partner's role there.
 - **Allemande amounts** count from when the two are first close. In the center of the set they are in halves:
   a half means someone crosses the set.
+- **Sitting out the next figure:** anyone who stands still in the next figure finishes the current one facing into the set
+  (e.g. in "111" the robins end the partner pull by facing in while the larks pull by). Our assumption, confirmed by Ryan.
 - **Hey amounts:** ¼ = two passes; ½ = three or four passes (everyone crosses); full = seven or eight passes.
 
 ### How dances are written (The Caller's Box layout)

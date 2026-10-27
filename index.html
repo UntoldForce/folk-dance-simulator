@@ -428,29 +428,52 @@ const Contra = (() => {
     }
   }
 
+  // Turn a path's facing toward the center of the set over the last part of the figure.
+  function faceInAtEnd(f, cx) {
+    const end = f(1);
+    if (Math.abs(end.x - cx) < 0.1) return f;
+    const faceIn = end.x > cx ? Math.PI : 0;
+    return u => { const p = f(u); return u <= 0.6 ? p : { ...p, a: lerpAngle(p.a, faceIn, mj((u - 0.6) / 0.4)) }; };
+  }
+
   function compile(dance, opts = {}) {
     const P = { ...DEFAULTS, ...(opts.params || {}) };
     const { dancers, start, groups } = layoutFloor(opts.lines || 2, opts.sets || 3, P);
     const segs = {}, pose = { ...start };
     dancers.forEach(d => (segs[d.id] = []));
     const calls = [], parts = [], warnings = dance.warnings.slice();
-    let t = 0;
+    // Who dances each call, as hands-four positions (L1, R1, L2, R2). Worked out up front so each
+    // figure knows who will stand still in the next one.
+    const KEYS = { L1: 'L1', R1: 'R1', L2: 'L2', R2: 'R2' };
+    const flat = dance.parts.flatMap(part => part.calls.map(call => {
+      const fig = FIGURES[call.fig];
+      let who = call.who;
+      if (fig && fig.group === 'pair' && (!who || who === 'all')) {
+        who = 'partners';
+        warnings.push({ level: 'warn', text: `${part.name}: “${call.text}” doesn't say who dances it; assuming partners.` });
+      }
+      const active = new Set(fig ? whoSets(fig.group === 'four' ? 'all' : who, KEYS).flat() : []);
+      return { part, call, fig, who, active };
+    }));
+    let t = 0, n = 0;
     for (const part of dance.parts) {
       const pt0 = t;
       for (const call of part.calls) {
-        const t0 = t, t1 = t + call.beats, fig = FIGURES[call.fig], notes = new Set();
-        let who = call.who;
-        if (fig && fig.group === 'pair' && (!who || who === 'all')) {
-          who = 'partners';
-          warnings.push({ level: 'warn', text: `${part.name}: “${call.text}” doesn't say who dances it; assuming partners.` });
-        }
+        const { fig, who } = flat[n], after = flat[(n + 1) % flat.length];
+        n++;
+        const t0 = t, t1 = t + call.beats, notes = new Set();
         const moved = new Set();
         if (fig) for (const g of groups) {
+          const keyOf = Object.fromEntries(Object.entries(g.ids).map(([k, id]) => [id, k]));
           for (const ids of whoSets(fig.group === 'four' ? 'all' : who, g.ids)) {
             const ps = ids.map(id => pose[id]);
             if (fig.group === 'pair' && dist(ps[0], ps[1]) > 2.0) notes.add(`${WHO_LABEL[who]} start ${dist(ps[0], ps[1]).toFixed(1)} m apart`);
             const fns = fig.plan(ps, call, { p: P, cx: g.cx });
-            ids.forEach((id, i) => { segs[id].push({ t0, t1, f: fns[i] }); moved.add(id); });
+            ids.forEach((id, i) => {
+              // Anyone who stands still in the next figure finishes this one facing into the set.
+              const f = call.fig !== 'swing' && !after.active.has(keyOf[id]) ? faceInAtEnd(fns[i], g.cx) : fns[i];
+              segs[id].push({ t0, t1, f }); moved.add(id);
+            });
           }
         }
         for (const d of dancers) if (!moved.has(d.id)) { const p = pose[d.id]; segs[d.id].push({ t0, t1, f: () => p }); }

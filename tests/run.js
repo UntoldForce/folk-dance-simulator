@@ -60,6 +60,11 @@ check(turned('0.1L') && turned('0.2R') && at('0.1L', 32).a < at('0.1L', 30).a &&
 const L34 = at('0.1L', 34);
 check(Math.abs(L34.x - (-0.6)) < 0.05 && Math.abs(L34.y - 0.6) < 0.05, 'the neighbor pull by after box the gnat carries the lark on to a full place');
 
+// Robins stand still during the men's pull by, so they finish the partner pull by facing into the set.
+const facesIn = (id, t) => { const p = at(id, t); return Math.cos(p.a) * Math.sign(-p.x) > 0.95; };
+check(facesIn('0.1R', 22) && facesIn('0.2R', 22), 'robins finish the partner pull by right facing into the set (A2)');
+check(facesIn('0.1R', 34) && facesIn('0.2R', 34), 'robins finish the neighbor pull by right facing into the set (B1)');
+
 // Speeds per figure, at 120 beats per minute (2 beats per second). Not a pass/fail check yet.
 console.log('\nPeak speed per figure at 120 bpm:');
 for (const k of c.calls) {
