@@ -183,8 +183,9 @@ const Contra = (() => {
     handHold: 0.7,          // m between dancers holding forearms
     swingRadius: 0.25,      // m from the swing's center to each dancer
     swingBeatsPerTurn: 4,
-    gnatLarkRadius: 0.32,   // m: the lark walks around the robin
-    gnatRobinRadius: 0.12,  // m: the robin's tight turn under the arch
+    gnatClose: 0.5,         // m apart when box the gnat pulls in
+    gnatReach: 0.9,         // m apart after the push back, and at the end (arm's length)
+    gnatArchTuck: 0.1,      // m each draws in while turning under the arch
     linesStep: 0.4,         // m forward in long lines
     balanceStep: 0.15,      // m
     passOffset: 0.2,        // m sideways when passing by
@@ -248,29 +249,38 @@ const Contra = (() => {
 
     pullBy: { group: 'pair', plan([p, q], call, ctx) {
       const side = call.hand === 'L' ? -1 : 1;          // to pass right shoulders, each dancer veers left
+      // Each passes through to the far side of the pair, ending at least a full place away
+      // (dancers who start at arm's length, e.g. after box the gnat, travel on to their spots).
+      const c = mid(p, q), rEnd = Math.max(dist(p, q) / 2, ctx.p.neighborGap / 2);
       return [[p, q], [q, p]].map(([d, o]) => {
         const head = angleTo(d, o), nx = -Math.sin(head), ny = Math.cos(head);
+        const end = { x: c.x + rEnd * Math.cos(head), y: c.y + rEnd * Math.sin(head) };
         return u => {
           const s = mj(u), off = side * ctx.p.passOffset * Math.sin(Math.PI * s);
-          return { x: lerp(d.x, o.x, s) + nx * off, y: lerp(d.y, o.y, s) + ny * off, a: settle(d.a, head, u, 0.3) };
+          return { x: lerp(d.x, end.x, s) + nx * off, y: lerp(d.y, end.y, s) + ny * off, a: settle(d.a, head, u, 0.3) };
         };
       });
     } },
 
     boxTheGnat: { group: 'pair', plan([lark, robin], call, ctx) {
-      const c = mid(lark, robin), r0 = dist(lark, robin) / 2;
-      // Facing each other, they reach right hands forward and walk in, raising an arch.
-      // The robin turns left and goes under it on a tight path; the lark turns right and walks around her.
-      // Each turns 180 degrees and they end in each other's places, facing again.
-      return [[lark, robin, -1, ctx.p.gnatLarkRadius], [robin, lark, 1, ctx.p.gnatRobinRadius]].map(([d, o, turn, rIn]) => {
-        const a0 = angleTo(c, d);
-        let delta = wrap(angleTo(o, d) - d.a);
+      const P = ctx.p, c = mid(lark, robin), r0 = dist(lark, robin) / 2;
+      const rClose = P.gnatClose / 2, rReach = P.gnatReach / 2;
+      // Beat 1: right hands joined, both pull in close. Beat 2: push back out a short way.
+      // Beats 3-4: they circle around each other to trade places while turning,
+      // the lark to the right and the robin to the left under the arch, ending at arm's length facing.
+      return [[lark, robin, -1], [robin, lark, 1]].map(([d, o, turn]) => {
+        const a0 = angleTo(c, d), face = angleTo(d, o);
+        let delta = wrap(face + Math.PI - d.a);
         if (turn < 0 && delta > 0) delta -= TAU;
         if (turn > 0 && delta < 0) delta += TAU;
         return u => {
-          const ang = a0 - Math.PI * mj((u - 0.25) / 0.6);
-          const r = u < 0.3 ? lerp(r0, rIn, mj(u / 0.3)) : u < 0.65 ? rIn : lerp(rIn, r0, mj((u - 0.65) / 0.35));
-          return { x: c.x + r * Math.cos(ang), y: c.y + r * Math.sin(ang), a: d.a + delta * mj((u - 0.25) / 0.75) };
+          if (u < 0.5) {
+            const r = u < 0.25 ? lerp(r0, rClose, mj(u / 0.25)) : lerp(rClose, rReach, mj((u - 0.25) / 0.25));
+            return { x: c.x + r * Math.cos(a0), y: c.y + r * Math.sin(a0), a: settle(d.a, face, u, 0.15) };
+          }
+          const s = mj((u - 0.5) / 0.5), ang = a0 - Math.PI * s;  // right hands joined: around each other clockwise
+          const r = rReach - P.gnatArchTuck * Math.sin(Math.PI * s);
+          return { x: c.x + r * Math.cos(ang), y: c.y + r * Math.sin(ang), a: face + delta * s };
         };
       });
     } },
