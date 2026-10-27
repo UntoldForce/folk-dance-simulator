@@ -125,6 +125,18 @@ check(made.every(k => { const r = Contra.parseDance('A1\n(8) ' + Contra.callText
   check(big.progression.firstBad === -1, '4 lines x 6 hands-fours, 12 times through: progression works throughout');
 }
 
+// A sequence with a chain and a hey: worked out by hand, every dancer's place after each figure.
+{
+  const seq = Contra.parseDance(`A1\n(4) Neighbor balance\n(12) Neighbor swing\nA2\n(8) Robins chain\n(8) Half hey, robins pass right to start\nB1\n(4) Partner balance\n(12) Partner swing\nB2\n(8) Circle left 3/4\n(8) Neighbor swing`);
+  const k = Contra.compile(seq, { lines: 1, sets: 1, passes: 1 }), q = (id, t) => Contra.poseAt(k, id, t);
+  const at4 = (t, want) => Object.entries(want).every(([id, [x, y]]) => Math.hypot(q(id, t).x - x, q(id, t).y - y) < 0.06);
+  check(at4(16, { '0.1L': [0.6, -0.5], '0.2R': [0.6, 0.5], '0.2L': [-0.6, 0.5], '0.1R': [-0.6, -0.5] }), 'after the neighbor swing, everyone is on the side with robins on the right');
+  check(at4(24, { '0.1R': [0.6, 0.5], '0.1L': [0.6, -0.5], '0.2R': [-0.6, -0.5], '0.2L': [-0.6, 0.5] }), 'robins chain: robins cross and courtesy turn, ending on the right of the lark there');
+  check(at4(32, { '0.1L': [-0.6, 0.5], '0.1R': [-0.6, -0.5], '0.2L': [0.6, -0.5], '0.2R': [0.6, 0.5] }), 'half hey: everyone ends diagonally across from where they started');
+  const robinsMeet = Math.hypot(q('0.1R', 26).x - q('0.2R', 26).x, q('0.1R', 26).y - q('0.2R', 26).y);
+  check(robinsMeet < 1.0, `half hey: the robins pass close in the middle first (${robinsMeet.toFixed(2)} m apart at beat 3 of the hey)`);
+}
+
 // Speeds per figure, at 120 beats per minute (2 beats per second). Not a pass/fail check yet.
 console.log('\nPeak speed per figure at 120 bpm:');
 for (const k of c.calls) {
