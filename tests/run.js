@@ -24,7 +24,9 @@ for (const [lines, sets] of [[1, 1], [2, 3], [4, 6]]) {
   const c = Contra.compile(dance, { lines, sets });
   const label = `${lines} line(s) x ${sets} hands-four(s)`;
   check(c.total === 64, `${label}: 64 beats`);
-  check(c.warnings.length === 0, `${label}: no warnings ${c.warnings.map(w => w.text).join(' | ')}`);
+  const problems = c.warnings.filter(w => w.level !== 'info'), infos = c.warnings.filter(w => w.level === 'info');
+  check(problems.length === 0, `${label}: no warnings ${problems.map(w => w.text).join(' | ')}`);
+  check(infos.length === 1 && /Circle left 3\/4/.test(infos[0].text), `${label}: one timing note, for the 6-beat circle (${infos.map(w => w.text).join(' | ')})`);
   check(c.progression.good === c.progression.total, `${label}: progression ${c.progression.good}/${c.progression.total}`);
 
   // Continuity: nobody jumps between figures, and nothing is NaN.

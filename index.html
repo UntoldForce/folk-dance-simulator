@@ -101,6 +101,7 @@ ul.checks li::before { content: "●"; font-size: 11px; line-height: 20px; }
 ul.checks li.ok::before { color: var(--ok); }
 ul.checks li.warn::before { color: var(--warn); }
 ul.checks li.bad::before { color: var(--bad); }
+ul.checks li.info::before { color: var(--muted); }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }
 </style>
 </head><body><!--wrap-->
@@ -321,6 +322,9 @@ const Contra = (() => {
     } },
   };
 
+  // Typical lengths in beats from the ContraLab timing chart (contralab.org), for figures built so far.
+  const TYPICAL_BEATS = { longLines: 8, allemande: 8, balance: 4, boxTheGnat: 4, swing: 4, circle: 8 };
+
   // ---------- Reading a dance (The Caller's Box layout) ----------
   const WHO = [
     [/\b(partners?)\b/, 'partners'], [/\b(neighbou?rs?)\b/, 'neighbors'],
@@ -480,6 +484,9 @@ const Contra = (() => {
         for (const d of dancers) if (!moved.has(d.id)) { const p = pose[d.id]; segs[d.id].push({ t0, t1, f: () => p }); }
         for (const d of dancers) { const s = segs[d.id]; pose[d.id] = s[s.length - 1].f(1); }
         for (const n of notes) warnings.push({ level: 'warn', text: `${part.name}: “${call.text}”: ${n}.` });
+        const typical = TYPICAL_BEATS[call.fig];
+        if (typical && call.beats < typical) warnings.push({ level: 'info', text: `${part.name}: “${call.text}” gets ${call.beats} beats; the ContraLab timing chart gives it ${typical}. Expect it to feel quick.` });
+        if ((call.beats === 8 && t0 % 8) || (call.beats === 16 && t0 % 16)) warnings.push({ level: 'info', text: `${part.name}: “${call.text}” is ${call.beats} beats but starts partway through a musical phrase.` });
         calls.push({ ...call, part: part.name, t0, t1, flagged: notes.size > 0 || !fig });
         t = t1;
       }
@@ -595,8 +602,9 @@ function showChecks() {
   const pr = c.progression, word = pr.expected === 1 ? 'one place' : `${pr.expected} places`;
   if (pr.good === pr.total) add('ok', `Progression works: after one time through, all ${pr.total} dancers have moved ${word} (ones down, twos up), on their own side and facing their new neighbors.`);
   else add('bad', `Progression: ${pr.total - pr.good} of ${pr.total} dancers don't end ${word} along, on their own side, facing across. Watch the B2 part to see where they end up.`);
-  for (const w of c.warnings) add(w.level, w.text);
-  if (!c.warnings.length) add('ok', 'Every figure is recognised and every part is 16 beats.');
+  const order = { bad: 0, warn: 1, info: 2 };
+  for (const w of c.warnings.slice().sort((a, b) => order[a.level] - order[b.level])) add(w.level, w.text);
+  if (!c.warnings.some(w => w.level !== 'info')) add('ok', 'Every figure is recognised and every part is 16 beats.');
 }
 
 function seek(t) { state.t = Math.max(0, Math.min(state.c.total, t)); music.next = null; }

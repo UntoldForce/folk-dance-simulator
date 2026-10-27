@@ -7,6 +7,10 @@ and add what the engine needs (paths, turn direction, where people end). They ar
 
 Status: **built** = in the simulator now; **planned** = in the figure library (Phase 3) or later.
 
+Typical beats come from the [ContraLab](https://contralab.org/) Contra Timing Chart where it lists the figure
+(Ryan supplied the chart). The simulator notes any figure given fewer beats than the chart, and any 8- or 16-beat
+figure that doesn't start on a phrase boundary (8-beat calls start an 8-beat phrase; 16-beat calls start A1, A2, B1 or B2).
+
 ## Conventions
 
 - **Up** is toward the band. **Ones** progress down the set, **twos** up.
@@ -38,27 +42,27 @@ Status: **built** = in the simulator now; **planned** = in the figure library (P
 
 | Figure | Who | Typical beats | How it moves | Ends | Status |
 |---|---|---|---|---|---|
-| [Long lines forward and back](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#long-lines-go-forward-and-back) | Everyone, hands joined along each side | 8 | Four small steps toward the center, four back | Where they started | built |
+| [Long lines forward and back](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#long-lines-go-forward-and-back) | Everyone, hands joined along each side | 8 (forward and back) | Four small steps toward the center, four back | Where they started | built |
 | [Balance](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#balance) | Pair (or ring, wave, line) | 4 | Footwork in place, usually toward and away from someone. `(RH)` = right hands joined | Where they started | built (pairs) |
-| [Allemande](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#allemande) | Pair | 4–8 | Forearm grip, walk around each other: right = clockwise, left = counter-clockwise | Depends on amount; 1½ trades places | built |
+| [Allemande](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#allemande) | Pair | 8 | Forearm grip, walk around each other: right = clockwise, left = counter-clockwise | Depends on amount; 1½ trades places | built |
 | [Pull by](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#pull-by) | Pair | 2 | Take the named hand and pass by that shoulder, keep going | On the far side, facing on | built |
 | [Box the gnat](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#box-the-gnat) | Pair facing, right hands | 4 | Ryan's beat-by-beat: beat 1 both pull in close; beat 2 push back out a little; beats 3–4 circle around each other to trade places while the lark turns right and the robin turns left under the arch | Traded, facing, at arm's length; lark lets go at the end of beat 4 | built |
-| [Swing](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#swing) | Pair | 8–16 | Ballroom-style hold, clockwise around each other (walk or buzz step) | Lark left, robin right, facing as the next figure needs | built |
-| [Circle left / right](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#circle-left-right) | Hands-four | 6–8 | Hands in a ring; left = clockwise, right = counter-clockwise, by the amount | Facing as the next figure needs | built |
+| [Swing](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#swing) | Pair | 4–8 or longer; balance and swing is usually 4 + 12 (or a double balance 8 + 8) | Ballroom-style hold, clockwise around each other (walk or buzz step) | Lark left, robin right, facing as the next figure needs | built |
+| [Circle left / right](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#circle-left-right) | Hands-four | 8 | Hands in a ring; left = clockwise, right = counter-clockwise, by the amount | Facing as the next figure needs | built |
 | [Swat the flea](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#swat-the-flea) | Pair facing, left hands | 4 | Mirror image of box the gnat | Traded, facing | planned |
 | [California twirl](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#california-twirl) | Pair side by side, lark's right with robin's left | 4 | Raise hands, trade places, robin under the arch | Traded, facing the opposite way | planned |
 | [Do-si-do](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#do-si-do) | Pair | 8 | Walk forward passing right shoulders, step right, back up to place; no turning of the body | Where they started | planned |
 | [Seesaw](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#seesaw) | Pair | 8 | Do-si-do by the left shoulder | Where they started | planned |
-| [Shoulder round (gypsy)](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#shoulder-round) | Pair | 4–8 | Like an allemande without touching, looking at each other; right = clockwise | Depends on amount | planned |
-| [Star](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#star) | Hands-four | 8 | Named hand in the center (wrist grip, or [hands-across](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#hands-across-star)), walk forward around | By the amount | planned |
-| [Ladies (robins) chain](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#ladies-chain) | Robins, with a lark each | 8 | Robins pull by right across, veer right, then [courtesy turn](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#courtesy-turn) with the lark on the other side | Robins have crossed | planned |
+| [Shoulder round (gypsy)](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#shoulder-round) | Pair | 8 | Like an allemande without touching, looking at each other; right = clockwise | Depends on amount | planned |
+| [Star](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#star) | Hands-four | 8 to go once around | Named hand in the center (wrist grip, or [hands-across](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#hands-across-star)), walk forward around | By the amount | planned |
+| [Ladies (robins) chain](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#ladies-chain) | Robins, with a lark each | 8 across; 16 over and back | Robins pull by right across, veer right, then [courtesy turn](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#courtesy-turn) with the lark on the other side | Robins have crossed | planned |
 | [Courtesy turn](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#courtesy-turn) | Couple side by side | 4 | Counter-clockwise around a point between them: lark backs up, robin walks forward | Usually half way round | planned |
 | [Gents (larks) chain](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#gents-chain) | Larks | 8 | Mirror of the ladies chain: larks pull by left, clockwise courtesy turn | Larks have crossed | planned |
-| [Right and left through](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#right-and-left-through) | Two couples facing | 8 | Pass through (or pull by right), then courtesy turn with the one you travel with | Couples traded sides | planned |
-| [Pass through](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#pass-through) | Pairs facing | 2–4 | Walk forward passing the named shoulder, no hands | Past, facing on | planned |
-| [Hey](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#hey) | Four | 8 (half), 16 (full) | Figure-eight weave with an extra loop; centers pass one shoulder, then everyone the other shoulder on the sides; ends loop | Half: everyone crossed; full: home | planned |
+| [Right and left through](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#right-and-left-through) | Two couples facing | 8 across; 16 over and back | Pass through (or pull by right), then courtesy turn with the one you travel with | Couples traded sides | planned |
+| [Pass through](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#pass-through) | Pairs facing | 4 | Walk forward passing the named shoulder, no hands | Past, facing on | planned |
+| [Hey](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#hey) | Four | 16 full; hey for three 12–16 | Figure-eight weave with an extra loop; centers pass one shoulder, then everyone the other shoulder on the sides; ends loop | Half: everyone crossed; full: home | planned |
 | [Mad robin](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#mad-robin) | Pair beside each other, facing someone across | 8 | Sideways do-si-do around the person beside you, keeping eye contact across | Where they started | planned |
-| [Petronella turn](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#petronella-turn) | Hands-four in a ring | 4 | Drop hands, move one place to the right, spinning clockwise | One place to the right | planned |
+| [Petronella turn](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#petronella-turn) | Hands-four in a ring | 4, with a clap-clap on beats 3½–4 | Drop hands, move one place to the right, spinning clockwise | One place to the right | planned |
 | [Roll away (half sashay)](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#roll-away) | Pair side by side | 4 | One sidesteps; the other rolls in front of them a full turn without turning their back | Traded, facing the same way | planned |
 | [Slice](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#slice) | Couples on the side | 8 | As couples, four steps forward on the named diagonal, then back four facing straight across | One place along | planned |
 | [Give and take](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#give-and-take) | Two couples facing | 4 | Two steps in, take two hands with the person across; the named one pulls them back to their side | Usually into a swing | planned |
