@@ -144,6 +144,14 @@ Crossed arms and body twist need dancers modeled as bodies rather than dots; lef
 - **Waiting couples swing their partner when the line swings partners**, then open back out to their places facing each other. Otherwise they stand facing in.
 - **Times through is adjustable, 1 to 30, default 8.**
 
+## Dance editor (decisions)
+
+- The timeline is the editor: four rows (A1, A2, B1, B2), each 16 beats wide; each figure is a block as wide as its length.
+- Drag a block to move it within or between parts; drag its right edge to change its length, snapping to 2 beats (Shift for 1 beat).
+- A part that goes over 16 beats keeps its figures and is flagged in red; the dance still runs.
+- A pool of moves (the figures the simulator knows) sits in the right-hand panel; drag one into a part, or click it to add it to the end of the part that's playing. A Text tab holds the Caller's Box text.
+- Clicking a block opens its settings (who, hand, amount, direction, beats, remove). Every change rewrites the text, re-runs the dance, and can be undone.
+
 ## Motion and flow (the "feel" checks)
 
 The engine measures, for every dancer at every moment:

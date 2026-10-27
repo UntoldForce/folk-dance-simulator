@@ -87,6 +87,17 @@ const ringGap = Math.hypot(at('0.1L', 51).x - at('0.2R', 51).x, at('0.1L', 51).y
 check(Math.abs(ringGap - 0.9) < 0.03 || Math.abs(Math.hypot(at('0.1L', 51).x - at('0.1R', 51).x, at('0.1L', 51).y - at('0.1R', 51).y) - 0.9) < 0.03,
   `the circle is drawn in so hands can reach (neighbors in the ring ${ringGap.toFixed(2)} m apart)`);
 
+// Writing a dance back out gives the same dance when read again, and new lines read back as written.
+const again = Contra.parseDance(Contra.serialize(dance));
+check(JSON.stringify(again.parts) === JSON.stringify(dance.parts) && again.title === dance.title && again.author === dance.author, 'writing the dance out and reading it back gives the same dance');
+const made = [
+  { fig: 'allemande', who: 'neighbors', hand: 'R', turns: 1.5 }, { fig: 'balance', who: 'partners', hand: 'R' }, { fig: 'pullBy', who: 'larks', hand: 'L' },
+  { fig: 'boxTheGnat', who: 'neighbors' }, { fig: 'swing', who: 'neighbors' }, { fig: 'circle', dir: 'R', turns: 0.75 }, { fig: 'longLines' },
+];
+check(made.every(k => { const r = Contra.parseDance('A1\n(8) ' + Contra.callText(k)).parts[0].calls[0];
+  return r.fig === k.fig && (k.who === undefined || r.who === k.who || k.fig === 'longLines') && (k.hand === undefined || r.hand === k.hand) && (k.turns === undefined || r.turns === k.turns) && (k.dir === undefined || r.dir === k.dir); }),
+  `figure lines written by the editor read back the same (${made.map(Contra.callText).join(' | ')})`);
+
 // ---------- Phase 2: many times through ----------
 {
   const m = Contra.compile(dance, { lines: 1, sets: 3, passes: 8 });

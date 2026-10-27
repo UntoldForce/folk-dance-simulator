@@ -45,6 +45,7 @@ body {
   padding-block: 14px 20px; box-sizing: border-box;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; margin-bottom: 12px; }
 h1 { font: 600 24px/1.1 var(--font-display); margin: 0; letter-spacing: -0.01em; }
 .subtitle { color: var(--muted); }
@@ -80,6 +81,41 @@ label.small { font-size: 13px; color: var(--muted); display: inline-flex; align-
 #trailVal { min-width: 56px; font-variant-numeric: tabular-nums; }
 
 .timeline { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 4px; }
+.rows { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.prow { display: grid; grid-template-columns: 54px minmax(0, 1fr); gap: 8px; align-items: stretch; }
+.plabel { display: flex; flex-direction: column; justify-content: center; font: 600 14px var(--font-display); }
+.plabel small { font: 500 11px var(--font-mono); color: var(--muted); }
+.plabel.over small { color: var(--bad); }
+.ptrack { position: relative; height: 46px; border-radius: 6px; background: var(--bg);
+  background-image: repeating-linear-gradient(90deg, transparent 0 calc(var(--bar) - 1px), var(--rule) calc(var(--bar) - 1px) var(--bar)); }
+.ptrack.over { box-shadow: inset 0 0 0 1.5px var(--bad); }
+.ptrack .end16 { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--bad); }
+.fblk { position: absolute; top: 3px; bottom: 3px; border: 1px solid var(--rule); border-radius: 6px; background: var(--panel);
+  padding: 4px 12px 4px 7px; overflow: hidden; font-size: 12.5px; line-height: 1.2; cursor: grab; touch-action: none; user-select: none; }
+.fblk .len { display: block; font: 500 11px var(--font-mono); color: var(--muted); }
+.fblk.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--panel)); }
+.fblk.sel { box-shadow: 0 0 0 2px var(--accent); }
+.fblk.flag { box-shadow: inset 0 -3px 0 var(--warn); }
+.fblk.sel.flag { box-shadow: 0 0 0 2px var(--accent), inset 0 -3px 0 var(--warn); }
+.fblk .grip { position: absolute; top: 0; right: 0; bottom: 0; width: 9px; cursor: ew-resize; border-left: 1px dashed var(--rule); }
+.fblk.dragging { opacity: 0.35; }
+.pcursor { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--accent); pointer-events: none; }
+.dropmark { position: absolute; top: 0; bottom: 0; width: 3px; margin-left: -2px; background: var(--accent); border-radius: 2px; pointer-events: none; }
+.ghost { position: fixed; z-index: 20; pointer-events: none; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--accent);
+  background: var(--panel); font-size: 13px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18); }
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--rule); margin: -2px 0 4px; }
+.tabs button { border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: none; padding: 6px 10px; font-weight: 600; color: var(--muted); }
+.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+#panelMoves, #panelText { display: flex; flex-direction: column; gap: 8px; }
+.pool { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--rule); border-radius: 999px; padding: 5px 11px; font-size: 13px; background: var(--panel); cursor: grab; touch-action: none; user-select: none; }
+.chip:hover { border-color: var(--accent); }
+.chip small { color: var(--muted); font-family: var(--font-mono); margin-left: 4px; }
+.inspector { border: 1px solid var(--rule); border-radius: 8px; padding: 10px; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px 10px; align-items: center; }
+.inspector h3 { grid-column: 1 / -1; margin: 0; font: 600 14px var(--font-display); }
+.inspector .line { grid-column: 1 / -1; font: 12.5px var(--font-mono); color: var(--muted); }
+.inspector .actions { grid-column: 1 / -1; display: flex; gap: 8px; }
+.inspector label { font-size: 13px; color: var(--muted); }
 .track { position: relative; height: 26px; }
 .track.figs { height: 40px; }
 .blk { position: absolute; top: 0; bottom: 0; border: 1px solid var(--rule); border-radius: 5px; padding: 3px 6px; overflow: hidden;
@@ -173,20 +209,28 @@ ul.checks li.info::before { color: var(--muted); }
         <input id="whole" type="range" min="0" max="512" step="0.01" value="0" aria-label="Position in the whole run">
         <label class="small"><input id="repeatPass" type="checkbox"> Repeat this time through</label>
       </div>
-      <div class="tlwrap">
-        <div class="track" id="partsTrack"></div>
-        <div class="track figs" id="figsTrack"></div>
-        <div class="cursor" id="cursor"></div>
-      </div>
+      <div class="rows" id="rows"></div>
+      <p class="hint">Drag a figure to move it, drag its right edge to change its length (Shift for single beats), click it to change who dances it.</p>
     </div>
   </div>
 
   <aside class="side">
     <section class="card">
-      <h2>Dance</h2>
-      <p class="hint">Paste a dance in the layout The Caller's Box uses: a part label, then one figure per line with its beats in brackets.</p>
-      <textarea id="danceText" wrap="off" spellcheck="false" aria-label="Dance text"></textarea>
-      <div class="row"><button id="run" class="primary">Run dance</button><button id="reset">Load “111”</button></div>
+      <div class="tabs" role="tablist">
+        <button role="tab" id="tabMoves" aria-selected="true" aria-controls="panelMoves">Moves</button>
+        <button role="tab" id="tabText" aria-selected="false" aria-controls="panelText">Text</button>
+      </div>
+      <div id="panelMoves" role="tabpanel" aria-labelledby="tabMoves">
+        <p class="hint">Drag a move into A1–B2, or click it to add it to the end of the part that's playing.</p>
+        <div class="pool" id="pool"></div>
+        <div class="inspector" id="inspector" hidden></div>
+        <div class="row"><button id="undo" title="Undo (Ctrl+Z)">Undo</button><button id="redo" title="Redo (Ctrl+Shift+Z)">Redo</button><button id="newDance">New dance</button><button id="reset2">Load “111”</button></div>
+      </div>
+      <div id="panelText" role="tabpanel" aria-labelledby="tabText" hidden>
+        <p class="hint">The dance in the layout The Caller's Box uses: a part label, then one figure per line with its beats in brackets. Paste a dance here and press Run.</p>
+        <textarea id="danceText" wrap="off" spellcheck="false" aria-label="Dance text"></textarea>
+        <div class="row"><button id="run" class="primary">Run dance</button><button id="reset">Load “111”</button></div>
+      </div>
     </section>
     <section class="card">
       <h2 id="followTitle">Follow a couple</h2>
@@ -414,7 +458,7 @@ const Contra = (() => {
   }
 
   function parseDance(src) {
-    const dance = { title: '', author: '', meta: {}, progression: 1, parts: [], warnings: [] };
+    const dance = { title: '', author: '', meta: {}, metaLines: [], progression: 1, parts: [], warnings: [] };
     let part = null;
     for (const raw of src.split(/\r?\n/)) {
       const line = raw.trim();
@@ -436,6 +480,7 @@ const Contra = (() => {
       if (kv) {
         const key = kv[1].trim().toLowerCase();
         dance.meta[key] = kv[2].trim();
+        dance.metaLines.push([kv[1].trim(), kv[2].trim()]);
         if (key === 'progression') dance.progression = { single: 1, double: 2, triple: 3, quadruple: 4, quintuple: 5 }[kv[2].trim().toLowerCase()] || 1;
         continue;
       }
@@ -446,6 +491,42 @@ const Contra = (() => {
     if (formation && !/improper/.test(formation)) dance.warnings.push({ level: 'warn', text: `Formation “${dance.meta.formationbase || dance.meta.formation}” isn't supported yet; showing duple improper.` });
     return dance;
   }
+
+  // ---------- Writing a dance back out (The Caller's Box layout) ----------
+  const WHO_TEXT = { partners: 'Partner', neighbors: 'Neighbor', larks: 'Larks', robins: 'Robins', ones: 'Ones', twos: 'Twos' };
+  function turnsText(n) {
+    const whole = Math.floor(n + 1e-9), frac = Math.round((n - whole) * 4);
+    const f = ['', '1/4', '1/2', '3/4'][frac];
+    return whole && f ? `${whole} & ${f}` : f || String(whole);
+  }
+  // The line for a figure, from its settings; used when the editor creates or changes a figure.
+  function callText(k) {
+    const who = WHO_TEXT[k.who] ? WHO_TEXT[k.who] + ' ' : '', side = h => (h === 'L' ? 'left' : 'right');
+    switch (k.fig) {
+      case 'longLines': return 'In long lines, go forward and back';
+      case 'allemande': return `${who}allemande ${side(k.hand)} ${turnsText(k.turns)}`;
+      case 'balance': return `${who}balance${k.hand ? ` (${k.hand}H)` : ''}`;
+      case 'pullBy': return `${who}pull by ${side(k.hand)}`;
+      case 'boxTheGnat': return `${who}box the gnat`;
+      case 'swing': return `${who}swing`;
+      case 'circle': return `Circle ${k.dir === 'R' ? 'right' : 'left'} ${turnsText(k.turns)}`;
+      default: return k.text || '';
+    }
+  }
+  function serialize(d) {
+    const out = [];
+    if (d.title) out.push(d.title);
+    if (d.author) out.push(`by ${d.author}`);
+    if (out.length) out.push('');
+    for (const [k, v] of d.metaLines) out.push(v ? `${k}:\t${v}` : `${k}:`);
+    for (const part of d.parts) {
+      out.push(part.name);
+      for (const k of part.calls) out.push(`(${k.beats}) ${k.text}`);
+      out.push('');
+    }
+    return out.join('\n').trim() + '\n';
+  }
+  const FIGURE_INFO = Object.fromEntries(Object.entries(FIGURES).map(([k, f]) => [k, { group: f.group }]));
 
   // ---------- Building the floor ----------
   // Couples stand in "places" along each line, one neighbor-gap apart; place 0 is at the top.
@@ -686,7 +767,7 @@ const Contra = (() => {
     return seg.f((t - seg.t0) / (seg.t1 - seg.t0));
   }
 
-  return { DEFAULTS, parseDance, compile, poseAt, callIndexAt, meetings };
+  return { DEFAULTS, FIGURE_INFO, TYPICAL_BEATS, parseDance, serialize, callText, compile, poseAt, callIndexAt, meetings };
 })();
 </script>
 
@@ -728,19 +809,21 @@ function recall(key) { try { return localStorage.getItem(key); } catch (e) { ret
 
 function build() {
   const dance = Contra.parseDance($('danceText').value);
+  ensureParts(dance);
+  state.doc = dance;
   const passes = Math.max(1, Math.min(30, Math.round(+$('passes').value) || 8));
   state.c = Contra.compile(dance, { lines: +$('lines').value, sets: +$('sets').value, passes, params: { swingBeatsPerTurn: +$('swingRate').value } });
   state.t = Math.min(state.t, state.c.total);
   $('danceTitle').textContent = dance.title ? `${dance.title}${dance.author ? ' by ' + dance.author : ''}` : 'Untitled dance';
   $('scrub').max = state.c.perPass;
   $('whole').max = state.c.total;
-  buildTimeline();
+  renderRows();
   showChecks(dance);
   if (state.highlight && !state.c.dancers.some(d => d.couple === state.highlight)) state.highlight = null;
   showJourney();
 }
 
-const passAt = t => Math.min(state.c.passes.length - 1, Math.floor(Math.min(t, state.c.total - 1e-6) / state.c.perPass));
+const passAt = t => (state.c.perPass ? Math.min(state.c.passes.length - 1, Math.floor(Math.min(t, state.c.total - 1e-6) / state.c.perPass)) : 0);
 
 // The followed couple's journey: who they meet each time through, and when they wait out at an end.
 function showJourney() {
@@ -759,20 +842,212 @@ function showJourney() {
   });
 }
 
-function buildTimeline() {
-  const c = state.c, pt = $('partsTrack'), ft = $('figsTrack');
-  pt.innerHTML = ''; ft.innerHTML = '';
-  const place = (el, t0, t1) => { el.style.left = `calc(${(t0 / c.perPass) * 100}% + 1px)`; el.style.width = `calc(${((t1 - t0) / c.perPass) * 100}% - 2px)`; };
-  const passStart = () => passAt(state.t) * c.perPass;
-  for (const p of c.parts) {
-    const el = document.createElement('div'); el.className = 'blk'; el.textContent = p.name; place(el, p.t0, p.t1);
-    el.onclick = () => seek(passStart() + p.t0); pt.appendChild(el);
-  }
-  c.calls.filter(k => k.pass === 0).forEach((k, i) => {
-    const el = document.createElement('div'); el.className = 'blk' + (k.flagged ? ' flag' : ''); el.dataset.i = i;
-    el.textContent = `${k.text} (${k.beats})`; el.title = `${k.part}: ${k.text}, ${k.beats} beats`; place(el, k.t0, k.t1);
-    el.onclick = () => seek(passStart() + k.t0); ft.appendChild(el);
+// ---------- Dance editor: four part rows, a pool of moves, and figure settings ----------
+const PART_NAMES = ['A1', 'A2', 'B1', 'B2'];
+const FIG_NAMES = { longLines: 'Long lines', allemande: 'Allemande', balance: 'Balance', pullBy: 'Pull by', boxTheGnat: 'Box the gnat', swing: 'Swing', circle: 'Circle' };
+const POOL = [
+  { fig: 'longLines' },
+  { fig: 'balance', who: 'neighbors', hand: 'R' },
+  { fig: 'swing', who: 'partners', beats: 8 },
+  { fig: 'allemande', who: 'neighbors', hand: 'R', turns: 1 },
+  { fig: 'pullBy', who: 'partners', hand: 'R' },
+  { fig: 'boxTheGnat', who: 'neighbors' },
+  { fig: 'circle', dir: 'L', turns: 1 },
+];
+const newCall = def => {
+  const k = { beats: def.beats || Contra.TYPICAL_BEATS[def.fig] || 4, ...def };
+  k.text = Contra.callText(k);
+  return k;
+};
+const history = { list: [], at: -1 };
+
+// Every edit goes through here: write the dance out as text, remember it for undo, and re-run it.
+function commit(record = true) {
+  const text = Contra.serialize(state.doc);
+  $('danceText').value = text;
+  store('contra.dance', text);
+  if (record) { history.list = history.list.slice(0, history.at + 1); history.list.push(text); history.at = history.list.length - 1; }
+  build();
+}
+function undoTo(at) {
+  if (at < 0 || at >= history.list.length) return;
+  history.at = at; $('danceText').value = history.list[at]; store('contra.dance', history.list[at]);
+  state.sel = null; build();
+}
+
+function ensureParts(d) {
+  for (const name of PART_NAMES) if (!d.parts.some(p => p.name === name)) d.parts.push({ name, calls: [] });
+  d.parts.sort((a, b) => PART_NAMES.indexOf(a.name) - PART_NAMES.indexOf(b.name));
+}
+
+function renderRows() {
+  const rows = $('rows'), d = state.doc, c = state.c;
+  rows.innerHTML = '';
+  let flat = 0;
+  d.parts.forEach((part, pi) => {
+    const beats = part.calls.reduce((s, k) => s + k.beats, 0), scale = Math.max(16, beats);
+    const row = document.createElement('div'); row.className = 'prow';
+    const label = document.createElement('div'); label.className = 'plabel' + (beats !== 16 ? ' over' : '');
+    label.innerHTML = `${part.name}<small>${beats}/16</small>`;
+    const track = document.createElement('div'); track.className = 'ptrack' + (beats > 16 ? ' over' : ''); track.dataset.part = pi;
+    track.style.setProperty('--bar', `${(2 / scale) * 100}%`);
+    if (beats > 16) { const m = document.createElement('div'); m.className = 'end16'; m.style.left = `${(16 / scale) * 100}%`; track.appendChild(m); }
+    let at = 0;
+    part.calls.forEach((k, ci) => {
+      const b = document.createElement('div'), compiled = c.calls[flat++];
+      b.className = 'fblk' + (compiled && compiled.flagged ? ' flag' : '') + (state.sel && state.sel.part === pi && state.sel.index === ci ? ' sel' : '');
+      b.dataset.part = pi; b.dataset.index = ci; b.dataset.flat = flat - 1;
+      b.style.left = `calc(${(at / scale) * 100}% + 1px)`; b.style.width = `calc(${(k.beats / scale) * 100}% - 2px)`;
+      b.title = `${k.text} (${k.beats} beats)`;
+      b.innerHTML = `<span class="name"></span><span class="len">${k.beats}</span><span class="grip" aria-hidden="true"></span>`;
+      b.querySelector('.name').textContent = k.text;
+      b.addEventListener('pointerdown', e => startDrag(e, e.target.classList.contains('grip') ? 'resize' : 'move', { part: pi, index: ci, el: b, track }));
+      track.appendChild(b);
+      at += k.beats;
+    });
+    const cur = document.createElement('div'); cur.className = 'pcursor'; cur.hidden = true; track.appendChild(cur);
+    row.append(label, track); rows.appendChild(row);
   });
+  renderInspector();
+}
+
+function renderPool() {
+  const pool = $('pool');
+  pool.innerHTML = '';
+  for (const def of POOL) {
+    const chip = document.createElement('button'); chip.className = 'chip'; chip.type = 'button';
+    chip.innerHTML = `${FIG_NAMES[def.fig]}<small>${newCall(def).beats}</small>`;
+    chip.addEventListener('pointerdown', e => startDrag(e, 'pool', { def, el: chip }));
+    pool.appendChild(chip);
+  }
+}
+
+// ----- Dragging: move a figure, resize it by its right edge, or bring one in from the pool -----
+let drag = null;
+function startDrag(e, kind, info) {
+  if (e.button !== 0) return;
+  e.preventDefault();
+  drag = { kind, ...info, x0: e.clientX, y0: e.clientY, moved: false };
+  if (kind === 'resize') {
+    const k = state.doc.parts[info.part].calls[info.index], beats = state.doc.parts[info.part].calls.reduce((s, q) => s + q.beats, 0);
+    drag.start = k.beats; drag.perBeat = info.track.getBoundingClientRect().width / Math.max(16, beats);
+  }
+  // Listen on the window: the rows are redrawn while resizing, so the block under the pointer gets replaced.
+  window.addEventListener('pointermove', onDragMove);
+  window.addEventListener('pointerup', onDragEnd);
+  window.addEventListener('pointercancel', onDragEnd);
+}
+
+function onDragMove(e) {
+  if (!drag) return;
+  const dx = e.clientX - drag.x0, dy = e.clientY - drag.y0;
+  if (!drag.moved && Math.hypot(dx, dy) < 4) return;
+  drag.moved = true;
+  if (drag.kind === 'resize') {
+    const step = e.shiftKey ? 1 : 2, raw = drag.start + dx / drag.perBeat;
+    const beats = Math.max(step === 1 ? 1 : 2, Math.round(raw / step) * step);
+    const k = state.doc.parts[drag.part].calls[drag.index];
+    if (k.beats !== beats) { k.beats = beats; commit(false); }
+    return;
+  }
+  if (!drag.ghost) {
+    drag.ghost = document.createElement('div'); drag.ghost.className = 'ghost';
+    drag.ghost.textContent = drag.kind === 'pool' ? FIG_NAMES[drag.def.fig] : state.doc.parts[drag.part].calls[drag.index].text;
+    document.body.appendChild(drag.ghost);
+    if (drag.kind === 'move') drag.el.classList.add('dragging');
+  }
+  drag.ghost.style.left = `${e.clientX + 12}px`; drag.ghost.style.top = `${e.clientY + 10}px`;
+  drag.target = dropTarget(e.clientX, e.clientY);
+  document.querySelectorAll('.dropmark').forEach(m => m.remove());
+  if (drag.target) {
+    const m = document.createElement('div'); m.className = 'dropmark'; m.style.left = `${drag.target.x}px`;
+    drag.target.track.appendChild(m);
+  }
+}
+
+// Which part row is under the pointer, and where among its figures a drop would land.
+function dropTarget(x, y) {
+  const track = [...document.querySelectorAll('.ptrack')].find(t => { const r = t.getBoundingClientRect(); return y >= r.top - 6 && y <= r.bottom + 6 && x >= r.left - 30 && x <= r.right + 30; });
+  if (!track) return null;
+  const tr = track.getBoundingClientRect(), blocks = [...track.querySelectorAll('.fblk')];
+  let index = blocks.length, mx = blocks.length ? blocks[blocks.length - 1].getBoundingClientRect().right - tr.left : 0;
+  for (const b of blocks) {
+    const r = b.getBoundingClientRect();
+    if (x < r.left + r.width / 2) { index = +b.dataset.index; mx = r.left - tr.left; break; }
+  }
+  return { part: +track.dataset.part, index, track, x: mx };
+}
+
+function onDragEnd() {
+  if (!drag) return;
+  const d = drag;
+  drag = null;
+  window.removeEventListener('pointermove', onDragMove);
+  window.removeEventListener('pointerup', onDragEnd);
+  window.removeEventListener('pointercancel', onDragEnd);
+  if (d.ghost) d.ghost.remove();
+  document.querySelectorAll('.dropmark').forEach(m => m.remove());
+  if (d.kind === 'resize') { if (d.moved) { state.sel = { part: d.part, index: d.index }; commit(true); } return; }
+  if (!d.moved) {
+    if (d.kind === 'pool') addToPlayingPart(d.def);
+    else { state.sel = { part: d.part, index: d.index }; seekToFigure(d.part, d.index); renderRows(); }
+    return;
+  }
+  if (!d.target) { renderRows(); return; }
+  const parts = state.doc.parts;
+  let k, { part, index } = d.target;
+  if (d.kind === 'pool') k = newCall(d.def);
+  else {
+    k = parts[d.part].calls.splice(d.index, 1)[0];
+    if (d.part === part && d.index < index) index--;
+  }
+  parts[part].calls.splice(index, 0, k);
+  state.sel = { part, index };
+  commit(true);
+}
+
+function addToPlayingPart(def) {
+  const c = state.c, local = c.perPass ? state.t - passAt(state.t) * c.perPass : 0;
+  const pi = Math.max(0, c.parts.findIndex(p => local >= p.t0 && local < p.t1));
+  const calls = state.doc.parts[pi].calls;
+  calls.push(newCall(def));
+  state.sel = { part: pi, index: calls.length - 1 };
+  commit(true);
+}
+
+function seekToFigure(pi, ci) {
+  const parts = state.doc.parts, c = state.c;
+  let t = 0;
+  for (let p = 0; p < pi; p++) t += parts[p].calls.reduce((s, k) => s + k.beats, 0);
+  for (let i = 0; i < ci; i++) t += parts[pi].calls[i].beats;
+  seek(passAt(state.t) * c.perPass + t);
+}
+
+// ----- The selected figure's settings -----
+function renderInspector() {
+  const box = $('inspector'), sel = state.sel, k = sel && state.doc.parts[sel.part] && state.doc.parts[sel.part].calls[sel.index];
+  box.hidden = !k;
+  if (!k) return;
+  const info = Contra.FIGURE_INFO[k.fig];
+  const field = (label, html) => `<label>${label}</label>${html}`;
+  const options = (list, val) => list.map(([v, t]) => `<option value="${v}"${String(v) === String(val) ? ' selected' : ''}>${t}</option>`).join('');
+  let html = `<h3>${FIG_NAMES[k.fig] || 'Unknown figure'} <span class="small">in ${state.doc.parts[sel.part].name}</span></h3>`;
+  if (info && info.group === 'pair') html += field('Who', `<select id="insWho">${options([['partners', 'Partners'], ['neighbors', 'Neighbors'], ['larks', 'Larks'], ['robins', 'Robins'], ['ones', 'Ones'], ['twos', 'Twos']], k.who)}</select>`);
+  if (k.fig === 'allemande' || k.fig === 'pullBy') html += field('Hand', `<select id="insHand">${options([['R', 'Right'], ['L', 'Left']], k.hand)}</select>`);
+  if (k.fig === 'balance') html += field('Hands', `<select id="insHand">${options([['', 'None'], ['R', 'Right'], ['L', 'Left']], k.hand || '')}</select>`);
+  if (k.fig === 'circle') html += field('Direction', `<select id="insDir">${options([['L', 'Left (clockwise)'], ['R', 'Right (counter-clockwise)']], k.dir)}</select>`);
+  if (k.fig === 'allemande' || k.fig === 'circle') html += field('Amount', `<select id="insTurns">${options([0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2].map(n => [n, n === 1 ? 'Once around' : `${n} turns`.replace(/^(\d)\.25/, '$1¼').replace(/^0\.25 turns/, '¼').replace(/^(\d)\.5/, '$1½').replace(/^0\.5 turns/, '½').replace(/^(\d)\.75/, '$1¾').replace(/^0\.75 turns/, '¾')]), k.turns)}</select>`);
+  html += field('Beats', `<input id="insBeats" type="number" min="1" max="32" step="1" value="${k.beats}">`);
+  html += `<div class="line"></div><div class="actions"><button id="insDelete" type="button">Remove</button></div>`;
+  box.innerHTML = html;
+  box.querySelector('.line').textContent = `(${k.beats}) ${k.text}`;
+  const change = (id, apply) => { const el = $(id); if (el) el.onchange = () => { apply(el.value); if (k.fig) k.text = Contra.callText(k); commit(true); }; };
+  change('insWho', v => (k.who = v));
+  change('insHand', v => (k.hand = v || null));
+  change('insDir', v => (k.dir = v));
+  change('insTurns', v => (k.turns = +v));
+  change('insBeats', v => (k.beats = Math.max(1, Math.min(32, Math.round(+v) || k.beats))));
+  $('insDelete').onclick = () => { state.doc.parts[sel.part].calls.splice(sel.index, 1); state.sel = null; commit(true); };
 }
 
 function showChecks() {
@@ -983,10 +1258,14 @@ function updateReadout() {
   $('where').textContent = `${passText}${part.name} · beat ${beat} of ${part.t1 - part.t0} · bar ${Math.ceil(beat / 2)}`;
   $('what').textContent = k.text;
   $('passLabel').textContent = `Time ${p + 1} of ${c.passes.length}`;
-  for (const el of $('figsTrack').children) el.classList.toggle('active', +el.dataset.i === i - p * perPassCalls);
-  for (const el of $('partsTrack').children) el.classList.toggle('active', el.textContent === part.name);
+  for (const el of $('rows').querySelectorAll('.fblk')) el.classList.toggle('active', +el.dataset.flat === i - p * perPassCalls);
+  const pi = c.parts.indexOf(part);
+  $('rows').querySelectorAll('.ptrack').forEach((tr, j) => {
+    const cur = tr.querySelector('.pcursor'), beats = part.t1 - part.t0;
+    cur.hidden = j !== pi;
+    if (j === pi) cur.style.left = `${((local - part.t0) / Math.max(16, beats)) * 100}%`;
+  });
   for (const el of $('journey').children) el.classList.toggle('current', +el.dataset.p === p);
-  $('cursor').style.left = `${(local / c.perPass) * 100}%`;
   $('scrub').value = local;
   $('whole').value = state.t;
 }
@@ -1013,14 +1292,25 @@ $('fwd').onclick = () => { setPlaying(false); seek(Math.floor(state.t + 1e-6) + 
 $('scrub').oninput = e => { setPlaying(false); seek(passAt(state.t) * state.c.perPass + Math.min(+e.target.value, state.c.perPass - 1e-6)); };
 $('whole').oninput = e => { setPlaying(false); seek(+e.target.value); };
 $('music').onchange = () => { music.next = null; if ($('music').checked && state.playing) startAudio(); };
-$('run').onclick = () => { store('contra.dance', $('danceText').value); build(); };
-$('reset').onclick = () => { $('danceText').value = SAMPLE; store('contra.dance', SAMPLE); build(); };
+$('run').onclick = () => { state.sel = null; build(); commit(true); };
+$('reset').onclick = $('reset2').onclick = () => { $('danceText').value = SAMPLE; state.sel = null; build(); commit(true); };
+$('newDance').onclick = () => { state.doc = { title: 'New dance', author: '', meta: {}, metaLines: [['FormationBase', 'Duple Minor - Improper'], ['Progression', 'Single']], parts: [], warnings: [] }; ensureParts(state.doc); state.sel = null; state.t = 0; commit(true); };
+$('undo').onclick = () => undoTo(history.at - 1);
+$('redo').onclick = () => undoTo(history.at + 1);
+for (const [tab, panel, other, otherPanel] of [['tabMoves', 'panelMoves', 'tabText', 'panelText'], ['tabText', 'panelText', 'tabMoves', 'panelMoves']]) {
+  $(tab).onclick = () => { $(tab).setAttribute('aria-selected', 'true'); $(other).setAttribute('aria-selected', 'false'); $(panel).hidden = false; $(otherPanel).hidden = true; };
+}
 for (const id of ['lines', 'sets', 'swingRate', 'passes']) $(id).onchange = build;
 $('prevPass').onclick = () => { const c = state.c, p = passAt(state.t); seek(Math.max(0, p - 1) * c.perPass + (state.t - p * c.perPass)); };
 $('nextPass').onclick = () => { const c = state.c, p = passAt(state.t); seek(Math.min(c.passes.length - 1, p + 1) * c.perPass + (state.t - p * c.perPass)); };
 $('trailLen').oninput = e => { const b = +e.target.value; $('trailVal').textContent = b ? `${b} beat${b === 1 ? '' : 's'}` : 'Off'; };
 document.addEventListener('keydown', e => {
   if (/^(TEXTAREA|INPUT|SELECT)$/.test(e.target.tagName)) return;
+  const mod = e.ctrlKey || e.metaKey;
+  if (mod && e.key.toLowerCase() === 'z') { e.preventDefault(); undoTo(history.at + (e.shiftKey ? 1 : -1)); return; }
+  if (mod && e.key.toLowerCase() === 'y') { e.preventDefault(); undoTo(history.at + 1); return; }
+  if ((e.key === 'Delete' || e.key === 'Backspace') && state.sel) { e.preventDefault(); $('insDelete').click(); return; }
+  if (e.key === 'Escape' && state.sel) { state.sel = null; renderRows(); return; }
   if (e.key === ' ') { e.preventDefault(); setPlaying(!state.playing); }
   else if (e.key === 'ArrowRight') { e.preventDefault(); $('fwd').click(); }
   else if (e.key === 'ArrowLeft') { e.preventDefault(); $('back').click(); }
@@ -1041,7 +1331,9 @@ new MutationObserver(readTokens).observe(document.documentElement, { attributes:
 
 $('danceText').value = recall('contra.dance') || SAMPLE;
 readTokens();
+renderPool();
 build();
+history.list = [$('danceText').value]; history.at = 0;
 requestAnimationFrame(frame);
 </script>
 </body></html><!--wrap-->
