@@ -87,6 +87,33 @@ const ringGap = Math.hypot(at('0.1L', 51).x - at('0.2R', 51).x, at('0.1L', 51).y
 check(Math.abs(ringGap - 0.9) < 0.03 || Math.abs(Math.hypot(at('0.1L', 51).x - at('0.1R', 51).x, at('0.1L', 51).y - at('0.1R', 51).y) - 0.9) < 0.03,
   `the circle is drawn in so hands can reach (neighbors in the ring ${ringGap.toFixed(2)} m apart)`);
 
+// ---------- Phase 2: many times through ----------
+{
+  const m = Contra.compile(dance, { lines: 1, sets: 3, passes: 8 });
+  check(m.total === 8 * 64 && m.passes.length === 8, 'eight times through = 512 beats');
+  check(m.progression.firstBad === -1, `progression works every time through (${m.passes.map(p => p.check.good + '/' + p.check.total).join(', ')})`);
+  check(m.passes[0].outs.length === 0 && m.passes[1].outs.map(o => o.couple + ' ' + o.end).join() === '0.2 top,0.5 bottom',
+    `time 2: couple 2 out at the top, couple 5 out at the bottom (${m.passes[1].outs.map(o => o.couple + ' ' + o.end).join()})`);
+  check(m.passes[2].outs.length === 0 && m.passes[2].groups.length === 3, 'time 3: everyone back in, three hands-fours');
+  const mt = (id, t) => Contra.poseAt(m, id, t);
+  check(mt('0.2L', 64 + 8).x > 0.5 && mt('0.2R', 64 + 8).x < -0.5, 'couple 2 crosses over in the first 8 beats of waiting at the top');
+  const facesInAt = (id, t) => { const p = mt(id, t); return Math.cos(p.a) * Math.sign(-p.x) > 0.95; };
+  check(facesInAt('0.2L', 64 + 9) && facesInAt('0.2R', 64 + 9), 'after crossing, the waiting couple faces in');
+  const swingGap = Math.hypot(mt('0.2L', 64 + 42).x - mt('0.2R', 64 + 42).x, mt('0.2L', 64 + 42).y - mt('0.2R', 64 + 42).y);
+  check(swingGap < 0.6, `the waiting couple swings with the line in B1 (${swingGap.toFixed(2)} m apart)`);
+  const met = Contra.meetings(m, '0.1').map(x => x.with || 'out ' + x.out).join(', ');
+  check(met === '2, 4, 6, 5, 3, out bottom, 2, 4', `couple 1 meets 2, 4, 6, 5, 3 going down, waits at the bottom, then comes back up as a two (${met})`);
+  let jump = 0, nan = false;
+  for (const d of m.dancers) for (const k of m.calls) {
+    const a = mt(d.id, k.t0 - 1e-6), b = mt(d.id, k.t0 + 1e-6);
+    jump = Math.max(jump, Math.hypot(a.x - b.x, a.y - b.y), Math.abs(wrap(a.a - b.a)) / 10);
+    if ([b.x, b.y, b.a].some(Number.isNaN)) nan = true;
+  }
+  check(!nan && jump < 0.01, `no jumps or turns-in-place between figures over eight times through (max ${jump.toFixed(4)})`);
+  const big = Contra.compile(dance, { lines: 4, sets: 6, passes: 12 });
+  check(big.progression.firstBad === -1, '4 lines x 6 hands-fours, 12 times through: progression works throughout');
+}
+
 // Speeds per figure, at 120 beats per minute (2 beats per second). Not a pass/fail check yet.
 console.log('\nPeak speed per figure at 120 bpm:');
 for (const k of c.calls) {

@@ -89,6 +89,12 @@ label.small { font-size: 13px; color: var(--muted); display: inline-flex; align-
 .blk.flag { box-shadow: inset 0 -3px 0 var(--warn); }
 .cursor { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--accent); pointer-events: none; }
 .tlwrap { position: relative; display: flex; flex-direction: column; gap: 4px; }
+.tlhead { display: flex; align-items: center; gap: 8px; font: 600 13px var(--font-display); }
+.tlhead button { padding: 2px 8px; }
+#passLabel { min-width: 96px; text-align: center; font-variant-numeric: tabular-nums; }
+ol.journey { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 3px; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+ol.journey li.current { font-weight: 600; color: var(--accent); }
+ol.journey .muted { color: var(--muted); }
 
 .side { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .side section { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 8px; }
@@ -141,6 +147,8 @@ ul.checks li.info::before { color: var(--muted); }
         <select id="lines"><option>1</option><option selected>2</option><option>3</option><option>4</option></select>
         <label class="small" for="sets">Hands-fours</label>
         <select id="sets"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option></select>
+        <label class="small" for="passes">Times through</label>
+        <input id="passes" type="number" min="1" max="30" step="1" value="8">
       </div>
       <div class="grp">
         <label class="small" for="swingRate">Swings turn once every</label>
@@ -156,6 +164,11 @@ ul.checks li.info::before { color: var(--muted); }
     </div>
 
     <div class="card timeline">
+      <div class="tlhead">
+        <button id="prevPass" aria-label="Previous time through">◀</button>
+        <span id="passLabel">Time 1 of 8</span>
+        <button id="nextPass" aria-label="Next time through">▶</button>
+      </div>
       <div class="tlwrap">
         <div class="track" id="partsTrack"></div>
         <div class="track figs" id="figsTrack"></div>
@@ -170,6 +183,11 @@ ul.checks li.info::before { color: var(--muted); }
       <p class="hint">Paste a dance in the layout The Caller's Box uses: a part label, then one figure per line with its beats in brackets.</p>
       <textarea id="danceText" wrap="off" spellcheck="false" aria-label="Dance text"></textarea>
       <div class="row"><button id="run" class="primary">Run dance</button><button id="reset">Load “111”</button></div>
+    </section>
+    <section class="card">
+      <h2 id="followTitle">Follow a couple</h2>
+      <p class="hint" id="followHint">Click a dancer on the floor to see who their couple meets each time through.</p>
+      <ol class="journey" id="journey" hidden></ol>
     </section>
     <section class="card">
       <h2>Checks</h2>
@@ -306,22 +324,24 @@ const Contra = (() => {
       const P = ctx.p, m0 = mid(lark, robin);
       // Unless told otherwise, a swing ends facing across into the set, robin on the lark's right.
       const F = call.end != null ? call.end : (m0.x > ctx.cx ? Math.PI : 0);
-      const half = P.partnerGap / 2;
+      const half = P.partnerGap / 2, places = call.places;
       // Ending facing across, the couple drifts back to its side of the set while swinging.
-      const m1 = call.end != null ? m0 : { x: ctx.cx + (m0.x > ctx.cx ? half : -half), y: m0.y };
-      const a0 = angleTo(robin, lark), af = F + Math.PI / 2;  // lark ends on the left of the facing direction
+      // With `places` (a couple waiting out at the end), they open out to those spots, facing each other.
+      const m1 = places ? mid(places[0], places[1]) : call.end != null ? m0 : { x: ctx.cx + (m0.x > ctx.cx ? half : -half), y: m0.y };
+      const a0 = angleTo(robin, lark), af = places ? angleTo(places[1], places[0]) : F + Math.PI / 2;  // lark ends on the left of the facing direction
+      const rEnd = places ? dist(places[0], places[1]) / 2 : P.neighborGap / 2, faceEnd = [places ? af + Math.PI : F, places ? af : F];
       const nominal = -(call.beats / P.swingBeatsPerTurn) * TAU; // swings turn clockwise
       const base = wrap(af - a0);
       const sweep = base - Math.round((base - nominal) / TAU) * TAU;
       const r0 = dist(lark, robin) / 2;
       const radius = u => (u < 0.15 ? lerp(r0, P.swingRadius, mj(u / 0.15))
-        : u > 0.85 ? lerp(P.swingRadius, P.neighborGap / 2, mj((u - 0.85) / 0.15)) : P.swingRadius);
+        : u > 0.85 ? lerp(P.swingRadius, rEnd, mj((u - 0.85) / 0.15)) : P.swingRadius);
       return [[lark, 0], [robin, Math.PI]].map(([d, off]) => u => {
         const ang = a0 + off + sweep * trap(u, 0.15), r = radius(u), m = { x: lerp(m0.x, m1.x, mj(u)), y: lerp(m0.y, m1.y, mj(u)) };
         // Face each other as they come together, then the hold: partner at the right front, right hip to right hip.
         const hold = u < 0.15 ? lerpAngle(ang + Math.PI, ang + Math.PI * 1.25, mj(u / 0.15)) : ang + Math.PI * 1.25;
         let a = settle(d.a, hold, u, 0.15);
-        if (u > 0.85) a = lerpAngle(a, F, mj((u - 0.85) / 0.15));
+        if (u > 0.85) a = lerpAngle(a, faceEnd[off ? 1 : 0], mj((u - 0.85) / 0.15));
         return { x: m.x + r * Math.cos(ang), y: m.y + r * Math.sin(ang), a };
       });
     } },
@@ -424,27 +444,45 @@ const Contra = (() => {
   }
 
   // ---------- Building the floor ----------
+  // Couples stand in "places" along each line, one neighbor-gap apart; place 0 is at the top.
   function layoutFloor(lines, sets, P) {
-    const dancers = [], start = {}, groups = [], half = P.partnerGap / 2, gap = P.neighborGap;
+    const dancers = [], start = {}, couples = [], lineList = [], half = P.partnerGap / 2, gap = P.neighborGap;
     for (let k = 0; k < lines; k++) {
-      const cx = (k - (lines - 1) / 2) * P.lineSpacing;
-      for (let j = 0; j < sets; j++) {
-        const yc = ((sets - 1) / 2 - j) * 2 * gap;
-        const g = { line: k, cx, cy: yc, ids: {} };
-        // Ones are at the top of each hands-four and improper (lark on the +x side); twos are proper.
-        for (const [tag, num, y, larkX] of [['1', 2 * j + 1, yc + gap / 2, cx + half], ['2', 2 * j + 2, yc - gap / 2, cx - half]]) {
-          for (const role of ['lark', 'robin']) {
-            const id = `${k}.${num}${role === 'lark' ? 'L' : 'R'}`;
-            const x = role === 'lark' ? larkX : 2 * cx - larkX;
-            dancers.push({ id, role, line: k, couple: `${k}.${num}`, num, ones: tag === '1' });
-            start[id] = { x, y, a: x > cx ? Math.PI : 0 };
-            g.ids[(role === 'lark' ? 'L' : 'R') + tag] = id;
-          }
+      const cx = (k - (lines - 1) / 2) * P.lineSpacing, top = (sets - 0.5) * gap;
+      lineList.push({ cx, top });
+      for (let place = 0; place < 2 * sets; place++) {
+        // Ones start at the top of each hands-four, improper (lark on the +x side); twos are proper.
+        const num = place + 1, ones = place % 2 === 0, y = top - place * gap, larkX = ones ? cx + half : cx - half;
+        const couple = { id: `${k}.${num}`, line: k, num, role: ones ? 'ones' : 'twos', lark: `${k}.${num}L`, robin: `${k}.${num}R` };
+        couples.push(couple);
+        for (const role of ['lark', 'robin']) {
+          const id = couple[role], x = role === 'lark' ? larkX : 2 * cx - larkX;
+          dancers.push({ id, role, line: k, couple: couple.id, num, ones });
+          start[id] = { x, y, a: x > cx ? Math.PI : 0 };
         }
-        groups.push(g);
       }
     }
-    return { dancers, start, groups };
+    return { dancers, start, couples, lines: lineList };
+  }
+
+  // Form this time through's hands-fours from where couples stand: each ones couple takes hands
+  // with the twos couple one place below. Anyone left over is out at an end of the line.
+  function formGroups(couples, lines, pose, P) {
+    const groups = [], outs = [], byPlace = new Map();
+    const placeOf = c => Math.round((lines[c.line].top - (pose[c.lark].y + pose[c.robin].y) / 2) / P.neighborGap);
+    for (const c of couples) byPlace.set(`${c.line}:${placeOf(c)}`, c);
+    const used = new Set();
+    for (const c of couples) {
+      if (c.role !== 'ones') continue;
+      const t = byPlace.get(`${c.line}:${placeOf(c) + 1}`);
+      if (!t || t.role !== 'twos' || used.has(t)) continue;
+      used.add(c); used.add(t);
+      const ids = { L1: c.lark, R1: c.robin, L2: t.lark, R2: t.robin };
+      const cy = Object.values(ids).reduce((s, id) => s + pose[id].y, 0) / 4;
+      groups.push({ line: c.line, cx: lines[c.line].cx, cy, ids, ones: c, twos: t });
+    }
+    for (const c of couples) if (!used.has(c)) outs.push({ couple: c, cx: lines[c.line].cx, end: c.role === 'twos' ? 'top' : 'bottom' });
+    return { groups, outs };
   }
 
   function whoSets(who, ids) {
@@ -467,15 +505,17 @@ const Contra = (() => {
     return u => { const p = f(u); return u <= 1 - w ? p : { ...p, a: lerpAngle(p.a, target, mj((u - 1 + w) / w)) }; };
   }
 
+  const standStill = p => { const f = () => p; f.still = true; return f; };
+  const faceInFrom = (p, cx) => (Math.abs(p.x - cx) > 0.1 ? (p.x > cx ? Math.PI : 0) : null);
+
   function compile(dance, opts = {}) {
     const P = { ...DEFAULTS, ...(opts.params || {}) };
-    const { dancers, start, groups } = layoutFloor(opts.lines || 2, opts.sets || 3, P);
-    const segs = {}, pose = { ...start };
-    dancers.forEach(d => (segs[d.id] = []));
-    const calls = [], parts = [], warnings = dance.warnings.slice();
-    // Who dances each call, as hands-four positions (L1, R1, L2, R2). Worked out up front so each
-    // figure knows who will stand still in the next one.
-    const KEYS = { L1: 'L1', R1: 'R1', L2: 'L2', R2: 'R2' };
+    const passes = Math.max(1, Math.round(opts.passes || 1));
+    const { dancers, start, couples, lines } = layoutFloor(opts.lines || 2, opts.sets || 3, P);
+    const segs = {}, lineCx = {};
+    let pose = { ...start };
+    dancers.forEach(d => { segs[d.id] = []; lineCx[d.id] = lines[d.line].cx; });
+    const calls = [], parts = [], warnings = dance.warnings.slice(), passInfo = [];
     const flat = dance.parts.flatMap(part => part.calls.map(call => {
       const fig = FIGURES[call.fig];
       let who = call.who;
@@ -483,77 +523,150 @@ const Contra = (() => {
         who = 'partners';
         warnings.push({ level: 'warn', text: `${part.name}: “${call.text}” doesn't say who dances it; assuming partners.` });
       }
-      const active = new Set(fig ? whoSets(fig.group === 'four' ? 'all' : who, KEYS).flat() : []);
-      const activeIds = new Set(groups.flatMap(g => [...active].map(key => g.ids[key])));
-      return { part, call, fig, who, activeIds };
+      return { part, call, fig, who, partnerSwing: call.fig === 'swing' && who === 'partners' };
     }));
-    // Plan one call from the given poses: a path for every dancer (standing still if not dancing).
-    const planCall = (k, from) => {
-      const { call, fig, who } = flat[k], fns = {}, notes = new Set();
-      if (fig) for (const g of groups) {
+    const perPass = flat.reduce((s, k) => s + k.call.beats, 0);
+    const crossBeats = Math.min(8, perPass);
+
+    // Everything about one time through that doesn't change call to call: its hands-fours, who is
+    // out, and the out couples' cross-over paths (they cross at the start of their wait).
+    const startPass = (from, t0) => {
+      const { groups, outs } = formGroups(couples, lines, from, P);
+      const cross = {};
+      for (const o of outs) {
+        const { lark, robin } = o.couple, ctx = { p: P, cx: o.cx };
+        FIGURES.pullBy.plan([from[lark], from[robin]], { hand: 'R' }, ctx).forEach((f, i) => {
+          const id = [lark, robin][i];
+          cross[id] = turnAtEnd(f, faceInFrom(f(1), o.cx), crossBeats);
+        });
+      }
+      return { groups, outs, cross, t0 };
+    };
+
+    // Plan one call: a path for every dancer. `notes` collects anything odd about where dancers start.
+    const planCall = (k, from, pass, t0) => {
+      const { call, fig, who, partnerSwing } = flat[k], fns = {}, notes = new Set();
+      if (fig) for (const g of pass.groups) {
         for (const ids of whoSets(fig.group === 'four' ? 'all' : who, g.ids)) {
           const ps = ids.map(id => from[id]);
           if (fig.group === 'pair' && dist(ps[0], ps[1]) > 2.0) notes.add(`${WHO_LABEL[who]} start ${dist(ps[0], ps[1]).toFixed(1)} m apart`);
           fig.plan(ps, call, { p: P, cx: g.cx }).forEach((f, i) => (fns[ids[i]] = f));
         }
       }
-      for (const d of dancers) if (!fns[d.id]) { const p = from[d.id]; fns[d.id] = () => p; }
+      const local0 = t0 - pass.t0, local1 = local0 + call.beats;
+      for (const o of pass.outs) {
+        const { lark, robin } = o.couple;
+        if (local0 < crossBeats) {
+          for (const id of [lark, robin]) {
+            const f = pass.cross[id];
+            fns[id] = u => f(clamp01(lerp(local0, local1, u) / crossBeats));
+          }
+        } else if (partnerSwing) {
+          const places = [from[lark], from[robin]];
+          FIGURES.swing.plan(places, { ...call, places }, { p: P, cx: o.cx }).forEach((f, i) => (fns[[lark, robin][i]] = f));
+        }
+      }
+      for (const d of dancers) if (!fns[d.id]) fns[d.id] = standStill(from[d.id]);
       return { fns, notes };
     };
-    const lineCx = {};
-    for (const g of groups) for (const id of Object.values(g.ids)) lineCx[id] = g.cx;
 
-    let t = 0, n = 0;
-    for (const part of dance.parts) {
-      const pt0 = t;
-      for (const call of part.calls) {
-        const k = n++, { fig } = flat[k], t0 = t, t1 = t + call.beats;
-        const { fns, notes } = planCall(k, pose);
-        // Each dancer finishes this figure facing the way the next one needs.
-        // Anyone who stands still in the next figure finishes facing into the set instead.
-        const nk = (k + 1) % flat.length, ends = {};
-        for (const d of dancers) { const e = fns[d.id](1); ends[d.id] = { x: e.x, y: e.y }; }
-        const next = planCall(nk, ends).fns;
-        for (const d of dancers) {
-          const end = fns[d.id](1), cx = lineCx[d.id];
-          let target = null;
-          if (flat[nk].fig && flat[nk].activeIds.has(d.id)) target = next[d.id](0).a;
-          else if (fig && Math.abs(end.x - cx) > 0.1) target = end.x > cx ? Math.PI : 0;
-          const f = fig ? turnAtEnd(fns[d.id], target, call.beats) : fns[d.id];
-          segs[d.id].push({ t0, t1, f });
-          pose[d.id] = f(1);
+    let t = 0, pass = startPass(pose, 0);
+    for (let p = 0; p < passes; p++) {
+      const passStart = t, before = pose;
+      passInfo.push({
+        t0: t, groups: pass.groups.map(g => ({ line: g.line, cx: g.cx, cy: g.cy, ones: g.ones.id, twos: g.twos.id })),
+        outs: pass.outs.map(o => ({ couple: o.couple.id, end: o.end })),
+      });
+      let k = 0;
+      for (const part of dance.parts) {
+        const pt0 = t;
+        for (const call of part.calls) {
+          const { fig } = flat[k], t0 = t, t1 = t + call.beats;
+          const { fns, notes } = planCall(k, pose, pass, t0);
+          // Look ahead: plan the next call (in the next time through, after the last one) from where
+          // everyone ends, to learn which way it wants each dancer to face.
+          const ends = {};
+          for (const d of dancers) { const e = fns[d.id](1); ends[d.id] = { x: e.x, y: e.y }; }
+          const last = k === flat.length - 1;
+          let nextPass = pass;
+          if (last) {
+            for (const o of pass.outs) o.couple.role = o.couple.role === 'ones' ? 'twos' : 'ones';
+            nextPass = startPass(ends, t1);
+          }
+          const next = planCall(last ? 0 : k + 1, ends, nextPass, t1).fns;
+          const newPose = {};
+          for (const d of dancers) {
+            const f0 = fns[d.id], end = f0(1);
+            const target = !next[d.id].still ? next[d.id](0).a : faceInFrom(end, lineCx[d.id]);
+            const f = fig || !f0.still ? turnAtEnd(f0, target, call.beats) : f0;
+            segs[d.id].push({ t0, t1, f });
+            newPose[d.id] = f(1);
+          }
+          pose = newPose;
+          if (p === 0) {
+            for (const n of notes) warnings.push({ level: 'warn', text: `${part.name}: “${call.text}”: ${n}.` });
+            const typical = TYPICAL_BEATS[call.fig];
+            if (typical && call.beats < typical) warnings.push({ level: 'info', text: `${part.name}: “${call.text}” gets ${call.beats} beats; ${SOURCE[call.fig] || 'the ContraLab timing chart'} gives it ${typical}. Expect it to feel quick.` });
+            if ((call.beats === 8 && t0 % 8) || (call.beats === 16 && t0 % 16)) warnings.push({ level: 'info', text: `${part.name}: “${call.text}” is ${call.beats} beats but starts partway through a musical phrase.` });
+          }
+          calls.push({ ...call, part: part.name, pass: p, t0, t1, flagged: notes.size > 0 || !fig });
+          t = t1; k++;
+          if (last) pass = nextPass;
         }
-        for (const n of notes) warnings.push({ level: 'warn', text: `${part.name}: “${call.text}”: ${n}.` });
-        const typical = TYPICAL_BEATS[call.fig];
-        if (typical && call.beats < typical) warnings.push({ level: 'info', text: `${part.name}: “${call.text}” gets ${call.beats} beats; ${SOURCE[call.fig] || 'the ContraLab timing chart'} gives it ${typical}. Expect it to feel quick.` });
-        if ((call.beats === 8 && t0 % 8) || (call.beats === 16 && t0 % 16)) warnings.push({ level: 'info', text: `${part.name}: “${call.text}” is ${call.beats} beats but starts partway through a musical phrase.` });
-        calls.push({ ...call, part: part.name, t0, t1, flagged: notes.size > 0 || !fig });
-        t = t1;
+        if (p === 0) {
+          parts.push({ name: part.name, t0: pt0, t1: t });
+          if (t - pt0 !== 16) warnings.push({ level: 'warn', text: `${part.name} is ${t - pt0} beats long; a part is usually 16.` });
+        }
       }
-      parts.push({ name: part.name, t0: pt0, t1: t });
-      if (t - pt0 !== 16) warnings.push({ level: 'warn', text: `${part.name} is ${t - pt0} beats long; a part is usually 16.` });
+      passInfo[p].check = checkPass(passInfo[p], couples, before, pose, dance.progression, P);
     }
-    if (t !== 64) warnings.push({ level: 'warn', text: `The dance is ${t} beats long; a contra is usually 64.` });
+    if (perPass !== 64) warnings.push({ level: 'warn', text: `The dance is ${perPass} beats long; a contra is usually 64.` });
 
     const xs = Object.values(start).map(p => p.x), ys = Object.values(start).map(p => p.y);
-    const out = { P, dancers, start, groups, segs, calls, parts, total: t, warnings, final: pose,
-      bounds: { minX: Math.min(...xs), maxX: Math.max(...xs), minY: Math.min(...ys), maxY: Math.max(...ys) } };
-    out.progression = checkProgression(out, dance.progression);
-    return out;
+    return {
+      P, dancers, couples, start, segs, calls, parts, passes: passInfo, perPass, total: t, warnings, final: pose,
+      progression: summarize(passInfo, dance.progression),
+      bounds: { minX: Math.min(...xs), maxX: Math.max(...xs), minY: Math.min(...ys), maxY: Math.max(...ys) },
+    };
   }
 
-  // After one time through, ones should be `n` places down the line and twos `n` places up,
-  // on the same side of the set and facing the same way as when they started.
-  function checkProgression(c, n) {
-    let good = 0;
-    const off = [];
-    for (const d of c.dancers) {
-      const s = c.start[d.id], f = c.final[d.id];
-      const ey = s.y + (d.ones ? -1 : 1) * n * c.P.neighborGap;
-      const ok = Math.abs(f.x - s.x) < 0.15 && Math.abs(f.y - ey) < 0.15 && Math.abs(wrap(f.a - s.a)) < Math.PI / 6;
-      if (ok) good++; else off.push(d.id);
+  // After each time through: in each hands-four, ones should be `n` places further down and twos `n` places
+  // further up, on the same side and facing the same way. Couples who were out should have crossed over.
+  function checkPass(info, couples, before, after, n, P) {
+    const byId = Object.fromEntries(couples.map(c => [c.id, c])), off = [];
+    let good = 0, total = 0;
+    const same = (id, ex, ey, flip) => {
+      const s = before[id], f = after[id];
+      const ok = Math.abs(f.x - ex) < 0.15 && Math.abs(f.y - ey) < 0.15 && Math.abs(wrap(f.a - s.a - (flip ? Math.PI : 0))) < Math.PI / 6;
+      total++; if (ok) good++; else off.push(id);
+    };
+    for (const g of info.groups) {
+      for (const [cid, dir] of [[g.ones, -1], [g.twos, 1]]) {
+        for (const id of [byId[cid].lark, byId[cid].robin]) same(id, before[id].x, before[id].y + dir * n * P.neighborGap, false);
+      }
     }
-    return { expected: n, good, total: c.dancers.length, off };
+    for (const o of info.outs) {
+      const c = byId[o.couple];
+      same(c.lark, before[c.robin].x, before[c.lark].y, true);
+      same(c.robin, before[c.lark].x, before[c.robin].y, true);
+    }
+    return { good, total, off };
+  }
+
+  function summarize(passInfo, expected) {
+    const firstBad = passInfo.findIndex(p => p.check.good < p.check.total);
+    return { passes: passInfo.length, firstBad, expected, ...(firstBad >= 0 ? passInfo[firstBad].check : passInfo[0].check) };
+  }
+
+  // Who each couple danced with, time by time: a neighbor couple's number, or "out at the top/bottom".
+  function meetings(c, coupleId) {
+    const byId = Object.fromEntries(c.couples.map(k => [k.id, k]));
+    return c.passes.map(p => {
+      const g = p.groups.find(g => g.ones === coupleId || g.twos === coupleId);
+      if (g) return { with: byId[g.ones === coupleId ? g.twos : g.ones].num, as: g.ones === coupleId ? 'ones' : 'twos' };
+      const o = p.outs.find(o => o.couple === coupleId);
+      return { out: o ? o.end : '?' };
+    });
   }
 
   function callIndexAt(c, t) {
@@ -569,7 +682,7 @@ const Contra = (() => {
     return seg.f((t - seg.t0) / (seg.t1 - seg.t0));
   }
 
-  return { DEFAULTS, parseDance, compile, poseAt, callIndexAt };
+  return { DEFAULTS, parseDance, compile, poseAt, callIndexAt, meetings };
 })();
 </script>
 
@@ -611,27 +724,49 @@ function recall(key) { try { return localStorage.getItem(key); } catch (e) { ret
 
 function build() {
   const dance = Contra.parseDance($('danceText').value);
-  state.c = Contra.compile(dance, { lines: +$('lines').value, sets: +$('sets').value, params: { swingBeatsPerTurn: +$('swingRate').value } });
+  const passes = Math.max(1, Math.min(30, Math.round(+$('passes').value) || 8));
+  state.c = Contra.compile(dance, { lines: +$('lines').value, sets: +$('sets').value, passes, params: { swingBeatsPerTurn: +$('swingRate').value } });
   state.t = Math.min(state.t, state.c.total);
   $('danceTitle').textContent = dance.title ? `${dance.title}${dance.author ? ' by ' + dance.author : ''}` : 'Untitled dance';
   $('scrub').max = state.c.total;
   buildTimeline();
   showChecks(dance);
   if (state.highlight && !state.c.dancers.some(d => d.couple === state.highlight)) state.highlight = null;
+  showJourney();
+}
+
+const passAt = t => Math.min(state.c.passes.length - 1, Math.floor(Math.min(t, state.c.total - 1e-6) / state.c.perPass));
+
+// The followed couple's journey: who they meet each time through, and when they wait out at an end.
+function showJourney() {
+  const ol = $('journey'), c = state.c, id = state.highlight;
+  ol.hidden = !id; $('followHint').hidden = !!id;
+  if (!id) { $('followTitle').textContent = 'Follow a couple'; return; }
+  const couple = c.couples.find(k => k.id === id), lines = new Set(c.dancers.map(d => d.line)).size;
+  $('followTitle').textContent = `Couple ${couple.num}${lines > 1 ? ` in line ${couple.line + 1}` : ''}`;
+  ol.innerHTML = '';
+  Contra.meetings(c, id).forEach((m, p) => {
+    const li = document.createElement('li');
+    li.dataset.p = p;
+    if (m.with) li.innerHTML = `With couple ${m.with} <span class="muted">as ${m.as}</span>`;
+    else li.innerHTML = `<span class="muted">Out at the ${m.out}: cross over and wait</span>`;
+    ol.appendChild(li);
+  });
 }
 
 function buildTimeline() {
   const c = state.c, pt = $('partsTrack'), ft = $('figsTrack');
   pt.innerHTML = ''; ft.innerHTML = '';
-  const place = (el, t0, t1) => { el.style.left = `calc(${(t0 / c.total) * 100}% + 1px)`; el.style.width = `calc(${((t1 - t0) / c.total) * 100}% - 2px)`; };
+  const place = (el, t0, t1) => { el.style.left = `calc(${(t0 / c.perPass) * 100}% + 1px)`; el.style.width = `calc(${((t1 - t0) / c.perPass) * 100}% - 2px)`; };
+  const passStart = () => passAt(state.t) * c.perPass;
   for (const p of c.parts) {
     const el = document.createElement('div'); el.className = 'blk'; el.textContent = p.name; place(el, p.t0, p.t1);
-    el.onclick = () => seek(p.t0); pt.appendChild(el);
+    el.onclick = () => seek(passStart() + p.t0); pt.appendChild(el);
   }
-  c.calls.forEach((k, i) => {
+  c.calls.filter(k => k.pass === 0).forEach((k, i) => {
     const el = document.createElement('div'); el.className = 'blk' + (k.flagged ? ' flag' : ''); el.dataset.i = i;
     el.textContent = `${k.text} (${k.beats})`; el.title = `${k.part}: ${k.text}, ${k.beats} beats`; place(el, k.t0, k.t1);
-    el.onclick = () => seek(k.t0); ft.appendChild(el);
+    el.onclick = () => seek(passStart() + k.t0); ft.appendChild(el);
   });
 }
 
@@ -640,8 +775,9 @@ function showChecks() {
   ul.innerHTML = '';
   const add = (level, text) => { const li = document.createElement('li'); li.className = level; li.textContent = text; ul.appendChild(li); };
   const pr = c.progression, word = pr.expected === 1 ? 'one place' : `${pr.expected} places`;
-  if (pr.good === pr.total) add('ok', `Progression works: after one time through, all ${pr.total} dancers have moved ${word} (ones down, twos up), on their own side and facing their new neighbors.`);
-  else add('bad', `Progression: ${pr.total - pr.good} of ${pr.total} dancers don't end ${word} along, on their own side, facing across. Watch the B2 part to see where they end up.`);
+  const times = pr.passes === 1 ? 'after one time through' : `every time through (${pr.passes} times)`;
+  if (pr.firstBad < 0) add('ok', `Progression works ${times}: dancing couples move ${word} (ones down, twos up), on their own side and facing their new neighbors; couples out at the ends cross over and come back in.`);
+  else add('bad', `Progression breaks in time ${pr.firstBad + 1}: ${pr.total - pr.good} of ${pr.total} dancers don't end ${word} along, on their own side, facing across. Watch the end of that time through to see where they go.`);
   const order = { bad: 0, warn: 1, info: 2 };
   for (const w of c.warnings.slice().sort((a, b) => order[a.level] - order[b.level])) add(w.level, w.text);
   if (!c.warnings.some(w => w.level !== 'info')) add('ok', 'Every figure is recognised and every part is 16 beats.');
@@ -764,9 +900,16 @@ function draw() {
   g.fillStyle = tokens.muted; g.font = '600 11px "Instrument Sans", system-ui, sans-serif'; g.textAlign = 'center';
   g.fillText('BAND  ↑  TOP OF THE HALL', v.w / 2, Math.max(62, v.Y(c.bounds.maxY + 1.3)));
 
-  // Hands-four outlines from the start of the dance.
+  // This time through's hands-fours, and a label beside couples waiting out at the ends.
+  const pass = c.passes[passAt(state.t)];
   g.strokeStyle = tokens.rule; g.lineWidth = 1; g.setLineDash([4, 4]);
-  for (const grp of c.groups) {
+  g.fillStyle = tokens.muted; g.font = '500 12px "Instrument Sans", system-ui, sans-serif'; g.textAlign = 'right';
+  for (const o of pass.outs) {
+    const k = c.couples.find(q => q.id === o.couple), y = (Contra.poseAt(c, k.lark, state.t).y + Contra.poseAt(c, k.robin, state.t).y) / 2;
+    const cx = (c.start[k.lark].x + c.start[k.robin].x) / 2;  // partners start on opposite sides of their line
+    g.fillText('out', v.X(cx - P.partnerGap / 2 - 0.35), v.Y(y) + 4);
+  }
+  for (const grp of pass.groups) {
     const x0 = v.X(grp.cx - P.partnerGap / 2 - 0.45), y0 = v.Y(grp.cy + P.neighborGap / 2 + 0.45);
     g.strokeRect(x0, y0, (P.partnerGap + 0.9) * v.s, (P.neighborGap + 0.9) * v.s);
   }
@@ -827,14 +970,18 @@ function draw() {
 function updateReadout() {
   const c = state.c;
   if (!c.calls.length) { $('where').textContent = 'No figures yet'; $('what').textContent = ''; return; }
-  const i = Contra.callIndexAt(c, Math.min(state.t, c.total - 1e-6)), k = c.calls[i];
-  const part = c.parts.find(p => state.t >= p.t0 && state.t < p.t1) || c.parts[c.parts.length - 1];
-  const beat = Math.floor(Math.min(state.t, c.total - 1e-6) - part.t0) + 1;
-  $('where').textContent = `${part.name} · beat ${beat} of ${part.t1 - part.t0} · bar ${Math.ceil(beat / 2)}`;
+  const tt = Math.min(state.t, c.total - 1e-6), p = passAt(tt), local = tt - p * c.perPass, perPassCalls = c.calls.length / c.passes.length;
+  const i = Contra.callIndexAt(c, tt), k = c.calls[i];
+  const part = c.parts.find(q => local >= q.t0 && local < q.t1) || c.parts[c.parts.length - 1];
+  const beat = Math.floor(local - part.t0) + 1;
+  const passText = c.passes.length > 1 ? `Time ${p + 1} of ${c.passes.length} · ` : '';
+  $('where').textContent = `${passText}${part.name} · beat ${beat} of ${part.t1 - part.t0} · bar ${Math.ceil(beat / 2)}`;
   $('what').textContent = k.text;
-  for (const el of $('figsTrack').children) el.classList.toggle('active', +el.dataset.i === i);
-  for (const el of $('partsTrack').children) el.classList.toggle('active', el.textContent === part.name && state.t >= part.t0);
-  $('cursor').style.left = `${(state.t / c.total) * 100}%`;
+  $('passLabel').textContent = `Time ${p + 1} of ${c.passes.length}`;
+  for (const el of $('figsTrack').children) el.classList.toggle('active', +el.dataset.i === i - p * perPassCalls);
+  for (const el of $('partsTrack').children) el.classList.toggle('active', el.textContent === part.name);
+  for (const el of $('journey').children) el.classList.toggle('current', +el.dataset.p === p);
+  $('cursor').style.left = `${(local / c.perPass) * 100}%`;
   $('scrub').value = state.t;
 }
 
@@ -858,7 +1005,9 @@ $('scrub').oninput = e => { setPlaying(false); seek(+e.target.value); };
 $('music').onchange = () => { music.next = null; if ($('music').checked && state.playing) startAudio(); };
 $('run').onclick = () => { store('contra.dance', $('danceText').value); build(); };
 $('reset').onclick = () => { $('danceText').value = SAMPLE; store('contra.dance', SAMPLE); build(); };
-for (const id of ['lines', 'sets', 'swingRate']) $(id).onchange = build;
+for (const id of ['lines', 'sets', 'swingRate', 'passes']) $(id).onchange = build;
+$('prevPass').onclick = () => { const c = state.c, p = passAt(state.t); seek(Math.max(0, p - 1) * c.perPass + (state.t - p * c.perPass)); };
+$('nextPass').onclick = () => { const c = state.c, p = passAt(state.t); seek(Math.min(c.passes.length - 1, p + 1) * c.perPass + (state.t - p * c.perPass)); };
 $('trailLen').oninput = e => { const b = +e.target.value; $('trailVal').textContent = b ? `${b} beat${b === 1 ? '' : 's'}` : 'Off'; };
 document.addEventListener('keydown', e => {
   if (/^(TEXTAREA|INPUT|SELECT)$/.test(e.target.tagName)) return;
@@ -874,6 +1023,7 @@ canvas.addEventListener('click', e => {
     if (dd < bestD) { bestD = dd; best = d; }
   }
   state.highlight = best && best.couple !== state.highlight ? best.couple : null;
+  showJourney();
 });
 const scheme = window.matchMedia('(prefers-color-scheme: dark)');
 if (scheme.addEventListener) scheme.addEventListener('change', readTokens);

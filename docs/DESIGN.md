@@ -137,6 +137,13 @@ Crossed arms and body twist need dancers modeled as bodies rather than dots; lef
 5. **Test dances:** contradb's figure vocabulary (49 figure types, see below) is the reference for the figure library. The dances themselves are not in that repository.
 6. **Desktop first**; phone and tablet layout later.
 
+## End effects (Phase 2 decisions)
+
+- **Hands-fours re-form every time through** from where couples stand: each ones couple takes hands with the twos couple one place below. Anyone left over is out at an end.
+- **Waiting couples cross over at the start of their wait** (the first 8 beats), then face in. At the top a twos couple becomes ones; at the bottom ones become twos.
+- **Waiting couples swing their partner when the line swings partners**, then open back out to their places facing each other. Otherwise they stand facing in.
+- **Times through is adjustable, 1 to 30, default 8.**
+
 ## Motion and flow (the "feel" checks)
 
 The engine measures, for every dancer at every moment:
