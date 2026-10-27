@@ -137,6 +137,25 @@ Crossed arms and body twist need dancers modeled as bodies rather than dots; lef
 5. **Test dances:** contradb's figure vocabulary (49 figure types, see below) is the reference for the figure library. The dances themselves are not in that repository.
 6. **Desktop first**; phone and tablet layout later.
 
+## End effects (Phase 2 decisions)
+
+- **Hands-fours re-form every time through** from where couples stand: each ones couple takes hands with the twos couple one place below. Anyone left over is out at an end.
+- **Waiting couples cross over at the start of their wait** (the first 8 beats), then face in. At the top a twos couple becomes ones; at the bottom ones become twos.
+- **Waiting couples swing their partner when the line swings partners**, then open back out to their places facing each other. Otherwise they stand facing in.
+- **Times through is adjustable, 1 to 30, default 8.**
+
+## Dance editor (decisions)
+
+- The timeline is the editor: four rows (A1, A2, B1, B2), each 16 beats wide; each figure is a block as wide as its length.
+- Drag a block to move it within or between parts; drag its right edge to change its length, snapping to 2 beats (Shift for 1 beat).
+- A part that goes over 16 beats keeps its figures and is flagged in red; the dance still runs.
+- The right-hand panel is wider and stays in view while the page scrolls. Its Editor tab holds the move builder and the pool of moves (drag into the part rows under the floor); its Text tab holds the same dance as Caller's Box text. Undo and Redo sit beside the tabs.
+- Following a couple is a small card at the top right of the floor: who they're with this time through, who's next, and the whole journey on request.
+- The part that's playing is highlighted as the music goes.
+- **Role names** are a choice: Larks / Robins (default), Gents / Ladies, or Men / Women. The floor, editor, readout and checks use the chosen names, and new figures are written with them; the dance text keeps its original wording otherwise. Choosing a gendered pair shows an info icon whose tooltip encourages gender-free calling.
+- Every move is a base move plus modifiers: who dances it, which side (hand, shoulder or direction, with an arrow showing the way it turns), how far (fractions such as "once and a half", places around a ring for circles and stars, or half/full), and beats.
+- The move builder at the top of the Moves column sets these with dropdowns, side toggles, a dial showing how far the move goes, and a beats stepper. Clicking a move in the pool sets up a new one (add it to a chosen part, or drag it in by its handle); clicking a figure in the rows changes it in place. Every change rewrites the text, re-runs the dance, and can be undone.
+
 ## Motion and flow (the "feel" checks)
 
 The engine measures, for every dancer at every moment:

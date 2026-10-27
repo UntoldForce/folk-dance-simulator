@@ -9,6 +9,7 @@ Read `docs/DESIGN.md` first; it holds the agreed decisions. The original brief i
 - Work in small steps. Test each step before pushing it.
 
 ## Workflow with Ryan
+- Use "shoulder round", never "gypsy" (dances that say gypsy are still read, and shown as shoulder round).
 - Ryan is a contra dancer and not a programmer. Explain in plain language; avoid jargon.
 - One branch per phase. Push after every verified step.
 - After each step: publish a preview link, say what changed, and name 2–3 things to look at.
@@ -17,4 +18,7 @@ Read `docs/DESIGN.md` first; it holds the agreed decisions. The original brief i
 ## Layout
 - `index.html` is the whole app. The `<script id="engine">` block is the engine; `tests/run.js` loads it in Node.
 - Lines marked `<!--wrap-->` are the document wrapper; `tools/preview.sh` strips them to publish a preview.
+- The page script's editor section (part rows, pool, dragging, settings) edits a parsed dance and writes it back with `Contra.serialize`.
+- `tests/figures.js` runs every figure on its own and checks speeds, turning and continuity.
+- `tests/editor-browser.js` drives the editor in a real browser (Playwright); run it after editor changes.
 - Test dances live in `dances/`. How each figure moves is in `docs/FIGURES.md`.
