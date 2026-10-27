@@ -18,4 +18,5 @@ Read `docs/DESIGN.md` first; it holds the agreed decisions. The original brief i
 - `index.html` is the whole app. The `<script id="engine">` block is the engine; `tests/run.js` loads it in Node.
 - Lines marked `<!--wrap-->` are the document wrapper; `tools/preview.sh` strips them to publish a preview.
 - The page script's editor section (part rows, pool, dragging, settings) edits a parsed dance and writes it back with `Contra.serialize`.
+- `tests/editor-browser.js` drives the editor in a real browser (Playwright); run it after editor changes.
 - Test dances live in `dances/`. How each figure moves is in `docs/FIGURES.md`.

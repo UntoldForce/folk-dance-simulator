@@ -152,7 +152,8 @@ Crossed arms and body twist need dancers modeled as bodies rather than dots; lef
 - A pool of moves (the figures the simulator knows) sits right beside the part rows, so drags are short and need no scrolling; drag one into a part, or click it to add it to the end of the part that's playing. The Caller's Box text has its own panel on the right.
 - The part that's playing is highlighted as the music goes.
 - **Role names** are a choice: Larks / Robins (default), Gents / Ladies, or Men / Women. The floor, editor, readout and checks use the chosen names, and new figures are written with them; the dance text keeps its original wording otherwise. Choosing a gendered pair shows an info icon whose tooltip encourages gender-free calling.
-- Clicking a block opens its settings (who, hand, amount, direction, beats, remove). Every change rewrites the text, re-runs the dance, and can be undone.
+- Every move is a base move plus modifiers: who dances it, which side (hand, shoulder or direction, with an arrow showing the way it turns), how far (fractions such as "once and a half", places around a ring for circles and stars, or half/full), and beats.
+- The move builder at the top of the Moves column sets these with dropdowns, side toggles, a dial showing how far the move goes, and a beats stepper. Clicking a move in the pool sets up a new one (add it to a chosen part, or drag it in by its handle); clicking a figure in the rows changes it in place. Every change rewrites the text, re-runs the dance, and can be undone.
 
 ## Motion and flow (the "feel" checks)
 

@@ -135,27 +135,32 @@ label.small { font-size: 13px; color: var(--muted); display: inline-flex; align-
 .fblk .len { display: flex; align-items: center; gap: 4px; }
 .fblk .len .cicon { color: var(--cat); }
 .fblk.soon { border-style: dashed; border-left-style: solid; background: var(--bg); }
-.inspector h3 { display: flex; align-items: center; gap: 6px; color: var(--cat); }
-.inspector h3 .small { color: var(--muted); font-weight: 500; }
-.soonnote { grid-column: 1 / -1; margin: 0; font-size: 12.5px; color: var(--muted); }
-#insText { width: 100%; font: 13px var(--font-body); }
 .chip { border: 1px solid var(--rule); border-radius: 999px; padding: 5px 11px; font-size: 13px; background: var(--panel); cursor: grab; touch-action: none; user-select: none; }
 .chip:hover { border-color: var(--accent); }
 .chip small { color: var(--muted); font-family: var(--font-mono); margin-left: 4px; }
-.inspector { border: 1px solid var(--rule); border-radius: 8px; padding: 10px; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px 10px; align-items: center; }
-.inspector h3 { grid-column: 1 / -1; margin: 0; font: 600 14px var(--font-display); }
-.inspector .line { grid-column: 1 / -1; font: 12.5px var(--font-mono); color: var(--muted); }
-.inspector .actions { grid-column: 1 / -1; display: flex; gap: 8px; }
-.inspector label { font-size: 13px; color: var(--muted); }
-.track { position: relative; height: 26px; }
-.track.figs { height: 40px; }
-.blk { position: absolute; top: 0; bottom: 0; border: 1px solid var(--rule); border-radius: 5px; padding: 3px 6px; overflow: hidden;
-  font-size: 12px; line-height: 1.25; color: var(--muted); background: var(--bg); cursor: pointer; }
-.track:not(.figs) .blk { font: 600 13px var(--font-display); color: var(--ink); display: flex; align-items: center; }
-.blk.active { border-color: var(--accent); color: var(--ink); background: color-mix(in srgb, var(--accent) 12%, var(--panel)); }
-.blk.flag { box-shadow: inset 0 -3px 0 var(--warn); }
-.cursor { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--accent); pointer-events: none; }
-.tlwrap { position: relative; display: flex; flex-direction: column; gap: 4px; }
+.builder { border: 1px solid var(--rule); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 9px;
+  background: color-mix(in srgb, var(--cat, var(--accent)) 6%, var(--panel)); }
+.bhead { display: flex; align-items: center; gap: 7px; color: var(--cat); font: 600 15px var(--font-display); }
+.bhead .cicon { width: 18px; height: 18px; }
+.bhead .small { color: var(--muted); font: 500 12px var(--font-body); }
+.bclose { margin-left: auto; border: 0; background: none; color: var(--muted); padding: 2px 6px; }
+.bgrid { display: grid; grid-template-columns: 62px minmax(0, 1fr); gap: 8px; align-items: center; }
+.bgrid label, .blabel { font-size: 12.5px; color: var(--muted); }
+.seg { display: flex; flex-wrap: wrap; gap: 4px; }
+.seg button { flex: 1 1 0; padding: 5px 6px; font-size: 12.5px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
+.seg button[aria-pressed="true"] { background: var(--cat, var(--accent)); border-color: var(--cat, var(--accent)); color: var(--panel); }
+.seg .spin { font-size: 15px; line-height: 1; }
+.amtrow { display: flex; align-items: center; gap: 8px; }
+.amtrow select { flex: 1; min-width: 0; }
+.dial { width: 46px; height: 46px; flex: none; color: var(--cat, var(--accent)); }
+.stepper { display: inline-flex; align-items: center; gap: 6px; font: 600 14px var(--font-mono); }
+.stepper button { width: 30px; padding: 3px 0; }
+.stepper span { min-width: 24px; text-align: center; }
+.bline { font: 12.5px var(--font-mono); color: var(--ink); background: var(--panel); border: 1px dashed var(--rule); border-radius: 6px; padding: 5px 8px; }
+.bactions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+.bdrag { cursor: grab; padding: 5px 9px; border: 1px dashed var(--cat, var(--accent)); border-radius: 6px; color: var(--ink); touch-action: none; user-select: none; }
+#bText { width: 100%; font: 13px var(--font-body); }
+.soonnote { margin: 0; font-size: 12.5px; color: var(--muted); }
 .tlhead { display: flex; align-items: center; gap: 8px; font: 600 13px var(--font-display); }
 .tlhead button { padding: 2px 8px; }
 #passLabel { min-width: 96px; text-align: center; font-variant-numeric: tabular-nums; }
@@ -264,9 +269,9 @@ ul.checks li.passed { color: var(--muted); }
         </div>
         <div class="moves">
           <h2>Moves</h2>
-          <p class="hint">Drag a move into a part, or click it to add it to the end of the part that's playing.</p>
+          <p class="hint">Click a move to set it up (who, side, how far), or drag it straight into a part.</p>
+          <div class="builder" id="builder" hidden></div>
           <div class="pool" id="pool"></div>
-          <div class="inspector" id="inspector" hidden></div>
           <div class="row"><button id="undo" title="Undo (Ctrl+Z)">Undo</button><button id="redo" title="Redo (Ctrl+Shift+Z)">Redo</button><button id="newDance">New dance</button></div>
         </div>
       </div>
@@ -916,81 +921,139 @@ const CATEGORIES = [
 ];
 const icon = cat => `<svg class="cicon" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${(CATEGORIES.find(c => c.id === cat) || { icon: '<circle cx="8" cy="8" r="2"/>' }).icon}</svg>`;
 
-// Every move in the pool. Moves with `fig` are animated; the others can be placed in a dance
-// (dancers stand still during them) until their animation is built. `re` recognises a move in dance text.
+// ----- Moves and their modifiers -----
+// Each move has a base and up to three modifiers: who dances it, which side (hand, shoulder or direction),
+// and how far. `say` writes the move as a line of dance text; modifiers fill in {who}, {side} and {amt}.
+const PAIR = ['partners', 'neighbors', 'larks', 'robins', 'ones', 'twos'];
+const WHO_WORD = { partners: 'Partner', neighbors: 'Neighbor', larks: 'Larks', robins: 'Robins', ones: 'Ones', twos: 'Twos' };
+const WHO_LABEL = { partners: 'Partners', neighbors: 'Neighbors', larks: 'Larks', robins: 'Robins', ones: 'Ones', twos: 'Twos' };
+// Sides are stored as 'L' or 'R'. `spin` is the way the move turns seen from above: 1 counter-clockwise, -1 clockwise.
+const SIDES = {
+  hand: { words: ['left', 'right'], labels: ['Left hand', 'Right hand'], spin: [1, -1] },
+  ring: { words: ['left', 'right'], labels: ['Left', 'Right'], spin: [-1, 1] },        // circle left travels clockwise
+  shoulder: { words: ['left', 'right'], labels: ['Left shoulder', 'Right shoulder'], spin: [1, -1] },
+  pass: { words: ['left', 'right'], labels: ['Left', 'Right'], spin: [0, 0] },
+  rot: { words: ['counterclockwise', 'clockwise'], labels: ['Counter-clockwise', 'Clockwise'], spin: [1, -1] },
+  way: { words: ['left', 'right'], labels: ['Left', 'Right'], spin: [0, 0] },
+  hands: { words: ['(LH)', '(RH)'], labels: ['Left hands', 'Right hands'], spin: [0, 0], none: 'No hands' },
+};
+const AMOUNTS = {
+  turns: [[0.25, '¼'], [0.5, '½'], [0.75, '¾'], [1, 'Once'], [1.25, '1¼'], [1.5, 'Once and a half'], [1.75, '1¾'], [2, 'Twice']],
+  places: [[0.25, '1 place'], [0.5, '2 places'], [0.75, '3 places'], [1, 'All the way'], [1.25, '5 places']],
+  half: [[0.5, 'Half'], [1, 'Full']],
+  hands: [[2, '2 hands'], [3, '3 hands'], [4, '4 hands']],
+};
 const POOL = [
-  { cat: 1, label: 'Allemande', fig: 'allemande', who: 'neighbors', hand: 'R', turns: 1 },
-  { cat: 1, label: 'Swing', fig: 'swing', who: 'partners', beats: 8 },
-  { cat: 1, label: 'Gypsy', text: 'Partner gypsy', beats: 8, re: /gyps|shoulder round/ },
-  { cat: 1, label: 'Arm turn', text: 'Neighbor arm right 1', beats: 8, re: /\barm (right|left)|arm turn/ },
-  { cat: 1, label: 'Two-hand turn', text: 'Partner two-hand turn', beats: 8, re: /two-hand turn/ },
-  { cat: 2, label: 'Pull by', fig: 'pullBy', who: 'partners', hand: 'R' },
-  { cat: 2, label: 'Box the gnat', fig: 'boxTheGnat', who: 'neighbors' },
-  { cat: 2, label: 'Pass through', text: 'Pass through across', beats: 4, re: /pass (through|thru)/ },
-  { cat: 2, label: 'Swat the flea', text: 'Neighbor swat the flea', beats: 4, re: /swat the flea/ },
-  { cat: 2, label: 'California twirl', text: 'Partner California twirl', beats: 4, re: /california twirl/ },
-  { cat: 2, label: 'Star through', text: 'Neighbor star through', beats: 4, re: /star (through|thru)/ },
-  { cat: 2, label: 'Roll away', text: 'Partner roll away with a half sashay', beats: 4, re: /roll ?away/ },
-  { cat: 2, label: 'Half sashay', text: 'Partner half sashay', beats: 4, re: /half sashay/ },
-  { cat: 2, label: 'Trade', text: 'Robins trade by right', beats: 4, re: /\btrade\b/ },
-  { cat: 2, label: 'Cross', text: 'Robins cross by right', beats: 4, re: /\bcross\b/ },
-  { cat: 3, label: 'Balance', fig: 'balance', who: 'neighbors', hand: 'R' },
-  { cat: 3, label: 'Long lines', fig: 'longLines' },
-  { cat: 3, label: 'Do-si-do', text: 'Neighbor do-si-do', beats: 8, re: /do-?s[ia]-?do|dosido|dosado/ },
-  { cat: 3, label: 'Seesaw', text: 'Partner seesaw', beats: 8, re: /see-?saw/ },
-  { cat: 3, label: 'Mad robin', text: 'Mad robin around neighbor', beats: 8, re: /mad robin/ },
-  { cat: 3, label: 'Set', text: 'Set to partner', beats: 4, re: /^set\b|\bset to\b/ },
-  { cat: 3, label: 'Turn single', text: 'Turn single', beats: 4, re: /turn single/ },
-  { cat: 3, label: 'Balance the wave', text: 'Balance the wave', beats: 4, re: /balance (the )?wave|wavy line/ },
-  { cat: 3, label: 'Balance the ring', text: 'Balance the ring', beats: 4, re: /balance (the )?ring/ },
-  { cat: 4, label: 'Circle', fig: 'circle', dir: 'L', turns: 1 },
-  { cat: 4, label: 'Star', text: 'Star right 1', beats: 8, re: /^star (right|left)|hands across/ },
-  { cat: 4, label: 'Petronella', text: 'Petronella turn', beats: 4, re: /petronella/ },
-  { cat: 4, label: 'Poussette', text: 'Partner poussette clockwise 1/2', beats: 8, re: /poussette/ },
-  { cat: 4, label: 'Broken circle', text: 'Broken circle left 1/4', beats: 4, re: /broken circle/ },
-  { cat: 4, label: 'Star promenade', text: 'Star promenade 1/2', beats: 4, re: /star promenade/ },
-  { cat: 4, label: 'Weathervane', text: 'Weathervane', beats: 8, re: /weathervane/ },
-  { cat: 5, label: 'Courtesy turn', text: 'Partner courtesy turn', beats: 4, re: /courtesy turn/ },
-  { cat: 5, label: 'Turn as a couple', text: 'Partner turn as a couple', beats: 4, re: /turn as (a )?couples?|wheel around/ },
-  { cat: 5, label: 'Gate', text: 'Neighbor gate', beats: 4, re: /\bgate\b/ },
-  { cat: 5, label: 'Butterfly whirl', text: 'Partner butterfly whirl', beats: 4, re: /butterfly whirl/ },
-  { cat: 5, label: 'Dixie twirl', text: 'Dixie twirl', beats: 4, re: /dixie twirl/ },
-  { cat: 6, label: 'Robins chain', text: 'Robins chain', beats: 8, re: /(robins|ladies|women)'? chain/ },
-  { cat: 6, label: 'Larks chain', text: 'Larks chain', beats: 8, re: /(larks|gents|men)'? chain/ },
-  { cat: 6, label: 'Right and left through', text: 'Right and left through', beats: 8, re: /right and left (through|thru)/ },
-  { cat: 6, label: 'Flutterwheel', text: 'Flutterwheel', beats: 8, re: /flutterwheel/ },
-  { cat: 6, label: 'Square through', text: 'Square through 2', beats: 8, re: /square (through|thru)/ },
-  { cat: 6, label: 'Give and take', text: 'Robins give and take partner', beats: 4, re: /give.and.take/ },
-  { cat: 7, label: 'Hey for four', text: 'Hey for four', beats: 16, re: /^(full )?hey( for four)?$/ },
-  { cat: 7, label: 'Half hey', text: 'Half hey', beats: 8, re: /half hey|hey 1\/2/ },
-  { cat: 7, label: 'Hey for three', text: 'Hey for three', beats: 12, re: /hey for three/ },
-  { cat: 7, label: 'Half figure eight', text: 'Ones half figure eight', beats: 8, re: /half figure (8|eight)/ },
-  { cat: 7, label: 'Figure eight', text: 'Ones figure eight', beats: 16, re: /figure (8|eight)/ },
-  { cat: 8, label: 'Slice', text: 'Slice left', beats: 8, re: /\bslice\b/ },
-  { cat: 8, label: 'Lead down', text: 'Ones lead down the center', beats: 8, re: /lead (down|up)/ },
-  { cat: 8, label: 'Down the hall', text: 'Down the hall in a line of four', beats: 8, re: /down the (hall|center)/ },
-  { cat: 8, label: 'Up the hall', text: 'Up the hall in a line of four', beats: 8, re: /up the (hall|center)|come back/ },
-  { cat: 8, label: 'Cast off', text: 'Ones cast off', beats: 4, re: /cast off/ },
-  { cat: 8, label: 'Cast down', text: 'Ones cast down', beats: 4, re: /cast down/ },
-  { cat: 8, label: 'Shift', text: 'Shift left', beats: 4, re: /^shift\b/ },
-  { cat: 8, label: 'Veer', text: 'Veer left', beats: 2, re: /^veer\b/ },
-  { cat: 8, label: 'Contra corners', text: 'Ones turn contra corners', beats: 16, re: /contra corners/ },
+  { cat: 1, label: 'Allemande', fig: 'allemande', who: PAIR, side: 'hand', amount: 'turns', d: { who: 'neighbors', side: 'R', amt: 1 }, say: '{who} allemande {side} {amt}' },
+  { cat: 1, label: 'Swing', fig: 'swing', who: PAIR, beats: 8, d: { who: 'partners' }, say: '{who} swing' },
+  { cat: 1, label: 'Gypsy', who: PAIR, side: 'shoulder', amount: 'turns', d: { who: 'partners', side: 'R', amt: 1 }, beats: 8, say: '{who} gypsy {side} shoulder {amt}', re: /gyps|shoulder round/ },
+  { cat: 1, label: 'Arm turn', who: PAIR, side: 'hand', amount: 'turns', d: { who: 'neighbors', side: 'R', amt: 1 }, beats: 8, say: '{who} arm {side} {amt}', re: /\barm (right|left)|arm turn/ },
+  { cat: 1, label: 'Two-hand turn', who: PAIR, side: 'rot', amount: 'turns', d: { who: 'partners', side: 'R', amt: 1 }, beats: 8, say: '{who} two-hand turn {side} {amt}', re: /two-hand turn/ },
+  { cat: 2, label: 'Pull by', fig: 'pullBy', who: PAIR, side: 'pass', d: { who: 'partners', side: 'R' }, say: '{who} pull by {side}' },
+  { cat: 2, label: 'Box the gnat', fig: 'boxTheGnat', who: PAIR, d: { who: 'neighbors' }, say: '{who} box the gnat' },
+  { cat: 2, label: 'Pass through', who: PAIR, side: 'pass', d: { who: 'partners', side: 'R' }, beats: 4, say: '{who} pass through by the {side}', re: /pass (through|thru)/ },
+  { cat: 2, label: 'Swat the flea', who: PAIR, d: { who: 'neighbors' }, beats: 4, say: '{who} swat the flea', re: /swat the flea/ },
+  { cat: 2, label: 'California twirl', who: PAIR, d: { who: 'partners' }, beats: 4, say: '{who} California twirl', re: /california twirl/ },
+  { cat: 2, label: 'Star through', who: PAIR, d: { who: 'neighbors' }, beats: 4, say: '{who} star through', re: /star (through|thru)/ },
+  { cat: 2, label: 'Roll away', who: PAIR, d: { who: 'partners' }, beats: 4, say: '{who} roll away with a half sashay', re: /roll ?away/ },
+  { cat: 2, label: 'Half sashay', who: PAIR, d: { who: 'partners' }, beats: 4, say: '{who} half sashay', re: /half sashay/ },
+  { cat: 2, label: 'Trade', who: ['robins', 'larks'], side: 'pass', d: { who: 'robins', side: 'R' }, beats: 4, say: '{who} trade by {side}', re: /\btrade\b/ },
+  { cat: 2, label: 'Cross', who: ['robins', 'larks', 'ones', 'twos'], side: 'pass', d: { who: 'robins', side: 'R' }, beats: 4, say: '{who} cross by {side}', re: /\bcross\b/ },
+  { cat: 3, label: 'Balance', fig: 'balance', who: PAIR, side: 'hands', d: { who: 'neighbors', side: 'R' }, say: '{who} balance {side}' },
+  { cat: 3, label: 'Long lines', fig: 'longLines', d: {}, say: 'In long lines, go forward and back' },
+  { cat: 3, label: 'Do-si-do', who: PAIR, amount: 'turns', d: { who: 'neighbors', amt: 1 }, beats: 8, say: '{who} do-si-do {amt}', re: /do-?s[ia]-?do|dosido|dosado/ },
+  { cat: 3, label: 'Seesaw', who: PAIR, amount: 'turns', d: { who: 'partners', amt: 1 }, beats: 8, say: '{who} seesaw {amt}', re: /see-?saw/ },
+  { cat: 3, label: 'Mad robin', who: ['neighbors', 'partners'], side: 'rot', d: { who: 'neighbors', side: 'R' }, beats: 8, say: 'Mad robin {side} around {who_l}', re: /mad robin/ },
+  { cat: 3, label: 'Set', who: PAIR, d: { who: 'partners' }, beats: 4, say: 'Set to {who_l}', re: /^set\b|\bset to\b/ },
+  { cat: 3, label: 'Turn single', side: 'way', d: { side: 'R' }, beats: 4, say: 'Turn single {side}', re: /turn single/ },
+  { cat: 3, label: 'Balance the wave', d: {}, beats: 4, say: 'Balance the wave', re: /balance (the )?wave|wavy line/ },
+  { cat: 3, label: 'Balance the ring', d: {}, beats: 4, say: 'Balance the ring', re: /balance (the )?ring/ },
+  { cat: 4, label: 'Circle', fig: 'circle', side: 'ring', amount: 'places', d: { side: 'L', amt: 1 }, say: 'Circle {side} {amt}' },
+  { cat: 4, label: 'Star', side: 'hand', amount: 'places', d: { side: 'R', amt: 1 }, beats: 8, say: 'Star {side} {amt}', re: /^star (right|left)|hands across/ },
+  { cat: 4, label: 'Petronella', d: {}, beats: 4, say: 'Petronella turn', re: /petronella/ },
+  { cat: 4, label: 'Poussette', who: ['partners', 'neighbors'], side: 'rot', amount: 'half', d: { who: 'partners', side: 'R', amt: 0.5 }, beats: 8, say: '{who} poussette {side} {amt}', re: /poussette/ },
+  { cat: 4, label: 'Broken circle', side: 'ring', amount: 'places', d: { side: 'L', amt: 0.25 }, beats: 4, say: 'Broken circle {side} {amt}', re: /broken circle/ },
+  { cat: 4, label: 'Star promenade', amount: 'half', d: { amt: 0.5 }, beats: 4, say: 'Star promenade {amt}', re: /star promenade/ },
+  { cat: 4, label: 'Weathervane', amount: 'half', d: { amt: 0.5 }, beats: 8, say: 'Weathervane {amt}', re: /weathervane/ },
+  { cat: 5, label: 'Courtesy turn', who: ['partners', 'neighbors'], d: { who: 'partners' }, beats: 4, say: '{who} courtesy turn', re: /courtesy turn/ },
+  { cat: 5, label: 'Turn as a couple', who: ['partners', 'neighbors'], d: { who: 'partners' }, beats: 4, say: '{who} turn as a couple', re: /turn as (a )?couples?|wheel around/ },
+  { cat: 5, label: 'Gate', who: ['partners', 'neighbors'], side: 'rot', amount: 'turns', d: { who: 'neighbors', side: 'L', amt: 0.5 }, beats: 4, say: '{who} gate {side} {amt}', re: /\bgate\b/ },
+  { cat: 5, label: 'Butterfly whirl', who: ['partners', 'neighbors'], d: { who: 'partners' }, beats: 4, say: '{who} butterfly whirl', re: /butterfly whirl/ },
+  { cat: 5, label: 'Dixie twirl', d: {}, beats: 4, say: 'Dixie twirl', re: /dixie twirl/ },
+  { cat: 6, label: 'Robins chain', d: {}, beats: 8, say: 'Robins chain', re: /(robins|ladies|women)'? chain/ },
+  { cat: 6, label: 'Larks chain', d: {}, beats: 8, say: 'Larks chain', re: /(larks|gents|men)'? chain/ },
+  { cat: 6, label: 'Right and left through', d: {}, beats: 8, say: 'Right and left through', re: /right and left (through|thru)/ },
+  { cat: 6, label: 'Flutterwheel', d: {}, beats: 8, say: 'Flutterwheel', re: /flutterwheel/ },
+  { cat: 6, label: 'Square through', amount: 'hands', d: { amt: 2 }, beats: 8, say: 'Square through {amt}', re: /square (through|thru)/ },
+  { cat: 6, label: 'Give and take', who: ['robins', 'larks'], d: { who: 'robins' }, beats: 4, say: '{who} give and take', re: /give.and.take/ },
+  { cat: 7, label: 'Hey for four', who: ['robins', 'larks', 'partners', 'neighbors'], side: 'pass', amount: 'half', d: { who: 'robins', side: 'R', amt: 0.5 }, beats: 8,
+    say: m => `${m.amt === 0.5 ? 'Half hey' : 'Hey for four'}, ${WHO_LABEL[m.who].toLowerCase()} pass ${m.side === 'L' ? 'left' : 'right'} to start`, re: /\bhey\b(?! for three)/ },
+  { cat: 7, label: 'Hey for three', d: {}, beats: 12, say: 'Hey for three', re: /hey for three/ },
+  { cat: 7, label: 'Figure eight', who: ['ones', 'twos'], amount: 'half', d: { who: 'ones', amt: 0.5 }, beats: 8,
+    say: m => `${WHO_WORD[m.who]} ${m.amt === 0.5 ? 'half figure eight' : 'figure eight'}`, re: /figure (8|eight)/ },
+  { cat: 8, label: 'Slice', side: 'way', d: { side: 'L' }, beats: 8, say: 'Slice {side}', re: /\bslice\b/ },
+  { cat: 8, label: 'Lead down', who: ['ones', 'twos'], d: { who: 'ones' }, beats: 8, say: '{who} lead down the center', re: /lead (down|up)/ },
+  { cat: 8, label: 'Down the hall', d: {}, beats: 8, say: 'Down the hall in a line of four', re: /down the (hall|center)/ },
+  { cat: 8, label: 'Up the hall', d: {}, beats: 8, say: 'Up the hall in a line of four', re: /up the (hall|center)|come back/ },
+  { cat: 8, label: 'Cast off', who: ['ones', 'twos'], d: { who: 'ones' }, beats: 4, say: '{who} cast off', re: /cast off/ },
+  { cat: 8, label: 'Cast down', who: ['ones', 'twos'], d: { who: 'ones' }, beats: 4, say: '{who} cast down', re: /cast down/ },
+  { cat: 8, label: 'Shift', side: 'way', d: { side: 'L' }, beats: 4, say: 'Shift {side}', re: /^shift\b/ },
+  { cat: 8, label: 'Veer', side: 'way', d: { side: 'L' }, beats: 2, say: 'Veer {side}', re: /^veer\b/ },
+  { cat: 8, label: 'Contra corners', who: ['ones', 'twos'], d: { who: 'ones' }, beats: 16, say: '{who} turn contra corners', re: /contra corners/ },
 ];
 const FIG_NAMES = Object.fromEntries(POOL.filter(d => d.fig).map(d => [d.fig, d.label]));
-const FIG_CAT = Object.fromEntries(POOL.filter(d => d.fig).map(d => [d.fig, d.cat]));
+
+const amtText = (def, a) => {
+  if (a == null) return '';
+  if (def.amount === 'hands') return String(a);
+  if (def.amount === 'half') return a === 0.5 ? '1/2' : '1';
+  if (a === 1 && /do-si-do|seesaw|gypsy/.test(def.say)) return '';   // "once around" is the default for these
+  const whole = Math.floor(a + 1e-9), f = ['', '1/4', '1/2', '3/4'][Math.round((a - whole) * 4)];
+  return whole && f ? `${whole} & ${f}` : f || String(whole);
+};
+// Write a move with its modifiers as a line of dance text.
+function sayMove(def, m) {
+  const side = def.side && m.side ? SIDES[def.side].words[m.side === 'L' ? 0 : 1] : '';
+  let t = typeof def.say === 'function' ? def.say(m)
+    : def.say.replace('{who_l}', m.who ? WHO_WORD[m.who].toLowerCase() : '').replace('{who}', m.who ? WHO_WORD[m.who] : '')
+      .replace('{side}', side).replace('{amt}', amtText(def, m.amt));
+  t = t.replace(/\s+/g, ' ').trim();
+  return roleWords(t.charAt(0).toUpperCase() + t.slice(1));
+}
 // Which pool move a figure in the dance is: by its animated figure, or by recognising its text.
 function moveOf(k) {
   if (k.fig) return POOL.find(d => d.fig === k.fig);
-  const t = k.text.toLowerCase().replace(/^(partners?|neighbou?rs?|ones|twos|larks|robins|men|women|gents|ladies)\s+/, '');
-  return POOL.find(d => d.re && (d.re.test(t) || d.re.test(k.text.toLowerCase()))) || null;
+  const full = k.text.toLowerCase(), t = full.replace(/^(partners?|neighbou?rs?|ones|twos|larks|robins|men|women|gents|ladies)\s+/, '');
+  return POOL.find(d => d.re && (d.re.test(t) || d.re.test(full))) || null;
 }
-const newCall = def => {
-  const k = { beats: def.beats || Contra.TYPICAL_BEATS[def.fig] || 4, ...def };
-  delete k.cat; delete k.label; delete k.re;
-  k.text = roleWords(def.fig ? Contra.callText(k) : def.text);
-  if (!def.fig) Object.assign(k, Contra.parseDance('A1\n(1) ' + k.text).parts[0].calls[0], { beats: k.beats, text: k.text });
-  return k;
-};
+// Read a placed figure's modifiers back, from what was parsed or from its text.
+function readMods(def, k) {
+  const t = k.text.toLowerCase(), m = { ...def.d };
+  if (def.who) { const w = k.who && def.who.includes(k.who) ? k.who : def.who.find(w => new RegExp(`\\b${w.replace(/s$/, '')}`).test(t)); if (w) m.who = w; }
+  if (def.side) {
+    if (k.fig && (k.hand !== undefined || k.dir)) m.side = k.hand || k.dir || null;
+    else if (def.side === 'rot') m.side = /counter-?clockwise|ccw/.test(t) ? 'L' : /clockwise|\bcw\b/.test(t) ? 'R' : m.side;
+    else if (def.side === 'hands') m.side = /\(lh\)/.test(t) ? 'L' : /\(rh\)/.test(t) ? 'R' : null;
+    else m.side = /\bleft\b/.test(t) ? 'L' : /\bright\b/.test(t) ? 'R' : m.side;
+  }
+  if (def.amount) {
+    if (k.fig && k.turns) m.amt = k.turns;
+    else if (def.amount === 'half') m.amt = /half|1\/2/.test(t) ? 0.5 : /\b(full|1)\b|for four|figure eight/.test(t) && !/half/.test(t) ? 1 : m.amt;
+    else { const n = parseAmount(t); if (n) m.amt = n; }
+  }
+  return m;
+}
+function parseAmount(t) {
+  t = t.replace(/two-hand/g, '').replace(/½/g, ' 1/2').replace(/&|\band\b/g, ' ');
+  let total = 0, found = false;
+  for (const tok of t.match(/\d+\s*\/\s*\d+|\d+(\.\d+)?/g) || []) { const [n, d] = tok.split('/').map(Number); total += d ? n / d : n; found = true; }
+  return found ? total : null;
+}
+// A new figure for the dance from a move and its modifiers; read back through the parser so animated moves get their settings.
+function newCall(def, m = def.d, beats) {
+  const text = sayMove(def, m), k = Contra.parseDance('A1\n(1) ' + text).parts[0].calls[0];
+  return { ...k, beats: beats || def.beats || Contra.TYPICAL_BEATS[def.fig] || 4, text };
+}
 const history = { list: [], at: -1 };
 
 // Every edit goes through here: write the dance out as text, remember it for undo, and re-run it.
@@ -1041,7 +1104,7 @@ function renderRows() {
     const cur = document.createElement('div'); cur.className = 'pcursor'; cur.hidden = true; track.appendChild(cur);
     row.append(label, track); rows.appendChild(row);
   });
-  renderInspector();
+  renderBuilder();
 }
 
 function renderPool() {
@@ -1055,7 +1118,7 @@ function renderPool() {
       const chip = document.createElement('button'); chip.type = 'button';
       chip.className = 'chip' + (def.fig ? '' : ' soon');
       chip.title = def.fig ? `${def.label}: drag into a part` : `${def.label}: not animated yet. You can still place it; dancers stand still during it.`;
-      chip.innerHTML = `${def.label}<small>${newCall(def).beats}</small>`;
+      chip.innerHTML = `${def.label}<small>${def.beats || Contra.TYPICAL_BEATS[def.fig] || 4}</small>`;
       chip.addEventListener('pointerdown', e => startDrag(e, 'pool', { def, el: chip }));
       group.querySelector('.chips').appendChild(chip);
     }
@@ -1130,14 +1193,14 @@ function onDragEnd() {
   document.querySelectorAll('.dropmark').forEach(m => m.remove());
   if (d.kind === 'resize') { if (d.moved) { state.sel = { part: d.part, index: d.index }; commit(true); } return; }
   if (!d.moved) {
-    if (d.kind === 'pool') addToPlayingPart(d.def);
-    else { state.sel = { part: d.part, index: d.index }; seekToFigure(d.part, d.index); renderRows(); }
+    if (d.kind === 'pool') { if (d.el.id !== 'bDrag') { state.sel = null; state.build = { def: d.def, m: { ...d.def.d }, beats: d.def.beats || Contra.TYPICAL_BEATS[d.def.fig] || 4 }; renderRows(); } }
+    else { state.sel = { part: d.part, index: d.index }; state.build = null; seekToFigure(d.part, d.index); renderRows(); }
     return;
   }
   if (!d.target) { renderRows(); return; }
   const parts = state.doc.parts;
   let k, { part, index } = d.target;
-  if (d.kind === 'pool') k = newCall(d.def);
+  if (d.kind === 'pool') { k = newCall(d.def, d.m || d.def.d, d.beats); state.build = null; }
   else {
     k = parts[d.part].calls.splice(d.index, 1)[0];
     if (d.part === part && d.index < index) index--;
@@ -1147,14 +1210,6 @@ function onDragEnd() {
   commit(true);
 }
 
-function addToPlayingPart(def) {
-  const c = state.c, local = c.perPass ? state.t - passAt(state.t) * c.perPass : 0;
-  const pi = Math.max(0, c.parts.findIndex(p => local >= p.t0 && local < p.t1));
-  const calls = state.doc.parts[pi].calls;
-  calls.push(newCall(def));
-  state.sel = { part: pi, index: calls.length - 1 };
-  commit(true);
-}
 
 function seekToFigure(pi, ci) {
   const parts = state.doc.parts, c = state.c;
@@ -1164,34 +1219,89 @@ function seekToFigure(pi, ci) {
   seek(passAt(state.t) * c.perPass + t);
 }
 
-// ----- The selected figure's settings -----
-function renderInspector() {
-  const box = $('inspector'), sel = state.sel, k = sel && state.doc.parts[sel.part] && state.doc.parts[sel.part].calls[sel.index];
-  box.hidden = !k;
-  if (!k) return;
-  const info = Contra.FIGURE_INFO[k.fig];
-  const field = (label, html) => `<label>${label}</label>${html}`;
-  const options = (list, val) => list.map(([v, t]) => `<option value="${v}"${String(v) === String(val) ? ' selected' : ''}>${t}</option>`).join('');
-  const move = moveOf(k);
-  let html = `<h3 class="cat${move ? move.cat : 0}">${icon(move ? move.cat : 0)} ${move ? move.label : 'Unknown figure'} <span class="small">in ${state.doc.parts[sel.part].name}</span></h3>`;
-  if (!k.fig) html += `<p class="soonnote">Not animated yet: dancers stand still during it. Edit the line to say who dances it.</p>` + field('Line', `<input id="insText" type="text" value="">`);
-  if (info && info.group === 'pair') html += field('Who', `<select id="insWho">${options([['partners', 'Partners'], ['neighbors', 'Neighbors'], ['larks', roleSet()[0]], ['robins', roleSet()[1]], ['ones', 'Ones'], ['twos', 'Twos']], k.who)}</select>`);
-  if (k.fig === 'allemande' || k.fig === 'pullBy') html += field('Hand', `<select id="insHand">${options([['R', 'Right'], ['L', 'Left']], k.hand)}</select>`);
-  if (k.fig === 'balance') html += field('Hands', `<select id="insHand">${options([['', 'None'], ['R', 'Right'], ['L', 'Left']], k.hand || '')}</select>`);
-  if (k.fig === 'circle') html += field('Direction', `<select id="insDir">${options([['L', 'Left (clockwise)'], ['R', 'Right (counter-clockwise)']], k.dir)}</select>`);
-  if (k.fig === 'allemande' || k.fig === 'circle') html += field('Amount', `<select id="insTurns">${options([0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2].map(n => [n, n === 1 ? 'Once around' : `${n} turns`.replace(/^(\d)\.25/, '$1¼').replace(/^0\.25 turns/, '¼').replace(/^(\d)\.5/, '$1½').replace(/^0\.5 turns/, '½').replace(/^(\d)\.75/, '$1¾').replace(/^0\.75 turns/, '¾')]), k.turns)}</select>`);
-  html += field('Beats', `<input id="insBeats" type="number" min="1" max="32" step="1" value="${k.beats}">`);
-  html += `<div class="line"></div><div class="actions"><button id="insDelete" type="button">Remove</button></div>`;
+// ----- The move builder: set up a new move, or change the selected one -----
+// state.build holds the move being set up: { def, m (modifiers), beats } for a new move.
+function dial(def, m) {
+  // How far the move goes: an arc from the top around a ring, in the direction it turns.
+  if (!def.amount || def.amount === 'hands') return '';
+  const amt = m.amt || 1, spin = def.side && m.side ? SIDES[def.side].spin[m.side === 'L' ? 0 : 1] || -1 : -1;
+  const frac = amt % 1 || 1, ang = frac * 2 * Math.PI, r = 20, cx = 28, cy = 28;
+  const end = [cx + r * Math.sin(spin < 0 ? ang : -ang), cy - r * Math.cos(ang)];
+  const arc = frac >= 0.999 ? `M${cx} ${cy - r}a${r} ${r} 0 1 ${spin < 0 ? 1 : 0} 0.01 0` : `M${cx} ${cy - r}A${r} ${r} 0 ${frac > 0.5 ? 1 : 0} ${spin < 0 ? 1 : 0} ${end[0]} ${end[1]}`;
+  const head = Math.atan2(end[1] - cy, end[0] - cx) + (spin < 0 ? Math.PI / 2 : -Math.PI / 2);
+  const tip = (dx, dy) => `${end[0] + dx * Math.cos(head) - dy * Math.sin(head)} ${end[1] + dx * Math.sin(head) + dy * Math.cos(head)}`;
+  const dots = def.amount === 'places' ? [0, 1, 2, 3].map(i => `<circle cx="${cx + r * Math.sin(i * Math.PI / 2)}" cy="${cy - r * Math.cos(i * Math.PI / 2)}" r="3" fill="currentColor" opacity="0.35"/>`).join('') : '';
+  return `<svg class="dial" viewBox="0 0 56 56" aria-hidden="true"><circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--rule)" stroke-width="3"/>${dots}
+    <path d="${arc}" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/>
+    <path d="M${tip(-6, -5)} L${end[0]} ${end[1]} L${tip(6, -5)}" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    ${amt > 1 ? `<text x="${cx}" y="${cy + 4}" text-anchor="middle" font-size="11" font-weight="700" fill="currentColor">${amt === 2 ? '×2' : '+1'}</text>` : ''}</svg>`;
+}
+const spinIcon = s => (s > 0 ? '↺' : s < 0 ? '↻' : '');
+
+function renderBuilder() {
+  const box = $('builder'), sel = state.sel, k = sel && state.doc.parts[sel.part] && state.doc.parts[sel.part].calls[sel.index];
+  let def, m, beats, editing = !!k;
+  if (k) { def = moveOf(k); beats = k.beats; m = def ? readMods(def, k) : null; }
+  else if (state.build) ({ def, m, beats } = state.build);
+  box.hidden = !k && !state.build;
+  if (box.hidden) return;
+  const cat = def ? def.cat : 0, partName = k ? state.doc.parts[sel.part].name : '';
+  let html = `<div class="bhead cat${cat}">${icon(cat)}<strong>${def ? def.label : 'Unknown figure'}</strong>${k ? `<span class="small">in ${partName}</span>` : '<span class="small">new</span>'}
+    <button type="button" class="bclose" id="bClose" aria-label="Close">✕</button></div>`;
+  if (def && !def.fig) html += `<p class="soonnote">Not animated yet: dancers stand still during it.</p>`;
+  if (def) {
+    html += `<div class="bgrid">`;
+    if (def.who) html += `<label for="bWho">Who</label><select id="bWho">${def.who.map(w => `<option value="${w}"${m.who === w ? ' selected' : ''}>${w === 'larks' ? roleSet()[0] : w === 'robins' ? roleSet()[1] : WHO_LABEL[w]}</option>`).join('')}</select>`;
+    if (def.side) {
+      const S = SIDES[def.side], opts = [...(S.none ? [[null, S.none, 0]] : []), ['L', S.labels[0], S.spin[0]], ['R', S.labels[1], S.spin[1]]];
+      html += `<span class="blabel">Side</span><div class="seg" role="group" aria-label="Side">${opts.map(([v, label, spin]) =>
+        `<button type="button" data-side="${v}" aria-pressed="${(m.side || null) === v}">${spinIcon(spin) ? `<span class="spin">${spinIcon(spin)}</span>` : ''}${label}</button>`).join('')}</div>`;
+    }
+    if (def.amount) html += `<label for="bAmt">${def.amount === 'places' ? 'How far' : def.amount === 'hands' ? 'Hands' : 'Amount'}</label>
+      <div class="amtrow"><select id="bAmt">${AMOUNTS[def.amount].map(([v, l]) => `<option value="${v}"${m.amt === v ? ' selected' : ''}>${l}</option>`).join('')}</select>${dial(def, m)}</div>`;
+    html += `</div>`;
+  } else {
+    html += `<div class="bgrid"><label for="bText">Line</label><input id="bText" type="text"></div>`;
+  }
+  html += `<div class="bgrid"><span class="blabel">Beats</span><div class="stepper"><button type="button" id="bLess" aria-label="Two beats fewer">−</button><span id="bBeats">${beats}</span><button type="button" id="bMore" aria-label="Two beats more">+</button></div></div>`;
+  html += `<div class="bline" id="bLine"></div>`;
+  html += editing ? `<div class="bactions"><button type="button" id="bRemove">Remove</button></div>`
+    : `<div class="bactions"><span class="bdrag" id="bDrag" title="Drag into a part">⠿ Drag into a part</span><span>or</span><select id="bPart" aria-label="Part">${state.doc.parts.map((p, i) => `<option value="${i}"${i === playingPart() ? ' selected' : ''}>${p.name}</option>`).join('')}</select><button type="button" class="primary" id="bAdd">Add</button></div>`;
   box.innerHTML = html;
-  box.querySelector('.line').textContent = `(${k.beats}) ${roleWords(k.text)}`;
-  if ($('insText')) { $('insText').value = roleWords(k.text); $('insText').onchange = () => { k.text = $('insText').value.trim() || k.text; commit(true); }; }
-  const change = (id, apply) => { const el = $(id); if (el) el.onchange = () => { apply(el.value); if (k.fig) k.text = roleWords(Contra.callText(k)); commit(true); }; };
-  change('insWho', v => (k.who = v));
-  change('insHand', v => (k.hand = v || null));
-  change('insDir', v => (k.dir = v));
-  change('insTurns', v => (k.turns = +v));
-  change('insBeats', v => (k.beats = Math.max(1, Math.min(32, Math.round(+v) || k.beats))));
-  $('insDelete').onclick = () => { state.doc.parts[sel.part].calls.splice(sel.index, 1); state.sel = null; commit(true); };
+  box.querySelector('.bhead').className = `bhead cat${cat}`;
+  $('bLine').textContent = `(${beats}) ${def ? sayMove(def, m) : roleWords(k.text)}`;
+
+  // Apply a change: to the selected figure straight away, or to the move being set up.
+  const apply = (nm, nb) => {
+    if (editing) {
+      const placed = def ? newCall(def, nm, nb) : { ...k, beats: nb };
+      state.doc.parts[sel.part].calls[sel.index] = placed;
+      commit(true);
+    } else { state.build = { def, m: nm, beats: nb }; renderBuilder(); }
+  };
+  if ($('bWho')) $('bWho').onchange = e => apply({ ...m, who: e.target.value }, beats);
+  box.querySelectorAll('.seg button').forEach(b => (b.onclick = () => apply({ ...m, side: b.dataset.side === 'null' ? null : b.dataset.side }, beats)));
+  if ($('bAmt')) $('bAmt').onchange = e => apply({ ...m, amt: +e.target.value }, beats);
+  if ($('bText')) { $('bText').value = roleWords(k.text); $('bText').onchange = () => { k.text = $('bText').value.trim() || k.text; commit(true); }; }
+  $('bLess').onclick = () => apply(m, Math.max(1, beats - 2));
+  $('bMore').onclick = () => apply(m, Math.min(32, beats + 2));
+  $('bClose').onclick = () => { state.sel = null; state.build = null; renderRows(); };
+  if (editing) $('bRemove').onclick = () => { state.doc.parts[sel.part].calls.splice(sel.index, 1); state.sel = null; commit(true); };
+  else {
+    $('bAdd').onclick = () => addMove(+$('bPart').value, newCall(def, m, beats));
+    $('bDrag').addEventListener('pointerdown', e => startDrag(e, 'pool', { def, m, beats, el: $('bDrag') }));
+  }
+}
+
+function playingPart() {
+  const c = state.c, local = c.perPass ? state.t - passAt(state.t) * c.perPass : 0;
+  return Math.max(0, c.parts.findIndex(p => local >= p.t0 && local < p.t1));
+}
+function addMove(pi, k) {
+  const calls = state.doc.parts[pi].calls;
+  calls.push(k);
+  state.sel = { part: pi, index: calls.length - 1 }; state.build = null;
+  commit(true);
 }
 
 // Checks: a red / yellow / green count on the summary line; open it to see what failed.
@@ -1473,8 +1583,8 @@ document.addEventListener('keydown', e => {
   const mod = e.ctrlKey || e.metaKey;
   if (mod && e.key.toLowerCase() === 'z') { e.preventDefault(); undoTo(history.at + (e.shiftKey ? 1 : -1)); return; }
   if (mod && e.key.toLowerCase() === 'y') { e.preventDefault(); undoTo(history.at + 1); return; }
-  if ((e.key === 'Delete' || e.key === 'Backspace') && state.sel) { e.preventDefault(); $('insDelete').click(); return; }
-  if (e.key === 'Escape' && state.sel) { state.sel = null; renderRows(); return; }
+  if ((e.key === 'Delete' || e.key === 'Backspace') && state.sel) { e.preventDefault(); $('bRemove').click(); return; }
+  if (e.key === 'Escape' && (state.sel || state.build)) { state.sel = null; state.build = null; renderRows(); return; }
   if (e.key === ' ') { e.preventDefault(); setPlaying(!state.playing); }
   else if (e.key === 'ArrowRight') { e.preventDefault(); $('fwd').click(); }
   else if (e.key === 'ArrowLeft') { e.preventDefault(); $('back').click(); }
