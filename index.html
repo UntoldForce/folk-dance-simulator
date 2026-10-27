@@ -53,7 +53,7 @@ h1 { font: 600 24px/1.1 var(--font-display); margin: 0; letter-spacing: -0.01em;
 @media (max-width: 860px) { .app { grid-template-columns: minmax(0, 1fr); } }
 .stage { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .card { background: var(--panel); border: 1px solid var(--rule); border-radius: 10px; }
-.floorwrap { position: relative; height: min(64vh, 640px); min-height: 320px; background: var(--floor); border-radius: 10px; border: 1px solid var(--rule); overflow: hidden; }
+.floorwrap { position: relative; height: min(54vh, 600px); min-height: 320px; background: var(--floor); border-radius: 10px; border: 1px solid var(--rule); overflow: hidden; }
 #floor { width: 100%; height: 100%; display: block; cursor: pointer; }
 .now { position: absolute; left: 12px; top: 10px; display: flex; flex-direction: column; gap: 2px; pointer-events: none; }
 .now .where { font: 500 13px var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
@@ -81,7 +81,14 @@ label.small { font-size: 13px; color: var(--muted); display: inline-flex; align-
 #trailVal { min-width: 56px; font-variant-numeric: tabular-nums; }
 
 .timeline { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 4px; }
-.rows { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.editor { display: grid; grid-template-columns: minmax(0, 1fr) 270px; gap: 14px; margin-top: 8px; align-items: start; }
+@media (max-width: 1100px) { .editor { grid-template-columns: minmax(0, 1fr); } }
+.editmain { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.moves { display: flex; flex-direction: column; gap: 8px; border-left: 1px solid var(--rule); padding-left: 14px; min-width: 0; }
+@media (max-width: 1100px) { .moves { border-left: 0; padding-left: 0; border-top: 1px solid var(--rule); padding-top: 10px; } }
+.rows { display: flex; flex-direction: column; gap: 6px; }
+.prow.current .plabel { color: var(--accent); }
+.prow.current .ptrack { background-color: color-mix(in srgb, var(--accent) 10%, var(--bg)); }
 .prow { display: grid; grid-template-columns: 54px minmax(0, 1fr); gap: 8px; align-items: stretch; }
 .plabel { display: flex; flex-direction: column; justify-content: center; font: 600 14px var(--font-display); }
 .plabel small { font: 500 11px var(--font-mono); color: var(--muted); }
@@ -103,10 +110,6 @@ label.small { font-size: 13px; color: var(--muted); display: inline-flex; align-
 .dropmark { position: absolute; top: 0; bottom: 0; width: 3px; margin-left: -2px; background: var(--accent); border-radius: 2px; pointer-events: none; }
 .ghost { position: fixed; z-index: 20; pointer-events: none; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--accent);
   background: var(--panel); font-size: 13px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18); }
-.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--rule); margin: -2px 0 4px; }
-.tabs button { border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: none; padding: 6px 10px; font-weight: 600; color: var(--muted); }
-.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
-#panelMoves, #panelText { display: flex; flex-direction: column; gap: 8px; }
 .pool { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip { border: 1px solid var(--rule); border-radius: 999px; padding: 5px 11px; font-size: 13px; background: var(--panel); cursor: grab; touch-action: none; user-select: none; }
 .chip:hover { border-color: var(--accent); }
@@ -209,28 +212,28 @@ ul.checks li.info::before { color: var(--muted); }
         <input id="whole" type="range" min="0" max="512" step="0.01" value="0" aria-label="Position in the whole run">
         <label class="small"><input id="repeatPass" type="checkbox"> Repeat this time through</label>
       </div>
-      <div class="rows" id="rows"></div>
-      <p class="hint">Drag a figure to move it, drag its right edge to change its length (Shift for single beats), click it to change who dances it.</p>
+      <div class="editor">
+        <div class="editmain">
+          <div class="rows" id="rows"></div>
+          <p class="hint">Drag a figure to move it, drag its right edge to change its length (Shift for single beats), click it to change who dances it.</p>
+        </div>
+        <div class="moves">
+          <h2>Moves</h2>
+          <p class="hint">Drag a move into a part, or click it to add it to the end of the part that's playing.</p>
+          <div class="pool" id="pool"></div>
+          <div class="inspector" id="inspector" hidden></div>
+          <div class="row"><button id="undo" title="Undo (Ctrl+Z)">Undo</button><button id="redo" title="Redo (Ctrl+Shift+Z)">Redo</button><button id="newDance">New dance</button></div>
+        </div>
+      </div>
     </div>
   </div>
 
   <aside class="side">
     <section class="card">
-      <div class="tabs" role="tablist">
-        <button role="tab" id="tabMoves" aria-selected="true" aria-controls="panelMoves">Moves</button>
-        <button role="tab" id="tabText" aria-selected="false" aria-controls="panelText">Text</button>
-      </div>
-      <div id="panelMoves" role="tabpanel" aria-labelledby="tabMoves">
-        <p class="hint">Drag a move into A1–B2, or click it to add it to the end of the part that's playing.</p>
-        <div class="pool" id="pool"></div>
-        <div class="inspector" id="inspector" hidden></div>
-        <div class="row"><button id="undo" title="Undo (Ctrl+Z)">Undo</button><button id="redo" title="Redo (Ctrl+Shift+Z)">Redo</button><button id="newDance">New dance</button><button id="reset2">Load “111”</button></div>
-      </div>
-      <div id="panelText" role="tabpanel" aria-labelledby="tabText" hidden>
-        <p class="hint">The dance in the layout The Caller's Box uses: a part label, then one figure per line with its beats in brackets. Paste a dance here and press Run.</p>
-        <textarea id="danceText" wrap="off" spellcheck="false" aria-label="Dance text"></textarea>
-        <div class="row"><button id="run" class="primary">Run dance</button><button id="reset">Load “111”</button></div>
-      </div>
+      <h2>Dance text</h2>
+      <p class="hint">The dance in the layout The Caller's Box uses: a part label, then one figure per line with its beats in brackets. It updates as you edit; paste a dance here and press Run.</p>
+      <textarea id="danceText" wrap="off" spellcheck="false" aria-label="Dance text"></textarea>
+      <div class="row"><button id="run" class="primary">Run dance</button><button id="reset">Load “111”</button></div>
     </section>
     <section class="card">
       <h2 id="followTitle">Follow a couple</h2>
@@ -1260,6 +1263,7 @@ function updateReadout() {
   $('passLabel').textContent = `Time ${p + 1} of ${c.passes.length}`;
   for (const el of $('rows').querySelectorAll('.fblk')) el.classList.toggle('active', +el.dataset.flat === i - p * perPassCalls);
   const pi = c.parts.indexOf(part);
+  $('rows').querySelectorAll('.prow').forEach((row, j) => row.classList.toggle('current', j === pi));
   $('rows').querySelectorAll('.ptrack').forEach((tr, j) => {
     const cur = tr.querySelector('.pcursor'), beats = part.t1 - part.t0;
     cur.hidden = j !== pi;
@@ -1293,13 +1297,11 @@ $('scrub').oninput = e => { setPlaying(false); seek(passAt(state.t) * state.c.pe
 $('whole').oninput = e => { setPlaying(false); seek(+e.target.value); };
 $('music').onchange = () => { music.next = null; if ($('music').checked && state.playing) startAudio(); };
 $('run').onclick = () => { state.sel = null; build(); commit(true); };
-$('reset').onclick = $('reset2').onclick = () => { $('danceText').value = SAMPLE; state.sel = null; build(); commit(true); };
+$('reset').onclick = () => { $('danceText').value = SAMPLE; state.sel = null; build(); commit(true); };
 $('newDance').onclick = () => { state.doc = { title: 'New dance', author: '', meta: {}, metaLines: [['FormationBase', 'Duple Minor - Improper'], ['Progression', 'Single']], parts: [], warnings: [] }; ensureParts(state.doc); state.sel = null; state.t = 0; commit(true); };
 $('undo').onclick = () => undoTo(history.at - 1);
 $('redo').onclick = () => undoTo(history.at + 1);
-for (const [tab, panel, other, otherPanel] of [['tabMoves', 'panelMoves', 'tabText', 'panelText'], ['tabText', 'panelText', 'tabMoves', 'panelMoves']]) {
-  $(tab).onclick = () => { $(tab).setAttribute('aria-selected', 'true'); $(other).setAttribute('aria-selected', 'false'); $(panel).hidden = false; $(otherPanel).hidden = true; };
-}
+
 for (const id of ['lines', 'sets', 'swingRate', 'passes']) $(id).onchange = build;
 $('prevPass').onclick = () => { const c = state.c, p = passAt(state.t); seek(Math.max(0, p - 1) * c.perPass + (state.t - p * c.perPass)); };
 $('nextPass').onclick = () => { const c = state.c, p = passAt(state.t); seek(Math.min(c.passes.length - 1, p + 1) * c.perPass + (state.t - p * c.perPass)); };

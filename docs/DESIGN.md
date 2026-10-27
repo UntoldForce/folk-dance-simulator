@@ -149,7 +149,8 @@ Crossed arms and body twist need dancers modeled as bodies rather than dots; lef
 - The timeline is the editor: four rows (A1, A2, B1, B2), each 16 beats wide; each figure is a block as wide as its length.
 - Drag a block to move it within or between parts; drag its right edge to change its length, snapping to 2 beats (Shift for 1 beat).
 - A part that goes over 16 beats keeps its figures and is flagged in red; the dance still runs.
-- A pool of moves (the figures the simulator knows) sits in the right-hand panel; drag one into a part, or click it to add it to the end of the part that's playing. A Text tab holds the Caller's Box text.
+- A pool of moves (the figures the simulator knows) sits right beside the part rows, so drags are short and need no scrolling; drag one into a part, or click it to add it to the end of the part that's playing. The Caller's Box text has its own panel on the right.
+- The part that's playing is highlighted as the music goes.
 - Clicking a block opens its settings (who, hand, amount, direction, beats, remove). Every change rewrites the text, re-runs the dance, and can be undone.
 
 ## Motion and flow (the "feel" checks)
