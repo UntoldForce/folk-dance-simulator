@@ -68,6 +68,12 @@ const facesIn = (id, t) => { const p = at(id, t); return Math.cos(p.a) * Math.si
 check(facesIn('0.1R', 22) && facesIn('0.2R', 22), 'robins finish the partner pull by right facing into the set (A2)');
 check(facesIn('0.1R', 34) && facesIn('0.2R', 34), 'robins finish the neighbor pull by right facing into the set (B1)');
 
+// Each figure ends with dancers already facing the way the next figure needs.
+const facing = (id, t, otherId) => { const p = at(id, t), q = at(otherId, t); return Math.cos(p.a - Math.atan2(q.y - p.y, q.x - p.x)) > 0.98; };
+check(facing('0.1R', 16, '0.1L') && facing('0.1L', 16, '0.1R'), 'after the robins allemande, partners already face each other for the partner balance');
+check(facing('0.1L', 24, '0.2R') && facing('0.2R', 24, '0.1L'), "after the men's pull by, neighbors already face each other for the neighbor balance");
+check(facing('0.1L', 20, '0.1R') && facing('0.1R', 20, '0.1L'), 'after the partner balance, partners face each other to pull by');
+
 // Speeds per figure, at 120 beats per minute (2 beats per second). Not a pass/fail check yet.
 console.log('\nPeak speed per figure at 120 bpm:');
 for (const k of c.calls) {

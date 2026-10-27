@@ -22,8 +22,9 @@ figure that doesn't start on a phrase boundary (8-beat calls start an 8-beat phr
   **Shadow:** someone in your hands-four, not your partner, who takes your partner's role there.
 - **Allemande amounts** count from when the two are first close. In the center of the set they are in halves:
   a half means someone crosses the set.
-- **Sitting out the next figure:** anyone who stands still in the next figure finishes the current one facing into the set
-  (e.g. in "111" the robins end the partner pull by facing in while the larks pull by). Ryan pointed this out for the partner pull by; applying it to every figure is our assumption.
+- **Ending a figure:** dancers finish each figure already facing the way the next figure needs (Ryan's rule),
+  turning over the last part of the figure (up to 1½ beats). Anyone who stands still in the next figure finishes facing
+  into the set instead (e.g. in "111" the robins end the partner pull by facing in while the larks pull by).
 - **Hey amounts:** ¼ = two passes; ½ = three or four passes (everyone crosses); full = seven or eight passes.
 
 ### How dances are written (The Caller's Box layout)

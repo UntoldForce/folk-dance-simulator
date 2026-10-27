@@ -213,7 +213,9 @@ const Contra = (() => {
     return (r / 2 + (u - r)) / total;
   }
   // Turn smoothly from the facing a dancer arrived with into the figure's own facing.
-  const settle = (a0, a, u, k = 0.2) => (u >= k ? a : lerpAngle(a0, a, mj(u / k)));
+  // With no arrival facing (a0 undefined) it returns the figure's own facing; the engine uses that
+  // to learn which way each figure wants dancers to face as it starts.
+  const settle = (a0, a, u, k = 0.2) => (a0 == null || u >= k ? a : lerpAngle(a0, a, mj(u / k)));
   const bump = u => (u < 0.5 ? mj(u * 2) : mj((1 - u) * 2));
 
   // Each figure takes its dancers' starting poses and returns one path function per dancer.
@@ -435,12 +437,11 @@ const Contra = (() => {
     }
   }
 
-  // Turn a path's facing toward the center of the set over the last part of the figure.
-  function faceInAtEnd(f, cx) {
-    const end = f(1);
-    if (Math.abs(end.x - cx) < 0.1) return f;
-    const faceIn = end.x > cx ? Math.PI : 0;
-    return u => { const p = f(u); return u <= 0.6 ? p : { ...p, a: lerpAngle(p.a, faceIn, mj((u - 0.6) / 0.4)) }; };
+  // Turn a path's facing toward `target` over the last part of the figure (up to 1.5 beats).
+  function turnAtEnd(f, target, beats) {
+    if (target == null) return f;
+    const w = Math.min(0.4, 1.5 / beats);
+    return u => { const p = f(u); return u <= 1 - w ? p : { ...p, a: lerpAngle(p.a, target, mj((u - 1 + w) / w)) }; };
   }
 
   function compile(dance, opts = {}) {
@@ -460,31 +461,45 @@ const Contra = (() => {
         warnings.push({ level: 'warn', text: `${part.name}: “${call.text}” doesn't say who dances it; assuming partners.` });
       }
       const active = new Set(fig ? whoSets(fig.group === 'four' ? 'all' : who, KEYS).flat() : []);
-      return { part, call, fig, who, active };
+      const activeIds = new Set(groups.flatMap(g => [...active].map(key => g.ids[key])));
+      return { part, call, fig, who, activeIds };
     }));
+    // Plan one call from the given poses: a path for every dancer (standing still if not dancing).
+    const planCall = (k, from) => {
+      const { call, fig, who } = flat[k], fns = {}, notes = new Set();
+      if (fig) for (const g of groups) {
+        for (const ids of whoSets(fig.group === 'four' ? 'all' : who, g.ids)) {
+          const ps = ids.map(id => from[id]);
+          if (fig.group === 'pair' && dist(ps[0], ps[1]) > 2.0) notes.add(`${WHO_LABEL[who]} start ${dist(ps[0], ps[1]).toFixed(1)} m apart`);
+          fig.plan(ps, call, { p: P, cx: g.cx }).forEach((f, i) => (fns[ids[i]] = f));
+        }
+      }
+      for (const d of dancers) if (!fns[d.id]) { const p = from[d.id]; fns[d.id] = () => p; }
+      return { fns, notes };
+    };
+    const lineCx = {};
+    for (const g of groups) for (const id of Object.values(g.ids)) lineCx[id] = g.cx;
+
     let t = 0, n = 0;
     for (const part of dance.parts) {
       const pt0 = t;
       for (const call of part.calls) {
-        const { fig, who } = flat[n], after = flat[(n + 1) % flat.length];
-        n++;
-        const t0 = t, t1 = t + call.beats, notes = new Set();
-        const moved = new Set();
-        if (fig) for (const g of groups) {
-          const keyOf = Object.fromEntries(Object.entries(g.ids).map(([k, id]) => [id, k]));
-          for (const ids of whoSets(fig.group === 'four' ? 'all' : who, g.ids)) {
-            const ps = ids.map(id => pose[id]);
-            if (fig.group === 'pair' && dist(ps[0], ps[1]) > 2.0) notes.add(`${WHO_LABEL[who]} start ${dist(ps[0], ps[1]).toFixed(1)} m apart`);
-            const fns = fig.plan(ps, call, { p: P, cx: g.cx });
-            ids.forEach((id, i) => {
-              // Anyone who stands still in the next figure finishes this one facing into the set.
-              const f = call.fig !== 'swing' && !after.active.has(keyOf[id]) ? faceInAtEnd(fns[i], g.cx) : fns[i];
-              segs[id].push({ t0, t1, f }); moved.add(id);
-            });
-          }
+        const k = n++, { fig } = flat[k], t0 = t, t1 = t + call.beats;
+        const { fns, notes } = planCall(k, pose);
+        // Each dancer finishes this figure facing the way the next one needs.
+        // Anyone who stands still in the next figure finishes facing into the set instead.
+        const nk = (k + 1) % flat.length, ends = {};
+        for (const d of dancers) { const e = fns[d.id](1); ends[d.id] = { x: e.x, y: e.y }; }
+        const next = planCall(nk, ends).fns;
+        for (const d of dancers) {
+          const end = fns[d.id](1), cx = lineCx[d.id];
+          let target = null;
+          if (flat[nk].fig && flat[nk].activeIds.has(d.id)) target = next[d.id](0).a;
+          else if (fig && Math.abs(end.x - cx) > 0.1) target = end.x > cx ? Math.PI : 0;
+          const f = fig ? turnAtEnd(fns[d.id], target, call.beats) : fns[d.id];
+          segs[d.id].push({ t0, t1, f });
+          pose[d.id] = f(1);
         }
-        for (const d of dancers) if (!moved.has(d.id)) { const p = pose[d.id]; segs[d.id].push({ t0, t1, f: () => p }); }
-        for (const d of dancers) { const s = segs[d.id]; pose[d.id] = s[s.length - 1].f(1); }
         for (const n of notes) warnings.push({ level: 'warn', text: `${part.name}: “${call.text}”: ${n}.` });
         const typical = TYPICAL_BEATS[call.fig];
         if (typical && call.beats < typical) warnings.push({ level: 'info', text: `${part.name}: “${call.text}” gets ${call.beats} beats; ${SOURCE[call.fig] || 'the ContraLab timing chart'} gives it ${typical}. Expect it to feel quick.` });
