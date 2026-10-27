@@ -52,8 +52,10 @@ body {
 header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; margin-bottom: 12px; }
 h1 { font: 600 24px/1.1 var(--font-display); margin: 0; letter-spacing: -0.01em; }
 .subtitle { color: var(--muted); }
-.app { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
-@media (max-width: 860px) { .app { grid-template-columns: minmax(0, 1fr); } }
+.app { display: grid; grid-template-columns: minmax(0, 1fr) 430px; gap: 16px; align-items: start; }
+.side { position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow-y: auto; }
+@media (max-width: 1000px) { .side { position: static; max-height: none; } }
+@media (max-width: 1000px) { .app { grid-template-columns: minmax(0, 1fr); } }
 .stage { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .card { background: var(--panel); border: 1px solid var(--rule); border-radius: 10px; }
 .floorwrap { position: relative; height: min(54vh, 600px); min-height: 320px; background: var(--floor); border-radius: 10px; border: 1px solid var(--rule); overflow: hidden; }
@@ -61,7 +63,16 @@ h1 { font: 600 24px/1.1 var(--font-display); margin: 0; letter-spacing: -0.01em;
 .now { position: absolute; left: 12px; top: 10px; display: flex; flex-direction: column; gap: 2px; pointer-events: none; }
 .now .where { font: 500 13px var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
 .now .what { font: 600 18px var(--font-display); }
-.legend { position: absolute; right: 12px; top: 10px; display: flex; gap: 12px; font-size: 13px; color: var(--muted); pointer-events: none; }
+.topright { position: absolute; right: 12px; top: 10px; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; max-width: 280px; }
+.legend { display: flex; gap: 12px; font-size: 13px; color: var(--muted); pointer-events: none; }
+.followHint { font-size: 12px; color: var(--muted); }
+#followBox { background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 8px 10px; font-size: 13px; display: flex; flex-direction: column; gap: 4px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); }
+.fhead { display: flex; align-items: center; gap: 8px; }
+.fhead button { margin-left: auto; border: 0; background: none; padding: 0 4px; color: var(--muted); }
+#followNow { color: var(--ink); }
+#followNow .muted { color: var(--muted); }
+#followMore summary { cursor: pointer; font-size: 12px; color: var(--accent); }
+#followMore .journey { margin-top: 4px; max-height: 180px; overflow-y: auto; }
 .legend span { display: inline-flex; align-items: center; gap: 6px; }
 .sw { width: 12px; height: 12px; display: inline-block; }
 .sw.lark { background: var(--lark); border-radius: 3px; }
@@ -90,11 +101,14 @@ label.small { font-size: 13px; color: var(--muted); display: inline-flex; align-
 .info:hover .tip, .info:focus .tip { opacity: 1; visibility: visible; }
 
 .timeline { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 4px; }
-.editor { display: grid; grid-template-columns: minmax(0, 1fr) 270px; gap: 14px; margin-top: 8px; align-items: start; }
-@media (max-width: 1100px) { .editor { grid-template-columns: minmax(0, 1fr); } }
+.editor { margin-top: 8px; }
 .editmain { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-.moves { display: flex; flex-direction: column; gap: 8px; border-left: 1px solid var(--rule); padding-left: 14px; min-width: 0; }
-@media (max-width: 1100px) { .moves { border-left: 0; padding-left: 0; border-top: 1px solid var(--rule); padding-top: 10px; } }
+.tabs { display: flex; align-items: flex-end; gap: 2px; border-bottom: 1px solid var(--rule); margin-bottom: 10px; }
+.tabs [role="tab"] { border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: none; padding: 6px 12px; font: 600 15px var(--font-display); color: var(--muted); }
+.tabs [role="tab"][aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.tabtools { margin-left: auto; display: flex; gap: 6px; padding-bottom: 5px; }
+.tabtools button { padding: 3px 9px; font-size: 13px; }
+.tabpanel { display: flex; flex-direction: column; gap: 10px; }
 .rows { display: flex; flex-direction: column; gap: 6px; }
 .prow.current .plabel { color: var(--accent); }
 .prow.current .ptrack { background-color: color-mix(in srgb, var(--accent) 10%, var(--bg)); }
@@ -125,7 +139,7 @@ label.small { font-size: 13px; color: var(--muted); display: inline-flex; align-
 .pgroup summary::-webkit-details-marker { display: none; }
 .pgroup summary small { margin-left: auto; font: 500 11px var(--font-mono); color: var(--muted); }
 .pgroup .chips { display: flex; flex-wrap: wrap; gap: 5px; padding: 4px 0 8px; }
-.pool { flex-direction: column; flex-wrap: nowrap; gap: 4px; max-height: 460px; overflow-y: auto; padding-right: 4px; }
+.pool { flex-direction: column; flex-wrap: nowrap; gap: 4px; }
 .cicon { width: 14px; height: 14px; flex: none; vertical-align: -2px; }
 .cat0 { --cat: var(--muted); } .cat1 { --cat: var(--c1); } .cat2 { --cat: var(--c2); } .cat3 { --cat: var(--c3); } .cat4 { --cat: var(--c4); }
 .cat5 { --cat: var(--c5); } .cat6 { --cat: var(--c6); } .cat7 { --cat: var(--c7); } .cat8 { --cat: var(--c8); }
@@ -144,7 +158,7 @@ label.small { font-size: 13px; color: var(--muted); display: inline-flex; align-
 .bhead .cicon { width: 18px; height: 18px; }
 .bhead .small { color: var(--muted); font: 500 12px var(--font-body); }
 .bclose { margin-left: auto; border: 0; background: none; color: var(--muted); padding: 2px 6px; }
-.bgrid { display: grid; grid-template-columns: 62px minmax(0, 1fr); gap: 8px; align-items: center; }
+.bgrid { display: grid; grid-template-columns: 70px minmax(0, 1fr); gap: 8px; align-items: center; }
 .bgrid label, .blabel { font-size: 12.5px; color: var(--muted); }
 .seg { display: flex; flex-wrap: wrap; gap: 4px; }
 .seg button { flex: 1 1 0; padding: 5px 6px; font-size: 12.5px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
@@ -210,7 +224,17 @@ ul.checks li.passed { color: var(--muted); }
     <div class="floorwrap">
       <canvas id="floor" aria-label="Dance floor seen from above. The band is at the top."></canvas>
       <div class="now"><span class="where" id="where">A1 · beat 1 of 16</span><span class="what" id="what"></span></div>
-      <div class="legend"><span><i class="sw lark"></i><span id="larkName">Larks</span></span><span><i class="sw robin"></i><span id="robinName">Robins</span></span></div>
+      <div class="topright">
+        <div class="legend"><span><i class="sw lark"></i><span id="larkName">Larks</span></span><span><i class="sw robin"></i><span id="robinName">Robins</span></span></div>
+        <div class="follow" id="follow">
+          <span class="followHint" id="followHint">Click a dancer to follow their couple</span>
+          <div id="followBox" hidden>
+            <div class="fhead"><strong id="followTitle">Couple</strong><button type="button" id="followClose" aria-label="Stop following">✕</button></div>
+            <div id="followNow"></div>
+            <details id="followMore"><summary>Every time through</summary><ol class="journey" id="journey"></ol></details>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="card transport">
@@ -267,13 +291,6 @@ ul.checks li.passed { color: var(--muted); }
           <div class="rows" id="rows"></div>
           <p class="hint">Drag a figure to move it, drag its right edge to change its length (Shift for single beats), click it to change who dances it.</p>
         </div>
-        <div class="moves">
-          <h2>Moves</h2>
-          <p class="hint">Click a move to set it up (who, side, how far), or drag it straight into a part.</p>
-          <div class="builder" id="builder" hidden></div>
-          <div class="pool" id="pool"></div>
-          <div class="row"><button id="undo" title="Undo (Ctrl+Z)">Undo</button><button id="redo" title="Redo (Ctrl+Shift+Z)">Redo</button><button id="newDance">New dance</button></div>
-        </div>
       </div>
     </div>
   </div>
@@ -284,18 +301,24 @@ ul.checks li.passed { color: var(--muted); }
         <summary><h2>Checks</h2><span class="lights" id="lights"></span></summary>
         <ul class="checks" id="checks"></ul>
       </details>
-      <p class="hint">Click a dancer to follow their couple. Space plays and pauses; the arrow keys step one beat.</p>
     </section>
-    <section class="card">
-      <h2>Dance text</h2>
-      <p class="hint">The dance in the layout The Caller's Box uses: a part label, then one figure per line with its beats in brackets. It updates as you edit; paste a dance here and press Run.</p>
-      <textarea id="danceText" wrap="off" spellcheck="false" aria-label="Dance text"></textarea>
-      <div class="row"><button id="run" class="primary">Run dance</button><button id="reset">Load “111”</button></div>
-    </section>
-    <section class="card">
-      <h2 id="followTitle">Follow a couple</h2>
-      <p class="hint" id="followHint">Click a dancer on the floor to see who their couple meets each time through.</p>
-      <ol class="journey" id="journey" hidden></ol>
+    <section class="card dancecard">
+      <div class="tabs" role="tablist" aria-label="Edit the dance">
+        <button role="tab" id="tabEditor" aria-selected="true" aria-controls="panelEditor">Editor</button>
+        <button role="tab" id="tabText" aria-selected="false" aria-controls="panelText">Text</button>
+        <span class="tabtools"><button id="undo" title="Undo (Ctrl+Z)">Undo</button><button id="redo" title="Redo (Ctrl+Shift+Z)">Redo</button></span>
+      </div>
+      <div id="panelEditor" class="tabpanel" role="tabpanel" aria-labelledby="tabEditor">
+        <p class="hint">Click a move to set it up (who, side, how far), then add it to a part or drag it into the rows under the floor. Click a figure in the rows to change it.</p>
+        <div class="builder" id="builder" hidden></div>
+        <div class="pool" id="pool"></div>
+        <div class="row"><button id="newDance">New dance</button><button id="reset2">Load “111”</button></div>
+      </div>
+      <div id="panelText" class="tabpanel" role="tabpanel" aria-labelledby="tabText" hidden>
+        <p class="hint">The same dance as text, in the layout The Caller's Box uses: a part label, then one figure per line with its beats in brackets. It updates as you edit; paste a dance here and press Run.</p>
+        <textarea id="danceText" wrap="off" spellcheck="false" aria-label="Dance text"></textarea>
+        <div class="row"><button id="run" class="primary">Run dance</button><button id="reset">Load “111”</button></div>
+      </div>
     </section>
   </aside>
 </div>
@@ -882,19 +905,24 @@ const passAt = t => (state.c.perPass ? Math.min(state.c.passes.length - 1, Math.
 
 // The followed couple's journey: who they meet each time through, and when they wait out at an end.
 function showJourney() {
-  const ol = $('journey'), c = state.c, id = state.highlight;
-  ol.hidden = !id; $('followHint').hidden = !!id;
-  if (!id) { $('followTitle').textContent = 'Follow a couple'; return; }
+  const c = state.c, id = state.highlight;
+  $('followBox').hidden = !id; $('followHint').hidden = !!id;
+  if (!id) return;
   const couple = c.couples.find(k => k.id === id), lines = new Set(c.dancers.map(d => d.line)).size;
-  $('followTitle').textContent = `Couple ${couple.num}${lines > 1 ? ` in line ${couple.line + 1}` : ''}`;
+  $('followTitle').textContent = `Following couple ${couple.num}${lines > 1 ? ` in line ${couple.line + 1}` : ''}`;
+  state.journey = Contra.meetings(c, id);
+  const ol = $('journey');
   ol.innerHTML = '';
-  Contra.meetings(c, id).forEach((m, p) => {
-    const li = document.createElement('li');
-    li.dataset.p = p;
-    if (m.with) li.innerHTML = `With couple ${m.with} <span class="muted">as ${m.as}</span>`;
-    else li.innerHTML = `<span class="muted">Out at the ${m.out}: cross over and wait</span>`;
-    ol.appendChild(li);
+  state.journey.forEach((m, p) => {
+    const li = document.createElement('li'); li.dataset.p = p; li.innerHTML = journeyText(m); ol.appendChild(li);
   });
+  updateFollowNow();
+}
+const journeyText = m => (m.with ? `With couple ${m.with} <span class="muted">as ${m.as}</span>` : `<span class="muted">Out at the ${m.out}: cross over and wait</span>`);
+function updateFollowNow() {
+  if (!state.highlight || !state.journey) return;
+  const p = passAt(state.t), m = state.journey[p], next = state.journey[p + 1];
+  $('followNow').innerHTML = `Time ${p + 1}: ${journeyText(m)}${next ? `<br><span class="muted">Next: ${next.with ? `couple ${next.with}` : `out at the ${next.out}`}</span>` : ''}`;
 }
 
 // ---------- Dance editor: four part rows, a pool of moves, and figure settings ----------
@@ -1535,6 +1563,7 @@ function updateReadout() {
     if (j === pi) cur.style.left = `${((local - part.t0) / Math.max(16, beats)) * 100}%`;
   });
   for (const el of $('journey').children) el.classList.toggle('current', +el.dataset.p === p);
+  if (state.followPass !== p) { state.followPass = p; updateFollowNow(); }
   $('scrub').value = local;
   $('whole').value = state.t;
 }
@@ -1562,7 +1591,7 @@ $('scrub').oninput = e => { setPlaying(false); seek(passAt(state.t) * state.c.pe
 $('whole').oninput = e => { setPlaying(false); seek(+e.target.value); };
 $('music').onchange = () => { music.next = null; if ($('music').checked && state.playing) startAudio(); };
 $('run').onclick = () => { state.sel = null; build(); commit(true); };
-$('reset').onclick = () => { $('danceText').value = SAMPLE; state.sel = null; build(); commit(true); };
+$('reset').onclick = $('reset2').onclick = () => { $('danceText').value = SAMPLE; state.sel = null; build(); commit(true); };
 $('roleNames').onchange = () => {
   const v = $('roleNames').value, [L, R] = roleSet();
   store('contra.roles', v);
@@ -1570,6 +1599,14 @@ $('roleNames').onchange = () => {
   $('larkName').textContent = L; $('robinName').textContent = R;
   renderPool(); renderRows(); showChecks(); updateReadout();
 };
+for (const [tab, panel, other, otherPanel] of [['tabEditor', 'panelEditor', 'tabText', 'panelText'], ['tabText', 'panelText', 'tabEditor', 'panelEditor']]) {
+  $(tab).onclick = () => {
+    $(tab).setAttribute('aria-selected', 'true'); $(other).setAttribute('aria-selected', 'false');
+    $(panel).hidden = false; $(otherPanel).hidden = true; store('contra.tab', tab);
+  };
+}
+if (recall('contra.tab') === 'tabText') $('tabText').onclick();
+$('followClose').onclick = () => { state.highlight = null; showJourney(); };
 $('newDance').onclick = () => { state.doc = { title: 'New dance', author: '', meta: {}, metaLines: [['FormationBase', 'Duple Minor - Improper'], ['Progression', 'Single']], parts: [], warnings: [] }; ensureParts(state.doc); state.sel = null; state.t = 0; commit(true); };
 $('undo').onclick = () => undoTo(history.at - 1);
 $('redo').onclick = () => undoTo(history.at + 1);

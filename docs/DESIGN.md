@@ -149,7 +149,8 @@ Crossed arms and body twist need dancers modeled as bodies rather than dots; lef
 - The timeline is the editor: four rows (A1, A2, B1, B2), each 16 beats wide; each figure is a block as wide as its length.
 - Drag a block to move it within or between parts; drag its right edge to change its length, snapping to 2 beats (Shift for 1 beat).
 - A part that goes over 16 beats keeps its figures and is flagged in red; the dance still runs.
-- A pool of moves (the figures the simulator knows) sits right beside the part rows, so drags are short and need no scrolling; drag one into a part, or click it to add it to the end of the part that's playing. The Caller's Box text has its own panel on the right.
+- The right-hand panel is wider and stays in view while the page scrolls. Its Editor tab holds the move builder and the pool of moves (drag into the part rows under the floor); its Text tab holds the same dance as Caller's Box text. Undo and Redo sit beside the tabs.
+- Following a couple is a small card at the top right of the floor: who they're with this time through, who's next, and the whole journey on request.
 - The part that's playing is highlighted as the music goes.
 - **Role names** are a choice: Larks / Robins (default), Gents / Ladies, or Men / Women. The floor, editor, readout and checks use the chosen names, and new figures are written with them; the dance text keeps its original wording otherwise. Choosing a gendered pair shows an info icon whose tooltip encourages gender-free calling.
 - Every move is a base move plus modifiers: who dances it, which side (hand, shoulder or direction, with an arrow showing the way it turns), how far (fractions such as "once and a half", places around a ring for circles and stars, or half/full), and beats.
