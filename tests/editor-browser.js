@@ -50,6 +50,12 @@ const { chromium } = require('playwright');
   await p.mouse.move(h.x + 10, h.y + 8); await p.mouse.down(); await p.mouse.move(a1.x + a1.width - 4, a1.y + 20, { steps: 12 }); await p.mouse.up();
   check((await lines('^\\(4\\) partner pull by left')).length === 1, 'a set-up pull by left can be dragged into a part');
 
+  // New dance: four empty parts; playing an empty dance does nothing; a first move can be built.
+  await p.click('#newDance'); await p.click('#play'); await p.waitForTimeout(400); await p.click('#play');
+  check((await p.locator('.fblk').count()) === 0 && (await p.locator('#danceTitle').innerText()) === 'New dance', 'New dance starts four empty parts');
+  await p.click('.chip:has-text("Circle")'); await p.selectOption('#bAmt', '0.75'); await p.selectOption('#bPart', '0'); await p.click('#bAdd');
+  check(/A1\n\(8\) Circle left 3\/4/.test(await p.evaluate(() => $('danceText').value)), 'a first move can be added to the new dance');
+
   check(errs.length === 0, `no page errors ${errs.join(' | ')}`);
   await b.close();
   console.log(failures ? `\n${failures} check(s) failed` : '\nAll checks passed');

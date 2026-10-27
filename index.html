@@ -309,10 +309,10 @@ ul.checks li.passed { color: var(--muted); }
         <span class="tabtools"><button id="undo" title="Undo (Ctrl+Z)">Undo</button><button id="redo" title="Redo (Ctrl+Shift+Z)">Redo</button></span>
       </div>
       <div id="panelEditor" class="tabpanel" role="tabpanel" aria-labelledby="tabEditor">
+        <div class="row"><button id="newDance" class="primary">＋ New dance</button><button id="reset2">Load “111”</button></div>
         <p class="hint">Click a move to set it up (who, side, how far), then add it to a part or drag it into the rows under the floor. Click a figure in the rows to change it.</p>
         <div class="builder" id="builder" hidden></div>
         <div class="pool" id="pool"></div>
-        <div class="row"><button id="newDance">New dance</button><button id="reset2">Load “111”</button></div>
       </div>
       <div id="panelText" class="tabpanel" role="tabpanel" aria-labelledby="tabText" hidden>
         <p class="hint">The same dance as text, in the layout The Caller's Box uses: a part label, then one figure per line with its beats in brackets. It updates as you edit; paste a dance here and press Run.</p>
@@ -1569,7 +1569,7 @@ function updateReadout() {
 }
 
 function frame(now) {
-  if (state.playing) {
+  if (state.playing && state.c.total > 0) {  // an empty dance has nothing to play
     const dt = Math.min(0.1, (now - state.last) / 1000), bps = (+$('tempo').value || 120) / 60 * +$('speed').value;
     const p0 = passAt(state.t);
     state.t += dt * bps;
