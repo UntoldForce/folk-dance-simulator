@@ -486,6 +486,22 @@ const Contra = (() => {
   const bump = u => (u < 0.5 ? mj(u * 2) : mj((1 - u) * 2));
 
   // ---------- Shared pieces for figures ----------
+  // A figure eight for dancer i around the other couple of a hands-four: cross through the middle between them,
+  // cast around the one on the far side, and come back up; `halves` 2 goes on around the other one to home.
+  // `backward` runs the same track the other way (casting first); the robin crosses half a step ahead of the lark.
+  function eightPath(ps, keys, i, ctx, halves, backward) {
+    const act = keys[i][1], c = centroid(ps), pts = [{ x: ps[i].x, y: ps[i].y }];
+    let cur = ps[i];
+    for (let h = 0; h < halves; h++) {
+      const sx = cur.x > ctx.cx ? -1 : 1, q = ps[[0, 1, 2, 3].find(k => keys[k][1] !== act && Math.sign(ps[k].x - ctx.cx) === sx)];
+      const dy = Math.sign(q.y - cur.y) || -1;
+      pts.push({ x: c.x, y: (cur.y + q.y) / 2 }, { x: q.x, y: q.y + dy * 0.45 }, { x: q.x + sx * 0.45, y: q.y }, { x: q.x + sx * 0.25, y: cur.y - dy * 0.05 }, { x: q.x, y: cur.y });
+      cur = { x: q.x, y: cur.y };
+    }
+    const fwd = spline(pts), path = backward ? s => fwd(1 - s) : fwd, lag = keys[i][0] === 'L' ? 0.08 : 0;
+    return u => { const s = trap(clamp01((u - lag) / (1 - 0.08)), 0.15), p = path(s);
+      return { x: p.x, y: p.y, a: settle(ps[i].a, heading(path, s), u, 0.1) }; };
+  }
   // Promenade partners: each lark with the robin beside him, or his partner when two robins are about as close.
   function promenadePairs(ps, ctx) {
     const taken = new Set(), out = [];
@@ -966,21 +982,53 @@ const Contra = (() => {
     // Figure eight: the active couple cross diagonally through the other couple and cast around them;
     // a half figure eight ends on the other side of the set.
     figureEight: { group: 'four', plan(ps, call, ctx) {
-      const keys = ctx.keys, act = call.who === 'twos' ? '2' : '1', c = centroid(ps), out = [];
-      const halves = call.turns >= 1 ? 2 : 1;
+      const keys = ctx.keys, act = call.who === 'twos' ? '2' : '1', out = [];
       for (let i = 0; i < 4; i++) {
         if (keys[i][1] !== act) { out[i] = u => ({ ...ps[i], a: settle(ps[i].a, ps[i].x > ctx.cx ? Math.PI : 0, u) }); continue; }
-        const pts = [{ x: ps[i].x, y: ps[i].y }];
-        let cur = ps[i];
-        for (let h = 0; h < halves; h++) {
-          const sx = cur.x > ctx.cx ? -1 : 1, q = ps[[0, 1, 2, 3].find(k => keys[k][1] !== act && Math.sign(ps[k].x - ctx.cx) === sx)];
-          const dy = Math.sign(q.y - cur.y) || -1;
-          pts.push({ x: c.x, y: (cur.y + q.y) / 2 }, { x: q.x, y: q.y + dy * 0.45 }, { x: q.x + sx * 0.45, y: q.y }, { x: q.x + sx * 0.25, y: cur.y - dy * 0.05 }, { x: q.x, y: cur.y });
-          cur = { x: q.x, y: cur.y };
-        }
-        const path = spline(pts), lag = keys[i][0] === 'L' ? 0.08 : 0;   // the robin crosses first
-        out[i] = u => { const s = trap(clamp01((u - lag) / (1 - 0.08)), 0.15), p = path(s);
-          return { x: p.x, y: p.y, a: settle(ps[i].a, heading(path, s), u, 0.1) }; };
+        out[i] = eightPath(ps, keys, i, ctx, call.turns >= 1 ? 2 : 1, false);
+      }
+      return out;
+    } },
+    // Double figure eight (English): both couples dance a full figure eight at once, out of step: one couple
+    // crosses through the middle first while the other casts around the outside first (the same track backwards).
+    // By default the twos cross and the ones cast; "1s cross" swaps them. Everyone ends at home.
+    doubleFigureEight: { group: 'four', plan(ps, call, ctx) {
+      const casters = call.castFirst || '1';
+      return ps.map((d, i) => eightPath(ps, ctx.keys, i, ctx, 2, ctx.keys[i][1] === casters));
+    } },
+    // Half open ladies chain (English): the robins pull by right in the middle and go on to the lark's place on the
+    // far side, while each lark walks a small loop along his side (round the outside first), away from his place and back;
+    // halfway round he takes the arriving robin's left hand and they turn half. Larks end home; robins end
+    // diagonally across from where they started.
+    openChain: { group: 'four', plan(ps, call, ctx) {
+      const keys = ctx.keys, mover = call.who === 'larks' ? 'L' : 'R', dir = mover === 'R' ? 1 : -1, P = ctx.p, C = centroid(ps);
+      const out = ps.map(d => u => ({ ...d, a: d.a })), idx = [0, 1, 2, 3], movers = idx.filter(i => keys[i][0] === mover);
+      if (movers.length !== 2) return out;
+      for (const m of movers) {
+        const other = movers.find(o => o !== m), side = Math.sign(ps[other].x - ctx.cx);
+        const t = idx.find(i => keys[i][0] !== mover && Math.sign(ps[i].x - ctx.cx) === side);
+        if (t == null) continue;
+        const A = ps[t], B = ps[other], Ms = mid(A, B), r = dist(A, B) / 2, angA = angleTo(Ms, A), d = ps[m];
+        // The lark's loop goes round the outside of the set first (as in the tutorial's animation), keeping the
+        // middle clear for the robins; the turn carries on the same way round.
+        const way = Math.sign(Math.cos(angA + Math.PI / 2)) === Math.sign(Ms.x - ctx.cx) ? 1 : -1;
+        // The traveller's way in: a curve through the middle, passing the other traveller by the right.
+        const head = angleTo(d, A), off = { x: Math.sin(head) * dir * P.passOffset, y: -Math.cos(head) * dir * P.passOffset };
+        const bend = { x: 2 * (C.x + off.x) - (d.x + A.x) / 2, y: 2 * (C.y + off.y) - (d.y + A.y) / 2 };
+        const along = s => ({ x: (1 - s) ** 2 * d.x + 2 * (1 - s) * s * bend.x + s * s * A.x, y: (1 - s) ** 2 * d.y + 2 * (1 - s) * s * bend.y + s * s * A.y });
+        out[m] = u => {
+          // Arriving, she turns to face the lark she'll turn with.
+          if (u < 0.5) { const s = mj(u / 0.5), p = along(s), a = settle(d.a, heading(along, s), u / 0.5, 0.2);
+            return { ...p, a: u < 0.38 ? a : lerpAngle(a, angA + Math.PI, mj((u - 0.38) / 0.12)) }; }
+          const ang = angA + way * Math.PI * mj((u - 0.5) / 0.5);
+          return { x: Ms.x + r * Math.cos(ang), y: Ms.y + r * Math.sin(ang), a: ang + Math.PI };
+        };
+        out[t] = u => {
+          // He waits until the robins have passed each other in the middle, then sets off round his loop.
+          const ang = angA + way * Math.PI * (mj(clamp01((Math.min(u, 0.5) - 0.15) / 0.35)) + (u > 0.5 ? mj((u - 0.5) / 0.5) : 0));
+          const walk = settle(A.a, ang + way * Math.PI / 2, clamp01((u - 0.1) / 0.4), 0.3);
+          return { x: Ms.x + r * Math.cos(ang), y: Ms.y + r * Math.sin(ang), a: u >= 0.5 ? ang + Math.PI : u < 0.38 ? walk : lerpAngle(walk, ang + Math.PI, mj((u - 0.38) / 0.12)) };
+        };
       }
       return out;
     } },
@@ -1258,6 +1306,16 @@ const Contra = (() => {
       const r = ps.map((d, i) => i).find(i => roleAt(ctx, i) === 'R' && Math.sign(ps[i].x - ctx.cx) === Math.sign(ps[l].x - ctx.cx));
       return r == null ? [] : [hold(l, 'L', r, 'L', 0.5, 1), hold(l, 'R', r, 'R', 0.5, 1)];
     }),
+    openChain: (ps, call, ctx) => {
+      const mover = call.who === 'larks' ? 'L' : 'R', h = mover === 'R' ? 'R' : 'L', g = mover === 'R' ? 'L' : 'R', movers = ps.map((d, i) => i).filter(i => roleAt(ctx, i) === mover);
+      if (movers.length !== 2) return [];
+      const out = [hold(movers[0], h, movers[1], h, 0.18, 0.34)];
+      for (const m of movers) {
+        const other = movers.find(o => o !== m), t = ps.map((d, i) => i).find(i => roleAt(ctx, i) !== mover && Math.sign(ps[i].x - ctx.cx) === Math.sign(ps[other].x - ctx.cx));
+        if (t != null) out.push(hold(m, g, t, g, 0.45, 1));
+      }
+      return out;
+    },
     leadDown: (ps, call, ctx) => { const act = call.who === 'twos' ? '2' : '1', two = ps.map((d, i) => i).filter(i => (ctx.keys[i] || '')[1] === act);
       return two.length === 2 ? [hold(two[0], 'near', two[1], 'near', 0.15, 1)] : []; },
     downHall: ps => { const o = ps.map((d, i) => i).sort((i, j) => ps[j].x - ps[i].x); return o.slice(1).map((i, k) => hold(o[k], 'near', i, 'near', 0.15, 1)); },
@@ -1315,7 +1373,7 @@ const Contra = (() => {
 
   // Typical lengths in beats, for figures built so far: the ContraLab timing chart (contralab.org),
   // and Contrafusion for pull by (4 beats; 2 when done rapidly as a single change).
-  const TYPICAL_BEATS = { longLines: 8, allemande: 8, balance: 4, boxTheGnat: 4, swing: 4, circle: 8, pullBy: 4,
+  const TYPICAL_BEATS = { openChain: 8, doubleFigureEight: 16, longLines: 8, allemande: 8, balance: 4, boxTheGnat: 4, swing: 4, circle: 8, pullBy: 4,
     shoulderRound: 8, dosido: 8, seesaw: 8, swatTheFlea: 4, californiaTwirl: 4, starThrough: 4, rollAway: 4, halfSashay: 4,
     passThrough: 4, star: 8, petronella: 4, courtesyTurn: 4, turnAsCouple: 4, chain: 8, rightLeftThrough: 8, flutterwheel: 8,
     hey: k => 16 * (k.turns || 1), figureEight: k => 16 * (k.turns || 1), forwardBack: 8, nextSquare: 8, grandRL: k => 16 * (k.turns || 0.5),
@@ -1359,6 +1417,7 @@ const Contra = (() => {
     const amount = fallback => parseTurns(t.replace(/two-hand/g, '').replace(/\(.*?\)/g, '').replace(/\b\d(s|st|nd|rd|th)\b/g, ''), fallback);
     let m;
     if (/long lines/.test(t)) return { fig: 'longLines', who: 'all' };
+    if (/double (full )?figure.?(8|eight)/.test(t)) return { fig: 'doubleFigureEight', who: 'all', castFirst: /\b(1s|ones|first couples?) cross/.test(t) ? '2' : '1' };
     if (/forward (and|&) back/.test(t)) return { fig: 'forwardBack', who: who === 'heads' || who === 'sides' ? who : 'all' };
     if (/grand right (and|&) left|grand chain/.test(t)) return { fig: 'grandRL', who: 'all', turns: /all the way|full|home/.test(t) ? 1 : amount(0.5) };
     if (/next square|pass (through|thru) to the next/.test(t)) return { fig: 'nextSquare', who: who === 'sides' ? 'sides' : 'heads' };
@@ -1409,6 +1468,7 @@ const Contra = (() => {
     if (/turn as (a )?couples?|wheel around/.test(t)) return { fig: 'turnAsCouple', who: who || 'partners' };
     if (/butterfly whirl/.test(t)) return { fig: 'butterflyWhirl', who: who || 'partners' };
     if (/\bgate\b/.test(t)) return { fig: 'gate', who: who || 'neighbors', side: rot('L'), turns: amount(0.5) };
+    if ((m = t.match(/open (robins|ladies|women|larks|gents|men)'? chain/))) return { fig: 'openChain', who: /robins|ladies|women/.test(m[1]) ? 'robins' : 'larks' };
     if ((m = t.match(/(robins|ladies|women|larks|gents|men)'? chain/))) return { fig: 'chain', who: /robins|ladies|women/.test(m[1]) ? 'robins' : 'larks' };
     if (/right and left (through|thru)/.test(t)) return { fig: 'rightLeftThrough', who: 'all' };
     if (/flutterwheel/.test(t)) return { fig: 'flutterwheel', who: 'all', reverse: /reverse/.test(t) };
@@ -1970,6 +2030,9 @@ const Contra = (() => {
     const setPlans = (g, k) => {
       const { call, fig, who, nums } = flat[k], n = Object.keys(g.ids).length / 2, L = c => g.ids['L' + c], R = c => g.ids['R' + c];
       const ok = c => c >= 1 && c <= n, pairs = (nums.length === 2 && nums.every(ok) ? [nums] : [[1, 2], [3, 4], [5, 6]]).filter(q => q.every(ok));
+      // In a three-couple set, corners count from the middle couple: the middle robin's first corner is the
+      // lark above her, the middle lark's is the robin below him; second corners are the other diagonals.
+      const mid3 = n === 3 && nums.length !== 2;
       const plan = (ids, idmap = g.ids) => ({ ids, frame: null, idmap, p: { ...P, ringOpen: true } });
       if (fig.group === 'four') {
         const whole = WHOLE_SET.has(call.fig) || n <= 2 || /\b(six|eight|ten|twelve|everyone|all)\b/i.test(call.text);
@@ -1983,8 +2046,8 @@ const Contra = (() => {
       switch (who) {
         case 'ones': case 'twos': case 'threes': case 'fours': return ok(COUPLE_NUM[who]) ? [plan([L(COUPLE_NUM[who]), R(COUPLE_NUM[who])])] : [];
         case 'neighbors': case 'corners': return pairs.flatMap(([a, b]) => [plan([L(a), R(b)]), plan([L(b), R(a)])]);
-        case 'firstCorners': return pairs.map(([a, b]) => plan([L(a), R(b)]));
-        case 'secondCorners': return pairs.map(([a, b]) => plan([R(a), L(b)]));
+        case 'firstCorners': return mid3 ? [plan([L(1), R(2)]), plan([L(2), R(3)])] : pairs.map(([a, b]) => plan([L(a), R(b)]));
+        case 'secondCorners': return mid3 ? [plan([R(1), L(2)]), plan([R(2), L(3)])] : pairs.map(([a, b]) => plan([R(a), L(b)]));
         case 'larks': return pairs.map(([a, b]) => plan([L(a), L(b)]));
         case 'robins': return pairs.map(([a, b]) => plan([R(a), R(b)]));
         default: return (nums.length && nums.every(ok) ? nums : all).map(c => plan([L(c), R(c)]));
@@ -2441,7 +2504,7 @@ const POOL = [
   { cat: 6, label: 'Flutterwheel', fig: 'flutterwheel', d: {}, beats: 8, say: 'Flutterwheel', re: /flutterwheel/ },
   { cat: 6, label: 'Square through', fig: 'squareThrough', amount: 'hands', d: { amt: 2 }, beats: 8, say: 'Square through {amt}', re: /square (through|thru)/ },
   { cat: 6, label: 'Rights and lefts', fig: 'squareThrough', amount: 'hands', d: { amt: 4 }, beats: 16, say: 'Rights and lefts, {amt} changes', re: /rights and lefts|circular hey/, ecd: true },
-  { cat: 6, label: 'Half open ladies chain', d: {}, beats: 8, say: 'Half open ladies chain', re: /open ladies chain/, ecd: true },
+  { cat: 6, label: 'Half open ladies chain', fig: 'openChain', d: {}, beats: 8, say: 'Half open ladies chain', re: /open (ladies|robins|women)'? chain/, ecd: true },
   { cat: 6, label: 'Give and take', fig: 'giveAndTake', who: ['robins', 'larks'], d: { who: 'robins' }, beats: 4, say: '{who} give and take', re: /give.and.take/ },
   { cat: 7, label: 'Hey for four', fig: 'hey', who: ['robins', 'larks', 'partners', 'neighbors'], side: 'pass', amount: 'half', d: { who: 'robins', side: 'R', amt: 0.5 }, beats: 8,
     say: m => `${m.amt === 0.5 ? 'Half hey' : 'Hey for four'}, ${WHO_LABEL[m.who].toLowerCase()} pass ${m.side === 'L' ? 'left' : 'right'} to start`, re: /\bhey\b(?! for (three|3))/ },
@@ -2449,7 +2512,7 @@ const POOL = [
     say: m => `${m.amt === 0.5 ? 'Half hey for three' : 'Hey for three'} on the sides, ${m.side === 'L' ? 'left' : 'right'} shoulders to start`, re: /hey for (three|3)/, setup: 'triplet' },
   { cat: 7, label: 'Dolphin hey', d: {}, beats: 16, say: 'Dolphin hey', re: /dolphin hey/, ecd: true },
   { cat: 7, label: 'Crossover mirror hey', d: {}, beats: 8, say: 'Crossover mirror hey', re: /crossover mirror hey/, ecd: true },
-  { cat: 7, label: 'Double figure eight', d: {}, beats: 16, say: 'Double figure eight', re: /double (full )?figure (8|eight)/, ecd: true },
+  { cat: 7, label: 'Double figure eight', fig: 'doubleFigureEight', d: {}, beats: 16, say: 'Double figure eight, 2s cross up as 1s cast down', re: /double (full )?figure.?(8|eight)/, ecd: true },
   { cat: 7, label: 'Figure eight', fig: 'figureEight', who: ['ones', 'twos'], amount: 'half', d: { who: 'ones', amt: 0.5 }, beats: 8,
     say: m => `${WHO_WORD[m.who]} ${m.amt === 0.5 ? 'half figure eight' : 'figure eight'}`, re: /figure (8|eight)/ },
   { cat: 8, label: 'Slice', fig: 'slice', side: 'way', d: { side: 'L' }, beats: 8, say: 'Slice {side}', re: /\bslice\b/ },
@@ -2759,17 +2822,17 @@ const DESCRIPTIONS = {
   'Clap': 'Clap in time to the music. Dancers stay where they are.',
   'Half draw poussette': 'Like a half poussette, but each couple also turns half round as they go, so whoever pushes keeps pushing and partners end on each other\'s side.',
   'Rights and lefts': 'A circular hey for four with hands: pull by your partner right, turn in, pull by your neighbor left, and so on. Four changes bring you home; two take you to your corner\'s place.',
-  'Half open ladies chain': 'An English chain in which the larks start facing out and the robins cross with a pull by, turning half with the lark there. Not animated yet.',
+  'Half open ladies chain': 'English: the robins meet in the middle and pull by right, going on to the far side. Each lark walks a small counter-clockwise loop along his side, away from his place and back, and halfway round takes the arriving robin by the left hand to turn her half. Larks end home; robins end diagonally across from where they started.',
   'Dolphin hey': 'A hey for three in which two dancers travel together as one unit, changing who leads at each end. Not animated yet.',
   'Crossover mirror hey': 'A mirror hey for three in which the first couple cross over at the very start. Not animated yet.',
-  'Double figure eight': 'Both couples dance a figure eight at once, out of step with each other: one couple casts while the other crosses. Not animated yet.',
+  'Double figure eight': 'English: both couples dance a full figure eight at once, out of step: the twos cross up through the middle while the ones cast down around the outside (or the other way round), following the same track. Everyone ends at home.',
   'Contra corners': 'The active couple turn each other and each of their two contra corners in a series of allemandes. Not animated yet.',
 };
 // Moves animated from a description with some guesswork: worth checking by eye.
 const APPROX = new Set(['Hey for four', 'Robins chain', 'Larks chain', 'Right and left through', 'Flutterwheel', 'Star promenade', 'Weathervane',
   'Give and take', 'Figure eight', 'Slice', 'Shift', 'Veer', 'Lead down', 'Down the hall', 'Up the hall', 'Cast off', 'Cast down', 'Petronella',
   'Poussette', 'Half draw poussette', 'California twirl', 'Hey for three', 'Siding', 'Sharp siding', 'Up a double', 'Fall back', 'Honour',
-  'Hole in the wall cross', 'Hand turn', 'Bentley allemande', 'Star through', 'Roll away', 'Half sashay', 'Balance the wave', 'Cross', 'Turn as a couple', 'Butterfly whirl']);
+  'Hole in the wall cross', 'Hand turn', 'Bentley allemande', 'Half open ladies chain', 'Double figure eight', 'Star through', 'Roll away', 'Half sashay', 'Balance the wave', 'Cross', 'Turn as a couple', 'Butterfly whirl']);
 // Some moves need the dancers set up first: side by side with the chosen person, or couples on the sides.
 const SETUP = {
   californiaTwirl: 'pair', rollAway: 'pair', halfSashay: 'pair', courtesyTurn: 'pair', turnAsCouple: 'pair', butterflyWhirl: 'pair', gate: 'pair',

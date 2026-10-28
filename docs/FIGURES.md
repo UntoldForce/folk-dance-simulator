@@ -15,7 +15,8 @@ roll away, balance the wave (forward and back only), cross (treated as a pass th
 butterfly whirl (half a turn as a couple), and the square figures (promenade, grand right and left, forward and back,
 pass through to the next square) and the English figures (siding, sharp siding, up a double, fall back, honour,
 hole in the wall cross, hand turn, Bentley allemande, half draw poussette, hey for three). Not animated: contra corners,
-Dixie twirl, chevron, dolphin hey, crossover mirror hey, double figure eight, half open ladies chain.
+Dixie twirl, chevron, dolphin hey, crossover mirror hey. The double figure eight, half draw poussette, hey for four
+across and half open ladies chain were checked against the tutorial's animated GIFs (Ryan supplied them).
 
 English figures follow [English Country Dance Basics, a Tutorial](https://upadouble.info/ecdTutorial.php) by
 George W. Williams V (CC BY 4.0). Some English names are read as the matching contra figure: back to back is a
@@ -120,3 +121,5 @@ placed in a dance; dancers stand still during them and the checks show a caution
 | Bentley allemande (English) | Lark and robin | 8 | The robin steps forward and turns in place with the named hand raised; the lark walks once around her by that shoulder | Home | built |
 | Half draw poussette (English) | Two couples | 8 | A half poussette in which each couple also turns half round, so they end on each other's side | Progressed, sides traded | built |
 | Hey for three | Three on each side (a hands-six or a three-couple set) | 8 (English), 12–16 (contra) | Figure eight along each side, top dancer starting toward the middle; half swaps the ends | Home (full), ends swapped (half) | built |
+| Double figure eight (English) | Both couples | 16 | Everyone on the figure-eight track around both couples, out of step: by default the twos cross up through the middle while the ones cast down around the outside (the same track backwards); "1s cross" swaps them | Home | built |
+| Half open ladies chain (English) | Robins, with the larks | 8 | Robins pull by right in the middle and go on to the far lark's place; each lark loops along his side (outside first), and halfway round takes the arriving robin's left hand to turn her half | Larks home; robins diagonally across | built |

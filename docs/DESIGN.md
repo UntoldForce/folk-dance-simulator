@@ -132,6 +132,8 @@ Built October 2026, with a Hands switch (on by default, remembered).
 - **Geometry** (`handsAt`): shoulders 0.17 m either side, arms reach 0.6 m. Held hands meet halfway between the
   two shoulders, easing in and out over 0.4 beats; free hands rest by the side.
 - **Drawing:** held arms reach to a small dot where the hands meet; a dashed red line shows hands that can't reach.
+- In a three-couple set, first and second corners count from the middle couple (the tutorial's diagram): the
+  middle robin's first corner is the lark above her and the middle lark's is the robin below him.
 - **Checks**, over the middle of each hold: hands that would need to be more than about 1.5 m apart, one hand held by
   two people at once (problems), and a hand reaching across the body (a caution; figures that cross arms on purpose,
   such as the swing, courtesy turn and promenade, are left out).

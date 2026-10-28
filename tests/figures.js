@@ -24,7 +24,7 @@ const FIGS = [
   [8, 'Partner side right'], [8, 'Neighbor siding left'], [8, 'Partner sharp siding'], [8, 'Up a double and back'], [4, 'Fall back'],
   [2, 'Honour your partner'], [2, 'Clap'], [4, 'Neighbor hole in the wall cross'], [8, 'Partner turn by the right hand 1'],
   [4, 'Neighbor left hand turn 1/2'], [8, 'Partner Bentley allemande right'], [8, 'Neighbor back to back'],
-  [8, 'Partner half draw poussette clockwise'], [16, 'Rights and lefts, 4 changes'], [8, 'First corners do-si-do'],
+  [8, 'Partner half draw poussette clockwise'], [16, 'Rights and lefts, 4 changes'], [8, 'First corners do-si-do'], [8, 'Half open ladies chain'], [16, 'Double figure eight, 2s cross up as 1s cast down'],
 ];
 const wrap = a => ((a + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI;
 let failures = 0;

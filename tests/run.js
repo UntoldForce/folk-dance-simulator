@@ -243,6 +243,13 @@ check(made.every(k => { const r = Contra.parseDance('A1\n(8) ' + Contra.callText
   check(far.warnings.some(w => w.hands && /stretch/.test(w.text)), 'hands: a hand balance between couples two places apart is flagged as out of reach');
 }
 
+// Corners in a three-couple set count from the middle couple.
+{
+  const c = Contra.compile(Contra.parseDance('FormationBase: Triplet - Proper\nA1\n(8) First corners do-si-do\n(8) Second corners do-si-do'), { lines: 1, sets: 1, passes: 1 });
+  const mover = t => c.dancers.filter(d => { const a = Contra.poseAt(c, d.id, t), b = c.start[d.id]; return Math.hypot(a.x - b.x, a.y - b.y) > 0.3; }).map(d => d.id).sort().join();
+  check(mover(4) === '0.1L,0.2L,0.2R,0.3R' && mover(12) === '0.1R,0.2L,0.2R,0.3L', `three-couple set: first corners are 1L-2R and 2L-3R, second corners 1R-2L and 2R-3L (${mover(4)} / ${mover(12)})`);
+}
+
 // Speeds per figure, at 120 beats per minute (2 beats per second). Not a pass/fail check yet.
 console.log('\nPeak speed per figure at 120 bpm:');
 for (const k of c.calls) {
