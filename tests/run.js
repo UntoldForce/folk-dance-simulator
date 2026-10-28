@@ -241,6 +241,15 @@ check(made.every(k => { const r = Contra.parseDance('A1\n(8) ' + Contra.callText
   check(!c.warnings.some(w => w.hands), '"111" has no hand problems');
   const far = Contra.compile(Contra.parseDance('FormationBase: Triplet - Proper\nA1\n(4) 1s and 3s first corners balance (RH)'), { lines: 1, sets: 1, passes: 1 });
   check(far.warnings.some(w => w.hands && /stretch/.test(w.text)), 'hands: a hand balance between couples two places apart is flagged as out of reach');
+  // A balance by the right into a pull by right: the same hands stay joined across the change of figure.
+  const kept = [19.9, 20, 20.1, 20.4].every(t => Contra.handsAt(c, t)['0.1L'].R.held);
+  check(kept, 'hands: partners keep right hands joined from the balance into the pull by');
+  const sw = Contra.handsAt(c, 40)['0.1L'];
+  check(sw.L.held && sw.R.held && sw.R.touch, 'hands: in a swing the lark holds her right hand with his left, his right hand at her back');
+  const quick = Contra.compile(Contra.parseDance('A1\n(4) Neighbor balance (RH)\n(4) Partner pull by right'), { lines: 1, sets: 1, passes: 1 });
+  check(quick.warnings.some(w => w.hands && /almost at once/.test(w.text)), 'hands: letting go of a neighbor\'s hand and taking a partner\'s at once is noted');
+  const holdsOf = text => Contra.compile(Contra.parseDance(`A1\n(8) Neighbor swing\n(8) ${text}`), { lines: 1, sets: 1, passes: 1 }).calls[1].holds.length;
+  check(['Square through 2', 'Flutterwheel', 'Robins give and take'].every(f => holdsOf(f) > 0), 'hands: square through, flutterwheel and give and take take hands');
 }
 
 // More formations from the glossary: six facing six, singlet, whole-set longways dances; the new contra moves.

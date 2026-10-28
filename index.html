@@ -1695,7 +1695,9 @@ const Contra = (() => {
         const place = u => {
           const phi = phi0 + travel * trap(u, 0.25), r = lerp(r0, R, mj(u / 0.25));
           const psi = phi + wrap(psi0 - phi0) * (1 - mj(u / 0.2)) + (Math.PI / 2) * mj((u - 0.8) / 0.2);
-          const m = { x: r * Math.cos(phi), y: r * Math.sin(phi) }, o = { x: h * Math.cos(psi), y: h * Math.sin(psi) };
+          // Side by side in the skating hold, close together, opening out to their places at the end.
+          const hh = lerp(h, ctx.p.coupleTuck, mj(Math.min(u / 0.25, (1 - u) / 0.2, 1)));
+          const m = { x: r * Math.cos(phi), y: r * Math.sin(phi) }, o = { x: hh * Math.cos(psi), y: hh * Math.sin(psi) };
           return { L: { x: m.x - o.x, y: m.y - o.y, a: psi + q }, R: { x: m.x + o.x, y: m.y + o.y, a: psi + q } };
         };
         const p0 = place(0);
@@ -1754,9 +1756,15 @@ const Contra = (() => {
 
   // ---------- Hands ----------
   // Who holds whose hand during each figure, as { a, ah, b, bh, u0, u1 }: dancer index a's hand ah ('R', 'L', or
-  // 'near' for whichever hand is toward the other) holds b's hand bh from u0 to u1 through the figure. A hold with
-  // `center` (a star) reaches into the middle of those dancers instead. Figures not listed are danced without hands.
+  // 'near' for whichever hand is toward the other) holds b's hand bh from u0 to u1 through the figure. bh can also be
+  // a place on b ('back': a hand at the middle of their back; 'shoulderR'/'shoulderL': on their shoulder), which b
+  // doesn't hold. A hold with `center` (a star) reaches into the middle of those dancers instead. Figures not listed
+  // are danced without hands.
   const hold = (a, ah, b, bh, u0 = 0, u1 = 1) => ({ a, ah, b, bh, u0, u1 });
+  const BODY_SPOTS = new Set(['back', 'shoulderR', 'shoulderL']);
+  // Who each dancer is nearest at a moment of a figure (to find who meets whom), among those `ok` allows.
+  const nearestAt = (fns, i, u, ok) => { const p = fns[i](u); let best = null, bd = Infinity;
+    fns.forEach((f, j) => { if (j === i || !ok(j)) return; const q = f(u), d = Math.hypot(p.x - q.x, p.y - q.y); if (d < bd) { bd = d; best = j; } }); return best; };
   // Hands joined with your neighbours in the wave the figure ends in, from u0 to the end.
   const waveHolds = (name, u0) => (ps, call, ctx) => waveNeighbours(FIGURES[name].plan(ps, call, ctx).map(f => f(1))).map(([i, j]) => hold(i, 'near', j, 'near', u0, 1));
   const roleAt = (ctx, i) => (ctx.keys && ctx.keys[i] ? ctx.keys[i][0] : i === 0 ? 'L' : 'R');
@@ -1768,6 +1776,11 @@ const Contra = (() => {
     return order.map((i, k) => hold(i, 'near', order[(k + 1) % order.length], 'near', u0, u1));
   };
   const sameHand = (h, u0, u1) => ps => [hold(0, h, 1, h, u0, u1)];
+  // A line side by side facing F: each takes the right hand of the one on their right in their left.
+  const lineHolds = (ps, F, u0, u1, idx = ps.map((d, i) => i)) => {
+    const rx = Math.sin(F), ry = -Math.cos(F), o = idx.slice().sort((i, j) => (ps[i].x * rx + ps[i].y * ry) - (ps[j].x * rx + ps[j].y * ry));
+    return o.slice(1).map((j, k) => hold(o[k], 'R', j, 'L', u0, u1));
+  };
   // Pairs of partners (L1 with R1 ...) among the dancers of a plan, by their keys.
   const partnerPairs = ctx => (ctx.keys || []).flatMap((k, i) => (k[0] === 'L' && ctx.keys.indexOf('R' + k.slice(1)) >= 0 ? [[i, ctx.keys.indexOf('R' + k.slice(1))]] : []));
   const HOLDS = {
@@ -1777,15 +1790,17 @@ const Contra = (() => {
     bentleyAllemande: (ps, call) => sameHand(call.side, 0.1, 0.9)(ps),
     twoHandTurn: () => [hold(0, 'R', 1, 'L', 0.08, 0.92), hold(0, 'L', 1, 'R', 0.08, 0.92)],
     balance: (ps, call) => (call.hand ? sameHand(call.hand, 0, 1)(ps) : []),
-    pullBy: (ps, call) => sameHand(call.hand, 0, 0.55)(ps),
+    pullBy: (ps, call) => sameHand(call.hand, 0, 0.6)(ps),
     boxTheGnat: sameHand('R', 0, 1),
     swatTheFlea: sameHand('L', 0, 1),
     // Swing: the lark's right arm around the robin, her left hand on his shoulder; his left holds her right.
-    swing: (ps, call, ctx) => { const [l, r] = larkFirst(ctx); return [hold(l, 'R', r, 'L', 0.1, 0.9), hold(l, 'L', r, 'R', 0.1, 0.9)]; },
+    // Swing (ballroom hold): his left hand holds her right out to the side, his right hand is at her back (her left
+    // hand rests on his shoulder, not drawn, to keep the picture clear).
+    swing: (ps, call, ctx) => { const [l, r] = larkFirst(ctx); return [hold(l, 'L', r, 'R', 0.1, 0.9), hold(l, 'R', r, 'back', 0.1, 0.9)]; },
     californiaTwirl: (ps, call, ctx) => { const [l, r] = larkFirst(ctx); return [hold(l, 'R', r, 'L')]; },
     starThrough: (ps, call, ctx) => { const [l, r] = larkFirst(ctx); return [hold(l, 'R', r, 'L', 0, 0.8)]; },
-    // Courtesy turn: left hands joined in front, the lark's right hand holding hers behind her back.
-    courtesyTurn: (ps, call, ctx) => { const [l, r] = larkFirst(ctx); return [hold(l, 'L', r, 'L'), hold(l, 'R', r, 'R')]; },
+    // Courtesy turn: left hands joined in front, the lark's right hand at the small of her back.
+    courtesyTurn: (ps, call, ctx) => { const [l, r] = larkFirst(ctx); return [hold(l, 'L', r, 'L'), hold(l, 'R', r, 'back')]; },
     turnAsCouple: () => [hold(0, 'near', 1, 'near')],
     butterflyWhirl: () => [hold(0, 'near', 1, 'near')],
     gate: () => [hold(0, 'near', 1, 'near')],
@@ -1806,14 +1821,14 @@ const Contra = (() => {
       const out = movers.length === 2 ? [hold(movers[0], hand, movers[1], hand, 0.15, 0.35)] : [];
       for (const m of movers) {
         const t = ps.map((d, i) => i).find(i => roleAt(ctx, i) !== mover && Math.sign(ps[i].x - ctx.cx) !== Math.sign(ps[m].x - ctx.cx));
-        if (t != null) { const [l, r] = mover === 'R' ? [t, m] : [m, t]; out.push(hold(l, 'L', r, 'L', 0.5, 1), hold(l, 'R', r, 'R', 0.5, 1)); }
+        if (t != null) { const [l, r] = mover === 'R' ? [t, m] : [m, t]; out.push(hold(l, 'L', r, 'L', 0.5, 1), hold(l, 'R', r, 'back', 0.5, 1)); }
       }
       return out;
     },
     // Right and left through: courtesy turn with the one who crossed beside you.
     rightLeftThrough: (ps, call, ctx) => ps.map((d, i) => i).filter(i => roleAt(ctx, i) === 'L').flatMap(l => {
       const r = ps.map((d, i) => i).find(i => roleAt(ctx, i) === 'R' && Math.sign(ps[i].x - ctx.cx) === Math.sign(ps[l].x - ctx.cx));
-      return r == null ? [] : [hold(l, 'L', r, 'L', 0.5, 1), hold(l, 'R', r, 'R', 0.5, 1)];
+      return r == null ? [] : [hold(l, 'L', r, 'L', 0.5, 1), hold(l, 'R', r, 'back', 0.5, 1)];
     }),
     openChain: (ps, call, ctx) => {
       const mover = call.who === 'larks' ? 'L' : 'R', h = mover === 'R' ? 'R' : 'L', g = mover === 'R' ? 'L' : 'R', movers = ps.map((d, i) => i).filter(i => roleAt(ctx, i) === mover);
@@ -1826,6 +1841,34 @@ const Contra = (() => {
       return out;
     },
     contraCorners: (ps, call, ctx) => cornersPlan(ps, call, ctx).holds,
+    // Square through (and rights and lefts): a hand with each one met, right then left..., as in a pull by.
+    squareThrough: (ps, call, ctx) => {
+      const n = Math.max(1, Math.round(call.turns || 2)), fns = FIGURES.squareThrough.plan(ps, call, ctx), out = [];
+      for (let k = 0; k < n; k++) {
+        const u = (k + 0.5) / n, h = k % 2 ? 'L' : 'R', seen = new Set();
+        ps.forEach((d, i) => { const j = nearestAt(fns, i, u, () => true), key = [i, j].sort().join();
+          if (j != null && !seen.has(key)) { seen.add(key); out.push(hold(i, h, j, h, (k + (k ? 0.2 : 0)) / n, (k + 0.6) / n)); } });   // after turning to face them
+      }
+      return out;
+    },
+    // Give and take: the takers take two hands with the one opposite and pull them back across.
+    giveAndTake: (ps, call, ctx) => {
+      const taker = call.who === 'larks' ? 'L' : 'R', fns = FIGURES.giveAndTake.plan(ps, call, ctx);
+      return ps.flatMap((d, i) => { if (roleAt(ctx, i) !== taker) return [];
+        const j = nearestAt(fns, i, 0.5, j => roleAt(ctx, j) !== taker);
+        return j == null ? [] : [hold(i, 'R', j, 'L', 0.4, 0.95), hold(i, 'L', j, 'R', 0.4, 0.95)]; });
+    },
+    // Flutterwheel: the leaders join right hands in the middle, then each takes the one they bring across on her left arm.
+    flutterwheel: (ps, call, ctx) => {
+      const lead = call.reverse ? 'L' : 'R', fns = FIGURES.flutterwheel.plan(ps, call, ctx), leads = ps.map((d, i) => i).filter(i => roleAt(ctx, i) === lead), out = [];
+      if (leads.length === 2) out.push(hold(leads[0], lead === 'R' ? 'R' : 'L', leads[1], lead === 'R' ? 'R' : 'L', 0.12, 0.5));
+      for (const i of leads) { const j = nearestAt(fns, i, 0.6, j => roleAt(ctx, j) !== lead); if (j != null) out.push(hold(i, 'near', j, 'near', 0.5, 0.95)); }
+      return out;
+    },
+    // Slice: hands along each side, as in long lines.
+    slice: (ps, call, ctx) => HOLDS.longLines(ps, call, ctx),
+    // Forward and back: a whole ring holds hands all round; couples (heads, sides) hold inside hands.
+    forwardBack: (ps, call, ctx) => (ps.length > 4 ? ringHolds(ps, 0, 1) : partnerPairs(ctx).map(([l, r]) => hold(l, 'near', r, 'near'))),
     // Waves: hands with the dancers beside you in the wave, once you're in it (or throughout a balance).
     formWave: (ps, call, ctx) => waveHolds('formWave', 0.7)(ps, call, ctx),
     passOcean: (ps, call, ctx) => waveHolds('passOcean', 0.75)(ps, call, ctx),
@@ -1837,7 +1880,7 @@ const Contra = (() => {
     spinTop: (ps, call, ctx) => waveHolds('spinTop', 0.9)(ps, call, ctx),
     balanceWave: ps => waveNeighbours(ps).map(([i, j]) => hold(i, 'near', j, 'near')),
     promenadeAcross: (ps, call, ctx) => promenadePairs(ps, ctx).flatMap(([l, r]) => [hold(l, 'R', r, 'R', 0.05, 1), hold(l, 'L', r, 'L', 0.05, 1)]),
-    dixieTwirl: ps => { const o = ps.map((d, i) => i).sort((i, j) => ps[j].x - ps[i].x); return o.slice(1).map((i, k) => hold(o[k], 'near', i, 'near')); },
+    dixieTwirl: ps => lineHolds(ps, ps[0].a != null ? ps[0].a : -Math.PI / 2, 0, 1),
     castAcross: (ps, call, ctx) => { const lead = call.who === 'larks' ? 'L' : 'R', two = ps.map((d, i) => i).filter(i => roleAt(ctx, i) === lead);
       return two.length === 2 ? [hold(two[0], 'near', two[1], 'near', 0.08, 0.4)] : []; },
     castOff: (ps, call, ctx) => {
@@ -1848,8 +1891,9 @@ const Contra = (() => {
     },
     leadDown: (ps, call, ctx) => { const act = call.who === 'twos' ? '2' : '1', two = ps.map((d, i) => i).filter(i => (ctx.keys[i] || '')[1] === act);
       return two.length === 2 ? [hold(two[0], 'near', two[1], 'near', 0.15, 1)] : []; },
-    downHall: ps => { const o = ps.map((d, i) => i).sort((i, j) => ps[j].x - ps[i].x); return o.slice(1).map((i, k) => hold(o[k], 'near', i, 'near', 0.15, 1)); },
-    upHall: ps => { const o = ps.map((d, i) => i).sort((i, j) => ps[j].x - ps[i].x); return o.slice(1).map((i, k) => hold(o[k], 'near', i, 'near', 0, 0.75)); },
+    downHall: ps => lineHolds(ps, -Math.PI / 2, 0.15, 1),
+    // Up the hall: hands again once everyone has turned to face up.
+    upHall: ps => lineHolds(ps, Math.PI / 2, 0.12, 0.75),
     upDouble: (ps, call, ctx) => partnerPairs(ctx).map(([l, r]) => hold(l, 'near', r, 'near')),
     // Promenade: the skating hold, right hands and left hands joined.
     promenade: (ps, call, ctx) => promenadePairs(ps, ctx).flatMap(([l, r]) => [hold(l, 'R', r, 'R', 0.15, 0.85), hold(l, 'L', r, 'L', 0.15, 0.85)]),
@@ -1872,7 +1916,7 @@ const Contra = (() => {
   // A hold eases in and out over 0.4 beats. `poseOf(id)` gives each dancer's pose at time t.
   const SHOULDER = 0.17, REACH = 0.6;
   // Holds where crossing an arm in front of or behind the body is part of the figure.
-  const CROSSED_ON_PURPOSE = new Set(['swing', 'courtesyTurn', 'promenade', 'boxTheGnat', 'swatTheFlea', 'californiaTwirl', 'starThrough', 'chain', 'rightLeftThrough', 'poussette', 'twoHandTurn']);
+  const CROSSED_ON_PURPOSE = new Set(['swing', 'courtesyTurn', 'promenade', 'promenadeAcross', 'dixieTwirl', 'boxTheGnat', 'swatTheFlea', 'californiaTwirl', 'starThrough', 'chain', 'rightLeftThrough', 'poussette', 'twoHandTurn']);
   function shoulder(p, h) { const s = h === 'R' ? 1 : -1; return { x: p.x + s * SHOULDER * Math.sin(p.a), y: p.y - s * SHOULDER * Math.cos(p.a) }; }
   function nearHand(p, q) { return dist(shoulder(p, 'R'), q) < dist(shoulder(p, 'L'), q) ? 'R' : 'L'; }
   function handGeometry(ids, holds, poseOf, t) {
@@ -1885,17 +1929,27 @@ const Contra = (() => {
     for (const k of holds) {
       if (t < k.t0 || t > k.t1) continue;
       const ease = mj(Math.min((t - k.t0) / 0.4, (k.t1 - t) / 0.4, 1)), pa = poseOf(k.a);
+      // `reach` is how far the hand has gone out toward its hold (0 at the side, 1 there).
       const set = (id, h, target, other) => {
         const hand = out[id][h], d = dist(hand.sh, target), r = Math.min(d, REACH), ux = d ? (target.x - hand.sh.x) / d : 0, uy = d ? (target.y - hand.sh.y) / d : 0;
-        out[id][h] = { sh: hand.sh, x: lerp(hand.x, hand.sh.x + ux * r, ease), y: lerp(hand.y, hand.sh.y + uy * r, ease), held: ease > 0.5, with: other, stretch: d - REACH, to: target };
+        out[id][h] = { sh: hand.sh, x: lerp(hand.x, hand.sh.x + ux * r, ease), y: lerp(hand.y, hand.sh.y + uy * r, ease), held: ease > 0.5, reach: ease, with: other, stretch: d - REACH, to: target };
       };
       if (k.center) {
         const c = centroid(k.center.map(poseOf)), ah = k.ah;
         set(k.a, ah, c, null);
         continue;
       }
-      const pb = poseOf(k.b), ah = k.ah === 'near' ? nearHand(pa, pb) : k.ah, bh = k.bh === 'near' ? nearHand(pb, pa) : k.bh;
-      const m = mid(out[k.a][ah].sh, out[k.b][bh].sh);
+      const pb = poseOf(k.b), ah = k.ah === 'near' ? nearHand(pa, pb) : k.ah;
+      // A hand on someone (the back, a shoulder): only the one reaching moves a hand.
+      if (BODY_SPOTS.has(k.bh)) {
+        const spot = k.bh === 'back' ? { x: pb.x - 0.1 * Math.cos(pb.a), y: pb.y - 0.1 * Math.sin(pb.a) } : shoulder(pb, k.bh === 'shoulderR' ? 'R' : 'L');
+        set(k.a, ah, spot, k.b); out[k.a][ah].touch = true;
+        continue;
+      }
+      const bh = k.bh === 'near' ? nearHand(pb, pa) : k.bh, m = mid(out[k.a][ah].sh, out[k.b][bh].sh);
+      // Hands can't meet inside someone: side by side (a courtesy turn, a promenade) they join out in front.
+      const fx = Math.cos(pa.a) + Math.cos(pb.a), fy = Math.sin(pa.a) + Math.sin(pb.a), fl = Math.hypot(fx, fy);
+      for (let i = 0; i < 6 && fl > 0.5 && Math.min(dist(m, pa), dist(m, pb)) < 0.26; i++) { m.x += (fx / fl) * 0.05; m.y += (fy / fl) * 0.05; }
       set(k.a, ah, m, k.b); set(k.b, bh, m, k.a);
     }
     return out;
@@ -2914,6 +2968,7 @@ const Contra = (() => {
       passInfo[p].check = checkPass(passInfo[p].want, pose);
     }
     if (perPass !== 64) warnings.push({ level: 'warn', text: `The dance is ${perPass} beats long; a contra is usually 64.` });
+    joinHolds(calls);
     warnings.push(...handChecks(calls.filter(k => k.pass === 0), (id, t) => { const i = calls.findIndex(k => k.t1 >= t), sg = segs[id][Math.max(0, i)]; return sg.f(clamp01((t - sg.t0) / (sg.t1 - sg.t0))); }));
 
     const xs = Object.values(start).map(p => p.x), ys = Object.values(start).map(p => p.y);
@@ -2963,6 +3018,24 @@ const Contra = (() => {
     return lo;
   }
 
+  // Holds that carry on from one figure into the next (the same two people, the same hands, let go for less than
+  // `gap` beats) become one hold, so hands stay joined from a balance into a pull by, or a circle into a balance.
+  function joinHolds(calls, gap = 0.75) {
+    const open = new Map();
+    for (const k of calls) {
+      k.holds = k.holds.map(h => {
+        if (h.center) return h;
+        const key = `${h.a}.${h.ah}|${h.b}.${h.bh}`, alt = `${h.b}.${h.bh}|${h.a}.${h.ah}`, prev = open.get(key) || open.get(alt);
+        if (prev && h.t0 >= prev.t0 && h.t0 - prev.t1 < gap) { prev.t1 = Math.max(prev.t1, h.t1); if (CROSSED_ON_PURPOSE.has(h.fig)) prev.fig = h.fig; return prev; }
+        open.set(key, h);
+        return h;
+      }).filter((h, i, all) => all.indexOf(h) === i);
+    }
+    // A joined hold also belongs to the figures it runs on into.
+    const spans = [...new Set(calls.flatMap(k => k.holds))];
+    for (const k of calls) for (const h of spans) if (h.t0 < k.t1 && h.t1 > k.t0 && !k.holds.includes(h)) k.holds.push(h);
+  }
+
   // Hand checks over the first time through, one note per figure: hands that can't reach (more than about
   // 0.3 m beyond arm's length), a hand held by two people at once, and a hand reaching across the body to
   // someone on the other side.
@@ -2978,14 +3051,19 @@ const Contra = (() => {
         const geo = handGeometry(ids, live, poseOf, t);
         for (const h of live) {
           if (h.center) continue;
-          const pa = poseOf(h.a), pb = poseOf(h.b), ah = h.ah === 'near' ? nearHand(pa, pb) : h.ah, bh = h.bh === 'near' ? nearHand(pb, pa) : h.bh;
-          stretch = Math.max(stretch, geo[h.a][ah].stretch || 0, geo[h.b][bh].stretch || 0);
-          for (const key of [h.a + ah, h.b + bh]) { if (used.has(key)) twice = true; used.add(key); }
+          const pa = poseOf(h.a), pb = poseOf(h.b), ah = h.ah === 'near' ? nearHand(pa, pb) : h.ah, onBody = BODY_SPOTS.has(h.bh), bh = onBody ? null : h.bh === 'near' ? nearHand(pb, pa) : h.bh;
+          stretch = Math.max(stretch, geo[h.a][ah].stretch || 0, onBody ? 0 : geo[h.b][bh].stretch || 0);
+          for (const key of onBody ? [h.a + ah] : [h.a + ah, h.b + bh]) { if (used.has(key)) twice = true; used.add(key); }
           // Reaching across: the right hand to someone well over on your left (or the left hand to the right).
-          if (!CROSSED_ON_PURPOSE.has(h.fig)) for (const [p, q, hand] of [[pa, pb, ah], [pb, pa, bh]]) if (dist(p, q) > 0.5 && (hand === 'R' ? 1 : -1) * Math.sin(angleTo(p, q) - p.a) > 0.7) across = true;
+          if (!CROSSED_ON_PURPOSE.has(h.fig) && !onBody) for (const [p, q, hand] of [[pa, pb, ah], [pb, pa, bh]]) if (dist(p, q) > 0.5 && (hand === 'R' ? 1 : -1) * Math.sin(angleTo(p, q) - p.a) > 0.7) across = true;
         }
       }
+      // A hand let go of one person and taken by someone else in under a quarter of a beat.
+      const quick = k.holds.some(h => !h.center && h.t0 >= k.t0 && h.t0 < k.t1 && [[h.a, h.ah], ...(BODY_SPOTS.has(h.bh) ? [] : [[h.b, h.bh]])].some(([id, hand]) =>
+        calls.some(q => q.holds.some(o => o !== h && !o.center && o.t1 <= h.t0 + 1e-9 && h.t0 - o.t1 < 0.25 && o.t1 > o.t0 &&
+          ((o.a === id && o.ah === hand && o.b !== (id === h.a ? h.b : h.a)) || (o.b === id && o.bh === hand && o.a !== (id === h.a ? h.b : h.a)))))));
       const where = `${k.part}: “${k.text}”`;
+      if (quick) out.push({ level: 'info', hands: true, text: `${where}: someone lets go of one hand and takes it again with someone else almost at once.` });
       if (stretch > 0.3) out.push({ level: 'warn', hands: true, text: `${where}: hands would have to stretch ${(stretch + 2 * REACH).toFixed(1)} m apart to stay joined.` });
       if (twice) out.push({ level: 'warn', hands: true, text: `${where}: someone holds two people with the same hand at once.` });
       if (across) out.push({ level: 'info', hands: true, text: `${where}: someone reaches across their body to take a hand, which can feel awkward.` });
@@ -3948,28 +4026,6 @@ function drawDancers(g, v, c, t, o) {
   }
 
   const rad = Math.max(5, 0.19 * v.s);
-  // Hands: arms from each shoulder. A free arm is a short stub at the side; a held arm reaches to where the
-  // two hands meet, marked with a small dot. A dashed red line shows hands that can't reach each other.
-  if (o.hands) {
-    const H = Contra.handsAt(c, t), armW = Math.max(1.5, 0.05 * v.s);
-    g.lineCap = 'round';
-    for (const d of c.dancers) {
-      const dim = focus && d.couple !== focus ? 0.35 : 1, col = d.role === 'lark' ? tokens.lark : tokens.robin;
-      for (const h of ['L', 'R']) {
-        const k = H[d.id][h];
-        g.globalAlpha = dim * (k.held ? 1 : 0.55);
-        g.strokeStyle = col; g.lineWidth = k.held ? armW : armW * 0.8;
-        g.beginPath(); g.moveTo(v.X(k.sh.x), v.Y(k.sh.y)); g.lineTo(v.X(k.x), v.Y(k.y)); g.stroke();
-        if (!k.held) continue;
-        g.fillStyle = tokens.ink; g.beginPath(); g.arc(v.X(k.x), v.Y(k.y), armW * 0.75, 0, Math.PI * 2); g.fill();
-        if (k.stretch > 0.05 && k.to) {
-          g.strokeStyle = tokens.bad; g.lineWidth = 1.5; g.setLineDash([3, 3]);
-          g.beginPath(); g.moveTo(v.X(k.x), v.Y(k.y)); g.lineTo(v.X(k.to.x), v.Y(k.to.y)); g.stroke(); g.setLineDash([]);
-        }
-      }
-    }
-    g.globalAlpha = 1;
-  }
   for (const d of c.dancers) {
     const p = Contra.poseAt(c, d.id, t), x = v.X(p.x), y = v.Y(p.y), col = d.role === 'lark' ? tokens.lark : tokens.robin;
     g.globalAlpha = focus && d.couple !== focus ? 0.35 : 1;
@@ -3989,6 +4045,34 @@ function drawDancers(g, v, c, t, o) {
       g.fillStyle = tokens.panel; g.font = `600 ${Math.round(rad * 0.95)}px "JetBrains Mono", monospace`;
       g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(String(d.num), x, y + 0.5); g.textBaseline = 'alphabetic';
     }
+  }
+  // Hands, drawn over the dancers so close holds show: an arm from the shoulder reaches out as a hold begins and
+  // comes back as it ends; hands joined are marked with a small dark dot where they meet, and a hand resting on
+  // someone (a swing, a courtesy turn) with an open ring. Free hands hang at the sides, hidden under the body.
+  // A dashed red line shows hands that can't reach.
+  if (o.hands) {
+    const H = Contra.handsAt(c, t), armW = Math.max(1.5, 0.038 * v.s);
+    g.lineCap = 'round';
+    for (const d of c.dancers) {
+      const dim = focus && d.couple !== focus ? 0.35 : 1, col = d.role === 'lark' ? tokens.lark : tokens.robin;
+      for (const h of ['L', 'R']) {
+        const k = H[d.id][h];
+        if (!k.reach || k.reach < 0.05) continue;
+        g.globalAlpha = dim;
+        // A thin light edge keeps an arm visible where it crosses a dancer of the same colour.
+        g.beginPath(); g.moveTo(v.X(k.sh.x), v.Y(k.sh.y)); g.lineTo(v.X(k.x), v.Y(k.y));
+        g.strokeStyle = tokens.floor; g.lineWidth = armW + 2.5; g.stroke();
+        g.strokeStyle = col; g.lineWidth = armW; g.stroke();
+        if (!k.held) continue;
+        if (k.touch) { g.strokeStyle = tokens.ink; g.lineWidth = 1.5; g.beginPath(); g.arc(v.X(k.x), v.Y(k.y), armW * 0.7, 0, Math.PI * 2); g.stroke(); continue; }
+        g.fillStyle = tokens.ink; g.beginPath(); g.arc(v.X(k.x), v.Y(k.y), armW * 0.75, 0, Math.PI * 2); g.fill();
+        if (k.stretch > 0.05 && k.to) {
+          g.strokeStyle = tokens.bad; g.lineWidth = 1.5; g.setLineDash([3, 3]);
+          g.beginPath(); g.moveTo(v.X(k.x), v.Y(k.y)); g.lineTo(v.X(k.to.x), v.Y(k.to.y)); g.stroke(); g.setLineDash([]);
+        }
+      }
+    }
+    g.globalAlpha = 1;
   }
   g.globalAlpha = 1;
 }

@@ -138,8 +138,23 @@ Built October 2026, with a Hands switch (on by default, remembered).
   two people at once (problems), and a hand reaching across the body (a caution; figures that cross arms on purpose,
   such as the swing, courtesy turn and promenade, are left out).
 
-Left out: elbows, crossed arms and body twist beyond the facing (dancers are dots); letting go and retaking a hand
-too quickly isn't checked yet.
+Revised October 2026 (the rest of the plan):
+- **Holds carry across figures.** When the same two people keep the same hands from one figure into the next (a
+  balance into a pull by, a circle into a balance), it is one hold: hands no longer let go and re-grab at the join
+  (`joinHolds`).
+- **Hands on someone:** a hold can end on a place on the other dancer instead of their hand (`back`, `shoulderR`).
+  The swing is now his left hand holding her right out to the side and his right hand at her back; the courtesy
+  turn is left hands joined in front and his right hand at her back. Drawn as an open ring instead of a dot.
+- **Hands meet in front** when two side by side would otherwise join hands inside a body (courtesy turn, promenade).
+- **Lines** (down and up the hall, Dixie twirl) say which hand takes which: each takes the right hand of the one on
+  their right in their left, rather than "the nearer hand", which flipped while dancers turned.
+- **More figures take hands:** square through and rights and lefts (a hand with each one met, right then left),
+  flutterwheel, give and take (two hands), slice (lines), forward and back (a ring, or couples' inside hands).
+- **Drawing:** arms are drawn over the dancers with a thin light edge, so close holds show; free hands are hidden
+  at the sides (the faded stubs are gone); an arm reaches out as a hold begins and comes back as it ends.
+- **New check:** a hand let go of one person and taken by someone else within a quarter of a beat (a note).
+
+Left out: elbows, crossed arms and body twist beyond the facing (dancers are dots).
 
 ## Collisions (October 2026)
 
