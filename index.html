@@ -175,6 +175,31 @@ label.small { font-size: 13px; color: var(--muted); display: inline-flex; align-
 .bdrag { cursor: grab; padding: 5px 9px; border: 1px dashed var(--cat, var(--accent)); border-radius: 6px; color: var(--ink); touch-action: none; user-select: none; }
 #bText { width: 100%; font: 13px var(--font-body); }
 .soonnote { margin: 0; font-size: 12.5px; color: var(--muted); }
+.bexplore { margin-left: auto; padding: 3px 9px; font-size: 12.5px; }
+.bexplore + .bclose { margin-left: 0; }
+.bpreview { background: var(--floor); border: 1px solid var(--rule); border-radius: 8px; height: 170px; }
+.bpreview canvas { width: 100%; height: 100%; display: block; }
+#explorer { width: min(900px, 94vw); max-height: 92vh; padding: 0; border: 1px solid var(--rule); border-radius: 12px; background: var(--panel); color: var(--ink); }
+#explorer::backdrop { background: rgba(10, 16, 14, 0.45); }
+.exhead { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--rule); color: var(--cat); }
+.exhead h2 { font: 600 20px var(--font-display); color: var(--cat); }
+.exhead .cicon { width: 20px; height: 20px; }
+.exhead .small { color: var(--muted); }
+#exClose { margin-left: auto; border: 0; background: none; color: var(--muted); font-size: 16px; }
+.exbody { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 16px; padding: 16px; }
+@media (max-width: 720px) { .exbody { grid-template-columns: minmax(0, 1fr); } }
+.exstage { position: relative; display: flex; flex-direction: column; gap: 8px; }
+#exCanvas { width: 100%; height: 380px; display: block; background: var(--floor); border: 1px solid var(--rule); border-radius: 8px; }
+.exbeat { position: absolute; left: 10px; top: 8px; font: 500 13px var(--font-mono); color: var(--muted); pointer-events: none; }
+.excontrols { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+#exScrub { flex: 1 1 140px; min-width: 0; accent-color: var(--accent); }
+.exinfo { display: flex; flex-direction: column; gap: 12px; font-size: 14.5px; min-width: 0; }
+.exinfo p { margin: 0; }
+#exFacts { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 12px; margin: 0; font-size: 13.5px; }
+#exFacts dt { color: var(--muted); }
+#exFacts dd { margin: 0; }
+#exFacts dd:first-of-type { font-family: var(--font-mono); font-size: 12.5px; }
+.exflag { font-size: 13px; color: var(--warn); border-left: 3px solid var(--warn); padding-left: 8px; }
 .tlhead { display: flex; align-items: center; gap: 8px; font: 600 13px var(--font-display); }
 .tlhead button { padding: 2px 8px; }
 #passLabel { min-width: 96px; text-align: center; font-variant-numeric: tabular-nums; }
@@ -323,6 +348,28 @@ ul.checks li.passed { color: var(--muted); }
   </aside>
 </div>
 
+<dialog id="explorer" aria-labelledby="exTitle">
+  <div class="exhead" id="exHead"><span id="exIcon"></span><h2 id="exTitle">Move</h2><span class="small" id="exCat"></span>
+    <button type="button" id="exClose" aria-label="Close">✕</button></div>
+  <div class="exbody">
+    <div class="exstage" id="exStage">
+      <canvas id="exCanvas" aria-label="The move, danced by one hands-four"></canvas>
+      <div class="exbeat" id="exBeat"></div>
+      <div class="excontrols">
+        <button type="button" id="exPlay" class="primary">Pause</button>
+        <input id="exScrub" type="range" min="0" max="8" step="0.01" value="0" aria-label="Position in the move">
+        <select id="exSpeed" aria-label="Speed"><option value="0.25">¼×</option><option value="0.5" selected>½×</option><option value="1">1×</option></select>
+        <label class="small"><input id="exTrail" type="checkbox" checked> Trail</label>
+      </div>
+    </div>
+    <div class="exinfo">
+      <p id="exDesc"></p>
+      <dl id="exFacts"></dl>
+      <p class="exflag" id="exFlag" hidden></p>
+    </div>
+  </div>
+</dialog>
+
 <script id="engine">
 // Contra engine: turns a dance into a path for every dancer. Positions in meters, time in beats.
 // World frame: +y is up the hall toward the band, +x runs across the hall.
@@ -468,11 +515,18 @@ const Contra = (() => {
     for (const role of ['L', 'R']) {
       const i = couple[role], d = ps[i], m = meet[role], crosses = mover === null || mover === i;
       const head = angleTo(d, m), nx = -Math.sin(head), ny = Math.cos(head), side = sgn > 0 ? 1 : -1;
+      // In a chain the traveller pulls by in the middle of the set: her path bends through the center,
+      // passing the other traveller by the named shoulder, then out to meet her partner for the turn.
+      const C = mover !== null ? centroid(ps) : null;
+      const bend = C && { x: 2 * (C.x + nx * side * P.passOffset) - (d.x + m.x) / 2, y: 2 * (C.y + ny * side * P.passOffset) - (d.y + m.y) / 2 };
+      const along = s => (crosses && bend
+        ? { x: (1 - s) ** 2 * d.x + 2 * (1 - s) * s * bend.x + s * s * m.x, y: (1 - s) ** 2 * d.y + 2 * (1 - s) * s * bend.y + s * s * m.y }
+        : { x: lerp(d.x, m.x, s) + nx * (crosses ? side * P.passOffset * Math.sin(Math.PI * s) : 0), y: lerp(d.y, m.y, s) + ny * (crosses ? side * P.passOffset * Math.sin(Math.PI * s) : 0) });
       out[i] = u => {
         if (u < split) {
-          const s = mj(u / split), off = crosses ? side * P.passOffset * Math.sin(Math.PI * s) : 0;
-          const a = crosses ? settle(d.a, head, u / split, 0.3) : settle(d.a, F0, u / split, 0.9);
-          return { x: lerp(d.x, m.x, s) + nx * off, y: lerp(d.y, m.y, s) + ny * off, a: u / split > 0.7 && crosses ? lerpAngle(a, F0, mj((u / split - 0.7) / 0.3)) : a };
+          const s = mj(u / split), p = along(s), dir = heading(along, s);
+          const a = crosses ? settle(d.a, dir, u / split, 0.3) : settle(d.a, F0, u / split, 0.9);
+          return { x: p.x, y: p.y, a: u / split > 0.7 && crosses ? a + wrap(F0 - dir) * mj((u / split - 0.7) / 0.3) : a };
         }
         const th = sgn * Math.PI * mj((u - split) / (1 - split)), a0 = angleTo(M, m), r = dist(M, m);
         return { x: M.x + r * Math.cos(a0 + th), y: M.y + r * Math.sin(a0 + th), a: F0 + th };
@@ -1220,11 +1274,12 @@ const Contra = (() => {
             for (const o of pass.outs) o.couple.role = o.couple.role === 'ones' ? 'twos' : 'ones';
             nextPass = startPass(ends, t1);
           }
-          const next = planCall(last ? 0 : k + 1, ends, nextPass, t1).fns;
+          // A dance that doesn't loop (a single-move preview) ends without turning toward a next figure.
+          const next = last && p === passes - 1 && opts.loop === false ? null : planCall(last ? 0 : k + 1, ends, nextPass, t1).fns;
           const newPose = {};
           for (const d of dancers) {
             const f0 = fns[d.id], end = f0(1);
-            const target = !next[d.id].still ? next[d.id](0).a : faceInFrom(end, lineCx[d.id]);
+            const target = !next ? null : !next[d.id].still ? next[d.id](0).a : faceInFrom(end, lineCx[d.id]);
             const f = fig || !f0.still ? turnAtEnd(f0, target, call.beats) : f0;
             segs[d.id].push({ t0, t1, f });
             newPose[d.id] = f(1);
@@ -1716,6 +1771,139 @@ function seekToFigure(pi, ci) {
   seek(passAt(state.t) * c.perPass + t);
 }
 
+// ----- Move previews: one hands-four dancing just this move, on a loop -----
+// What each move is, in plain words (our own descriptions; see docs/FIGURES.md).
+const DESCRIPTIONS = {
+  'Allemande': 'Take a forearm grip, face each other as you meet, then walk around each other. Allemande right turns clockwise, left counter-clockwise. Once and a half trades places.',
+  'Swing': 'Ballroom-style hold, right hip to right hip, turning clockwise with a walking or buzz step. It ends with the lark on the left and the robin on the right, facing the way the next figure needs.',
+  'Shoulder round': 'Walk around each other without touching, keeping eye contact. A right shoulder round turns clockwise. Older dances call this a "gypsy".',
+  'Arm turn': 'Link arms and turn around each other, much like an allemande.',
+  'Two-hand turn': 'Take both hands at arm\'s length and walk around each other.',
+  'Pull by': 'Take the named hand with the person you face, pull past each other by that shoulder, and let go.',
+  'Box the gnat': 'Right hands joined: pull in close, push back out, then circle around each other to trade places. The lark turns right and the robin turns left under the arch; you end face to face.',
+  'Pass through': 'Walk forward past the person you face by the named shoulder, without hands.',
+  'Swat the flea': 'The mirror image of box the gnat: left hands, trading places counter-clockwise.',
+  'California twirl': 'Side by side, the lark\'s right hand in the robin\'s left. Raise the hands; the robin turns left under the arch while the lark walks around her. You end traded, facing the other way.',
+  'Star through': 'Facing each other, the lark\'s right hand in the robin\'s left. The robin goes under the arch; the lark turns a quarter right and the robin a quarter left, ending side by side.',
+  'Roll away': 'Side by side: the robin rolls across in front of the lark, turning a full circle without turning her back on him, while he sidesteps behind into her place.',
+  'Half sashay': 'Side by side, trade places by sidestepping, the robin passing in front. You keep facing the same way.',
+  'Trade': 'Two people on a diagonal cross to each other\'s places, passing by the named shoulder.',
+  'Cross': 'Cross the set on a straight path, passing by the named shoulder.',
+  'Balance': 'Step forward and back in place, usually toward someone, with hands joined if named.',
+  'Long lines': 'Holding hands along each side, take four small steps toward the other line and four back. Partners meet close enough to clap.',
+  'Do-si-do': 'Face someone, walk forward passing right shoulders, slide right back to back, and fall back to place, always facing the same way.',
+  'Seesaw': 'A do-si-do by the left shoulder.',
+  'Mad robin': 'Facing across the set, travel an oval around the person beside you, a sideways do-si-do, keeping eye contact with the person across.',
+  'Set': 'Step right, then left, in place, facing someone.',
+  'Turn single': 'Turn all the way round in a small loop in place.',
+  'Balance the wave': 'In a wave, balance forward and back. Shown simply as a step forward and back.',
+  'Balance the ring': 'Hands in a ring: step in toward the middle and back.',
+  'Circle': 'Hands in a ring, everyone facing the middle. Circle left travels clockwise; the amount counts places around the ring.',
+  'Star': 'Named hand in the middle, walk forward around. A right-hand star turns clockwise; the amount counts places.',
+  'Petronella': 'From a ring, drop hands and move one place to your right, spinning clockwise, ending facing in again. Often finished with a clap.',
+  'Poussette': 'Partners take two hands and orbit the other couple without turning; one walks forward, the other backs up.',
+  'Broken circle': 'A circle in which only some hands are held. Shown as a circle.',
+  'Star promenade': 'Two couples, arms around partners, larks\' left hands in the middle: the group turns together counter-clockwise.',
+  'Weathervane': 'A star promenade that keeps going around, without a butterfly whirl.',
+  'Courtesy turn': 'Side by side, turn counter-clockwise around the point between you: the lark backs up while the robin walks forward.',
+  'Turn as a couple': 'Side by side, turn together to face the other way. Shown as half a courtesy turn.',
+  'Gate': 'Side by side, holding near hands, pivot around the middle: one walks forward, the other backs up.',
+  'Butterfly whirl': 'Side by side with arms around each other, spin as a pair, one going backward. Shown as half a turn.',
+  'Dixie twirl': 'A line of four turns around without letting go, the centers making an arch. Not animated yet.',
+  'Robins chain': 'Robins pull by right across the set, then courtesy turn with the lark on the other side, ending facing in.',
+  'Larks chain': 'The mirror image: larks pull by left across, then courtesy turn clockwise with the robin there.',
+  'Right and left through': 'Pass the person across by the right shoulder, then courtesy turn with the one you crossed beside, ending facing in on the other side.',
+  'Flutterwheel': 'Robins take right hands half way across, pick up the lark there, and bring him around to the robin\'s side. Larks trade places; robins end where they started.',
+  'Square through': 'Pull by right across, turn a quarter to face along and pull by left, and so on for the number of hands.',
+  'Give and take': 'Everyone takes two steps in; the named dancers take two hands with the person across and draw them back to their own side, usually into a swing.',
+  'Hey for four': 'Four dancers weave along one track, a figure eight with an extra loop, passing alternate shoulders. The named pair pass first, in the middle. A half hey ends with everyone across the set.',
+  'Hey for three': 'Three dancers weave a figure-eight path. Not animated yet.',
+  'Figure eight': 'The active couple cross diagonally through the other couple and cast around them. A half figure eight ends on the other side of the set.',
+  'Slice': 'As couples, four steps forward on the named diagonal, then fall straight back, one place along.',
+  'Lead down': 'The active couple step into the middle, take inside hands, and walk down the hall.',
+  'Down the hall': 'Form a line of four across the set and walk down the hall.',
+  'Up the hall': 'Turn to face up, walk back up the hall, and bend the line into two couples facing across: the ends come forward, the centers back up.',
+  'Cast off': 'The active couple turn away from each other and go down the outside one place while the others move up.',
+  'Cast down': 'The active couple go down the outside one place while the others move up.',
+  'Shift': 'As couples, sidestep along the line one place.',
+  'Veer': 'As couples, two steps forward and to the named side.',
+  'Contra corners': 'The active couple turn each other and each of their two contra corners in a series of allemandes. Not animated yet.',
+};
+// Moves animated from a description with some guesswork: worth checking by eye.
+const APPROX = new Set(['Hey for four', 'Robins chain', 'Larks chain', 'Right and left through', 'Flutterwheel', 'Star promenade', 'Weathervane',
+  'Give and take', 'Figure eight', 'Slice', 'Shift', 'Veer', 'Lead down', 'Down the hall', 'Up the hall', 'Cast off', 'Cast down', 'Petronella',
+  'Poussette', 'California twirl', 'Star through', 'Roll away', 'Half sashay', 'Balance the wave', 'Cross', 'Turn as a couple', 'Butterfly whirl']);
+// Some moves need the dancers set up first: side by side with the chosen person, or couples on the sides.
+const SETUP = {
+  californiaTwirl: 'pair', rollAway: 'pair', halfSashay: 'pair', courtesyTurn: 'pair', turnAsCouple: 'pair', butterflyWhirl: 'pair', gate: 'pair',
+  chain: '(8) Neighbor swing', rightLeftThrough: '(8) Neighbor swing', hey: '(8) Neighbor swing', flutterwheel: '(8) Neighbor swing',
+  starPromenade: '(8) Neighbor swing', giveAndTake: '(8) Neighbor swing', upHall: '(8) Down the hall in a line of four', petronella: '(4) Balance the ring',
+};
+const previews = new Map();
+function previewOf(def, m, beats) {
+  if (!def || !def.fig) return null;
+  let setup = SETUP[def.fig] || '';
+  if (setup === 'pair') setup = `(8) ${WHO_WORD[m.who] || 'Partner'} swing`;
+  const line = sayMove(def, m), key = [setup, line, beats, $('swingRate').value].join('|');
+  if (previews.has(key)) return previews.get(key);
+  const dance = Contra.parseDance(['A1', setup, `(${beats}) ${line}`].filter(Boolean).join('\n'));
+  const c = Contra.compile(dance, { lines: 1, sets: 1, passes: 1, loop: false, params: { swingBeatsPerTurn: +$('swingRate').value } });
+  const t0 = c.calls[c.calls.length - 1].t0, t1 = c.total, b = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity };
+  for (const d of c.dancers) for (let t = t0; t <= t1; t += 0.25) {
+    const p = Contra.poseAt(c, d.id, t);
+    b.minX = Math.min(b.minX, p.x); b.maxX = Math.max(b.maxX, p.x); b.minY = Math.min(b.minY, p.y); b.maxY = Math.max(b.maxY, p.y);
+  }
+  const pv = { c, t0, t1, beats: t1 - t0, bounds: b, line, clock: 0 };
+  previews.set(key, pv);
+  return pv;
+}
+// Where a looping preview is at: through the move, then a short pause holding the end.
+const loopAt = pv => pv.t0 + Math.min(pv.beats, pv.clock % (pv.beats + 1.5));
+
+function drawPreview(cv, pv, t) {
+  drawFloor(cv, pv.c, t, { trailFrom: $('exTrail') && cv.id === 'exCanvas' && !$('exTrail').checked ? t : pv.t0, bounds: pv.bounds, pad: { l: 0.55, r: 0.55, t: 0.55, b: 0.55 } });
+}
+
+// ----- The move explorer: a larger look at one move, with its description -----
+const ex = { pv: null, t: 0, playing: true };
+function openExplorer(def, m, beats) {
+  const pv = previewOf(def, m, beats), cat = CATEGORIES.find(c => c.id === def.cat);
+  ex.pv = pv; ex.t = pv ? pv.t0 : 0; ex.playing = true;
+  $('exTitle').textContent = def.label;
+  $('exIcon').innerHTML = icon(def.cat); $('exHead').className = `exhead cat${def.cat}`;
+  $('exCat').textContent = cat ? cat.name : '';
+  $('exDesc').textContent = roleWords(DESCRIPTIONS[def.label] || '');
+  const facts = [['Line', `(${beats}) ${sayMove(def, m)}`]];
+  if (def.who && m.who) facts.push(['Who', m.who === 'larks' ? roleSet()[0] : m.who === 'robins' ? roleSet()[1] : WHO_LABEL[m.who]]);
+  if (def.side && m.side) {
+    const S = SIDES[def.side], i = m.side === 'L' ? 0 : 1, spin = S.spin[i];
+    facts.push(['Side', `${S.labels[i]}${spin ? `, turning ${spin < 0 ? 'clockwise' : 'counter-clockwise'} (seen from above)` : ''}`]);
+  }
+  if (def.amount && m.amt != null) facts.push(['How far', (AMOUNTS[def.amount].find(a => a[0] === m.amt) || [, String(m.amt)])[1]]);
+  const typical = def.fig ? (typeof Contra.TYPICAL_BEATS[def.fig] === 'function' ? Contra.TYPICAL_BEATS[def.fig]({ turns: m.amt }) : Contra.TYPICAL_BEATS[def.fig]) : def.beats;
+  facts.push(['Length', `${beats} beats${typical ? ` (usually ${typical})` : ''}`]);
+  $('exFacts').innerHTML = facts.map(([k]) => `<dt>${k}</dt><dd></dd>`).join('');
+  $('exFacts').querySelectorAll('dd').forEach((dd, i) => (dd.textContent = roleWords(facts[i][1])));
+  $('exFlag').hidden = !(APPROX.has(def.label) || !def.fig);
+  $('exFlag').textContent = !def.fig ? 'Not animated yet: in a dance, the dancers stand still during this move.'
+    : 'This animation is an approximation from the descriptions. If it doesn\'t look like the real move, say what\'s wrong and it can be corrected.';
+  $('exStage').hidden = !pv;
+  if (pv) { $('exScrub').max = pv.beats; $('exPlay').textContent = 'Pause'; }
+  $('explorer').showModal();
+}
+function stepExplorer(dt, bps) {
+  const pv = ex.pv;
+  if (!pv || !$('explorer').open) return;
+  if (ex.playing) {
+    ex.t += dt * bps * +$('exSpeed').value;
+    if (ex.t > pv.t1 + 1) ex.t = pv.t0;   // hold the end for a beat, then go again
+  }
+  const t = Math.min(ex.t, pv.t1);
+  drawPreview($('exCanvas'), pv, t);
+  $('exScrub').value = t - pv.t0;
+  $('exBeat').textContent = `Beat ${Math.min(pv.beats, Math.floor(t - pv.t0) + 1)} of ${pv.beats}`;
+}
+
 // ----- The move builder: set up a new move, or change the selected one -----
 // state.build holds the move being set up: { def, m (modifiers), beats } for a new move.
 function dial(def, m) {
@@ -1730,7 +1918,7 @@ function dial(def, m) {
   const dots = def.amount === 'places' ? [0, 1, 2, 3].map(i => `<circle cx="${cx + r * Math.sin(i * Math.PI / 2)}" cy="${cy - r * Math.cos(i * Math.PI / 2)}" r="3" fill="currentColor" opacity="0.35"/>`).join('') : '';
   return `<svg class="dial" viewBox="0 0 56 56" aria-hidden="true"><circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--rule)" stroke-width="3"/>${dots}
     <path d="${arc}" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/>
-    <path d="M${tip(-6, -5)} L${end[0]} ${end[1]} L${tip(6, -5)}" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M${tip(-6, -5)} L${end[0]} ${end[1]} L${tip(-6, 5)}" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
     ${amt > 1 ? `<text x="${cx}" y="${cy + 4}" text-anchor="middle" font-size="11" font-weight="700" fill="currentColor">${amt === 2 ? '×2' : '+1'}</text>` : ''}</svg>`;
 }
 const spinIcon = s => (s > 0 ? '↺' : s < 0 ? '↻' : '');
@@ -1744,7 +1932,9 @@ function renderBuilder() {
   if (box.hidden) return;
   const cat = def ? def.cat : 0, partName = k ? state.doc.parts[sel.part].name : '';
   let html = `<div class="bhead cat${cat}">${icon(cat)}<strong>${def ? def.label : 'Unknown figure'}</strong>${k ? `<span class="small">in ${partName}</span>` : '<span class="small">new</span>'}
-    <button type="button" class="bclose" id="bClose" aria-label="Close">✕</button></div>`;
+    ${def ? '<button type="button" class="bexplore" id="bExplore" title="A closer look at this move">⤢ Explore</button>' : ''}<button type="button" class="bclose" id="bClose" aria-label="Close">✕</button></div>`;
+  state.preview = def ? previewOf(def, m, beats) : null;
+  if (state.preview) html += `<div class="bpreview"><canvas id="bPrev" aria-label="Preview of ${def.label}"></canvas></div>`;
   if (def && !def.fig) html += `<p class="soonnote">Not animated yet: dancers stand still during it.</p>`;
   if (def) {
     html += `<div class="bgrid">`;
@@ -1783,6 +1973,7 @@ function renderBuilder() {
   $('bLess').onclick = () => apply(m, Math.max(1, beats - 2));
   $('bMore').onclick = () => apply(m, Math.min(32, beats + 2));
   $('bClose').onclick = () => { state.sel = null; state.build = null; renderRows(); };
+  if ($('bExplore')) $('bExplore').onclick = () => openExplorer(def, m, beats);
   if (editing) $('bRemove').onclick = () => { state.doc.parts[sel.part].calls.splice(sel.index, 1); state.sel = null; commit(true); };
   else {
     $('bAdd').onclick = () => addMove(+$('bPart').value, newCall(def, m, beats));
@@ -1924,9 +2115,9 @@ function readTokens() {
 
 const rgb = hex => { const h = hex.replace('#', ''); return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)); };
 
-function view() {
-  const c = state.c, b = c.bounds, r = canvas.getBoundingClientRect();
-  const pad = { l: 1.0, r: 1.0, t: 1.6, b: 0.9 };
+// How metres on the floor map to pixels on a canvas: fit `b` (bounds in metres) with some room around it.
+function view(cv = canvas, b = state.c.bounds, pad = { l: 1.0, r: 1.0, t: 1.6, b: 0.9 }) {
+  const r = cv.getBoundingClientRect();
   const W = b.maxX - b.minX + pad.l + pad.r, H = b.maxY - b.minY + pad.t + pad.b;
   const s = Math.min(r.width / W, r.height / H);
   const ox = (r.width - W * s) / 2 + pad.l * s, oy = (r.height - H * s) / 2 + pad.t * s;
@@ -1934,23 +2125,33 @@ function view() {
 }
 
 function draw() {
-  const c = state.c, dpr = window.devicePixelRatio || 1, r = canvas.getBoundingClientRect();
-  if (canvas.width !== Math.round(r.width * dpr) || canvas.height !== Math.round(r.height * dpr)) {
-    canvas.width = Math.round(r.width * dpr); canvas.height = Math.round(r.height * dpr);
+  drawFloor(canvas, state.c, state.t, { trail: +$('trailLen').value, focus: state.highlight, full: true });
+}
+
+// Draw a compiled dance at time t on a canvas. `full` adds the band label, hands-four outlines and "out"
+// labels; `trailFrom` starts trails at that time instead of `trail` beats back; `bounds`/`pad` set the view.
+function drawFloor(cv, c, t, o) {
+  const dpr = window.devicePixelRatio || 1, r = cv.getBoundingClientRect();
+  if (cv.width !== Math.round(r.width * dpr) || cv.height !== Math.round(r.height * dpr)) {
+    cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
   }
-  const g = ctx2d, v = view(), P = c.P;
+  const g = cv.getContext('2d'), v = view(cv, o.bounds || c.bounds, o.pad), P = c.P;
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   g.clearRect(0, 0, v.w, v.h);
+  if (o.full) drawSetting(g, v, c, t, P);
+  drawDancers(g, v, c, t, o);
+}
 
+function drawSetting(g, v, c, t, P) {
   g.fillStyle = tokens.muted; g.font = '600 11px "Instrument Sans", system-ui, sans-serif'; g.textAlign = 'center';
   g.fillText('BAND  ↑  TOP OF THE HALL', v.w / 2, Math.max(62, v.Y(c.bounds.maxY + 1.3)));
 
   // This time through's hands-fours, and a label beside couples waiting out at the ends.
-  const pass = c.passes[passAt(state.t)];
+  const pass = c.passes[passAt(t)];
   g.strokeStyle = tokens.rule; g.lineWidth = 1; g.setLineDash([4, 4]);
   g.fillStyle = tokens.muted; g.font = '500 12px "Instrument Sans", system-ui, sans-serif'; g.textAlign = 'right';
   for (const o of pass.outs) {
-    const k = c.couples.find(q => q.id === o.couple), y = (Contra.poseAt(c, k.lark, state.t).y + Contra.poseAt(c, k.robin, state.t).y) / 2;
+    const k = c.couples.find(q => q.id === o.couple), y = (Contra.poseAt(c, k.lark, t).y + Contra.poseAt(c, k.robin, t).y) / 2;
     const cx = (c.start[k.lark].x + c.start[k.robin].x) / 2;  // partners start on opposite sides of their line
     g.fillText('out', v.X(cx - P.partnerGap / 2 - 0.35), v.Y(y) + 4);
   }
@@ -1959,10 +2160,12 @@ function draw() {
     g.strokeRect(x0, y0, (P.partnerGap + 0.9) * v.s, (P.neighborGap + 0.9) * v.s);
   }
   g.setLineDash([]);
+}
 
-  const t = state.t, focus = state.highlight;
+function drawDancers(g, v, c, t, o) {
+  const focus = o.focus;
   // Trails: thick and solid at the dancer, thinning and fading toward the oldest point.
-  const span = +$('trailLen').value;
+  const span = o.trailFrom != null ? t - o.trailFrom : o.trail || 0;
   if (span > 0) {
     const step = span <= 4 ? 0.1 : 0.2, n = Math.ceil(span / step);
     const maxW = Math.max(2.5, (focus ? 0.08 : 0.06) * v.s), base = focus ? 0.75 : 0.5;
@@ -1973,7 +2176,7 @@ function draw() {
       let prev = null;
       for (let k = n; k >= 0; k--) {
         const tt = t - k * step;
-        if (tt < 0) continue;
+        if (tt < 0 || (o.trailFrom != null && tt < o.trailFrom - 1e-9)) continue;
         const p = Contra.poseAt(c, d.id, tt), pt = [v.X(p.x), v.Y(p.y)];
         if (prev) {
           const f = 1 - k / n;
@@ -2047,6 +2250,10 @@ function frame(now) {
     if (state.t >= wrapAt) { state.t -= back; if (music.next !== null) music.next -= back; }
     if ($('music').checked) scheduleMusic(bps);
   }
+  const pdt = Math.min(0.1, (now - (state.plast || now)) / 1000), pbps = (+$('tempo').value || 120) / 60;
+  state.plast = now;
+  if (state.preview && !$('builder').hidden && $('bPrev')) { state.preview.clock += pdt * pbps * 0.75; drawPreview($('bPrev'), state.preview, loopAt(state.preview)); }
+  stepExplorer(pdt, pbps);
   state.last = now;
   draw(); updateReadout();
   requestAnimationFrame(frame);
@@ -2075,6 +2282,10 @@ for (const [tab, panel, other, otherPanel] of [['tabEditor', 'panelEditor', 'tab
   };
 }
 if (recall('contra.tab') === 'tabText') $('tabText').onclick();
+$('exClose').onclick = () => $('explorer').close();
+$('explorer').addEventListener('click', e => { if (e.target === $('explorer')) $('explorer').close(); });
+$('exPlay').onclick = () => { ex.playing = !ex.playing; $('exPlay').textContent = ex.playing ? 'Pause' : 'Play'; };
+$('exScrub').oninput = e => { if (!ex.pv) return; ex.playing = false; $('exPlay').textContent = 'Play'; ex.t = ex.pv.t0 + +e.target.value; };
 $('followClose').onclick = () => { state.highlight = null; showJourney(); };
 $('newDance').onclick = () => { state.doc = { title: 'New dance', author: '', meta: {}, metaLines: [['FormationBase', 'Duple Minor - Improper'], ['Progression', 'Single']], parts: [], warnings: [] }; ensureParts(state.doc); state.sel = null; state.t = 0; commit(true); };
 $('undo').onclick = () => undoTo(history.at - 1);
@@ -2085,7 +2296,7 @@ $('prevPass').onclick = () => { const c = state.c, p = passAt(state.t); seek(Mat
 $('nextPass').onclick = () => { const c = state.c, p = passAt(state.t); seek(Math.min(c.passes.length - 1, p + 1) * c.perPass + (state.t - p * c.perPass)); };
 $('trailLen').oninput = e => { const b = +e.target.value; $('trailVal').textContent = b ? `${b} beat${b === 1 ? '' : 's'}` : 'Off'; };
 document.addEventListener('keydown', e => {
-  if (/^(TEXTAREA|INPUT|SELECT)$/.test(e.target.tagName)) return;
+  if (/^(TEXTAREA|INPUT|SELECT)$/.test(e.target.tagName) || $('explorer').open) return;
   const mod = e.ctrlKey || e.metaKey;
   if (mod && e.key.toLowerCase() === 'z') { e.preventDefault(); undoTo(history.at + (e.shiftKey ? 1 : -1)); return; }
   if (mod && e.key.toLowerCase() === 'y') { e.preventDefault(); undoTo(history.at + 1); return; }
@@ -2096,7 +2307,7 @@ document.addEventListener('keydown', e => {
   else if (e.key === 'ArrowLeft') { e.preventDefault(); $('back').click(); }
 });
 canvas.addEventListener('click', e => {
-  const r = canvas.getBoundingClientRect(), v = view(), mx = e.clientX - r.left, my = e.clientY - r.top;
+  const r = canvas.getBoundingClientRect(), v = view(canvas, state.c.bounds), mx = e.clientX - r.left, my = e.clientY - r.top;
   let best = null, bestD = 0.45 * v.s;
   for (const d of state.c.dancers) {
     const p = Contra.poseAt(state.c, d.id, state.t), dd = Math.hypot(v.X(p.x) - mx, v.Y(p.y) - my);

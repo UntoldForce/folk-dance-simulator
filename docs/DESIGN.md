@@ -150,6 +150,7 @@ Crossed arms and body twist need dancers modeled as bodies rather than dots; lef
 - Drag a block to move it within or between parts; drag its right edge to change its length, snapping to 2 beats (Shift for 1 beat).
 - A part that goes over 16 beats keeps its figures and is flagged in red; the dance still runs.
 - The right-hand panel is wider and stays in view while the page scrolls. Its Editor tab holds the move builder and the pool of moves (drag into the part rows under the floor); its Text tab holds the same dance as Caller's Box text. Undo and Redo sit beside the tabs.
+- The move builder shows a live preview: one hands-four dancing just that move on a loop, with the chosen modifiers. Moves that need a starting position get a short set-up first (e.g. a neighbor swing before a chain). **Explore** opens a larger view with play/pause, speed, a beat slider, a plain description, which way it turns, its usual length, and a note when the animation is an approximation.
 - Following a couple is a small card at the top right of the floor: who they're with this time through, who's next, and the whole journey on request.
 - The part that's playing is highlighted as the music goes.
 - **Role names** are a choice: Larks / Robins (default), Gents / Ladies, or Men / Women. The floor, editor, readout and checks use the chosen names, and new figures are written with them; the dance text keeps its original wording otherwise. Choosing a gendered pair shows an info icon whose tooltip encourages gender-free calling.

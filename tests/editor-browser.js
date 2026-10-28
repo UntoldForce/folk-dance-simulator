@@ -56,6 +56,16 @@ const { chromium } = require('playwright');
   await p.click('.chip:has-text("Circle")'); await p.selectOption('#bAmt', '0.75'); await p.selectOption('#bPart', '0'); await p.click('#bAdd');
   check(/A1\n\(8\) Circle left 3\/4/.test(await p.evaluate(() => $('danceText').value)), 'a first move can be added to the new dance');
 
+  // Move explorer: opens from the builder, closes with Escape, and works for every move.
+  await p.click('.chip:has-text("Robins chain")'); await p.waitForTimeout(200);
+  check(await p.locator('#bPrev').isVisible(), 'the builder shows a live preview of the move');
+  await p.click('#bExplore'); await p.waitForTimeout(400);
+  check(await p.evaluate(() => $('explorer').open && /Robins pull by right/.test($('exDesc').textContent)), 'Explore opens the move with its description');
+  await p.keyboard.press('Escape');
+  check(!(await p.evaluate(() => $('explorer').open)), 'Escape closes the explorer');
+  const opened = await p.evaluate(() => POOL.filter(d => { openExplorer(d, { ...d.d }, d.beats || 4); const ok = $('explorer').open; $('explorer').close(); return ok; }).length);
+  check(opened === 55, `every move opens in the explorer (${opened} of 55)`);
+
   check(errs.length === 0, `no page errors ${errs.join(' | ')}`);
   await b.close();
   console.log(failures ? `\n${failures} check(s) failed` : '\nAll checks passed');
