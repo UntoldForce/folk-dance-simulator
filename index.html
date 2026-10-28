@@ -2157,6 +2157,8 @@ const Contra = (() => {
     // Wave figures (checked before trade, pass through and the like).
     // "Swing through" (a wave figure: trade by the right, then the centers by the left) isn't built yet, and isn't a swing.
     if (/swing th(r)?(ough|u)\b/.test(t)) return { fig: null, who };
+    // Box circulate isn't the wave figure "circulate" (and isn't built yet).
+    if (/box circulate/.test(t)) return { fig: null, who };
     if (/pass (through|thru) (in)?to an? (ocean )?wave|pass (through|thru) to (an )?ocean/.test(t)) return { fig: 'passOcean', who: 'all', side: /\bleft\b.*\bcent(er|re)|by (the )?left/.test(t) && !/robins? by (the )?left|larks? by (the )?left/.test(t) ? 'L' : 'R' };
     if (/pass the (ocean|sea)/.test(t)) return { fig: 'passOcean', who: 'all', side: /sea/.test(t) ? 'L' : 'R' };
     if (/trade the wave/.test(t)) return { fig: 'tradeWave', who: 'all' };
@@ -2220,9 +2222,9 @@ const Contra = (() => {
     if (/petronella/.test(t)) return { fig: 'petronella', who: 'all' };
     if (/poussette/.test(t)) return { fig: 'poussette', who: who === 'neighbors' ? 'neighbors' : 'partners', side: rot(), turns: amount(0.5), draw: /draw/.test(t) };
     if ((m = t.match(/circle\s*(left|right)?(.*)/))) return { fig: 'circle', who: 'all', dir: m[1] === 'right' ? 'R' : 'L', turns: parseTurns(m[2], 1) };
-    if (/courtesy turn/.test(t)) return { fig: 'courtesyTurn', who: who || 'partners' };
-    if (/turn as (a )?couples?|wheel around/.test(t)) return { fig: 'turnAsCouple', who: who || 'partners' };
-    if (/butterfly whirl/.test(t)) return { fig: 'butterflyWhirl', who: who || 'partners' };
+    if (/courtesy turn/.test(t)) return { fig: 'courtesyTurn', who };
+    if (/turn as (a )?couples?|wheel around/.test(t)) return { fig: 'turnAsCouple', who };
+    if (/butterfly whirl/.test(t)) return { fig: 'butterflyWhirl', who };
     if (/\bgate\b/.test(t)) return { fig: 'gate', who: who === 'ones' || who === 'twos' || !who ? 'neighbors' : who, side: /clockwise|\bcw\b|\bccw\b/.test(t) ? rot('L') : null,
       turns: amount(null), gaters: /\b(1s|ones) gate/.test(t) ? '1' : '2' };
     if (/dolphin hey/.test(t)) return { fig: 'dolphinHey', who: who === 'twos' ? 'twos' : 'ones', side: /\bleft\b/.test(t) ? 'L' : 'R', turns: /half|1\/2/.test(t) ? 0.5 : 1 };
@@ -2269,12 +2271,20 @@ const Contra = (() => {
     const reads = p => { const f = parseFigure(p); return f.fig ? f : null; };
     // Join back any piece that isn't a figure on its own (or ends a figure in a wave) to the one before it.
     const pieces = [];
+    let unknown = null;
     for (const p of raw) {
       // ("…, go forward and back" says how the figure before is danced: long lines, up a double.)
-      const own = /^(form|make|step to|to|end|ending|facing)\b|^(go )?forward (and|&) back|\bto (start|begin)$/i.test(p) ? null : reads(p) || (whoWord && !WHO.some(([re]) => re.test(p.toLowerCase())) && reads(`${whoWord} ${p}`));
+      // (Words that say how a figure ends or what to look for next aren't figures: "bend into a ring", "face the
+      // next", "look for your partner", "meet new neighbors".)
+      const modifier = /^(form|make|step to|to|end|ending|facing|face|bend|look|find|id|identify|meet|keep|stay|remain|continue|come back)\b|^(go )?forward (and|&) back|\bto (start|begin)$/i.test(p);
+      const own = modifier ? null : reads(p) || (whoWord && !WHO.some(([re]) => re.test(p.toLowerCase())) && reads(`${whoWord} ${p}`));
+      // A part that names something the simulator doesn't know ("balance & box circulate") makes the line unknown,
+      // rather than quietly dancing just the part it does know.
+      if (pieces.length && !own && !modifier && /^[a-z]+(\s+[a-z]+){0,3}$/i.test(p.replace(/\s*[-(].*$/, '')) && !/^(again|back|repeat|twice|once)/i.test(p)) unknown = unknown || p;
       if (pieces.length && !own) pieces[pieces.length - 1].text += (/^(form|make|step|to)\b/i.test(p) ? '; ' : ' & ') + p;
       else pieces.push({ text: p, fig: own });
     }
+    if (unknown && pieces.length === 1 && pieces[0].fig) return [[beats, text, unknown]];
     if (pieces.length < 2 || !pieces[0].fig) return [[beats, text]];
     for (const p of pieces.slice(1)) if (whoWord && !WHO.some(([re]) => re.test(p.text.toLowerCase()))) p.text = `${whoWord} ${p.text}`;
     const usual = p => { const f = parseFigure(p.text), u = TYPICAL_BEATS[f.fig]; return (typeof u === 'function' ? u(f) : u) || 4; };
@@ -2299,8 +2309,9 @@ const Contra = (() => {
         if (!part) { part = { name: 'A1', calls: [] }; dance.parts.push(part); }
         // A line with several figures ("Neighbors balance & swing") stays one figure in the dance, as written;
         // it's danced as its steps (see compile). It's read as its first step, for its name and colour.
-        const text = fig[2].trim(), steps = splitLine(text, Number(fig[1]));
+        const text = fig[2].trim(), steps = splitLine(text, Number(fig[1])), unknownPart = steps.length === 1 && steps[0][2];
         const call = { beats: Number(fig[1]), text, ...parseFigure(steps.length > 1 ? steps[0][1] : text), ...(steps.length > 1 ? { steps: steps.length } : {}) };
+        if (unknownPart) { call.fig = null; call.unknownPart = unknownPart; }
         if (!call.fig) dance.warnings.push({ level: 'bad', call, part: part.name, text: `${part.name}: “${call.text}” isn't a figure the simulator knows yet. Dancers stand still for those ${call.beats} beats.` });
         part.calls.push(call);
         continue;
@@ -2571,7 +2582,7 @@ const Contra = (() => {
   }
 
   // Form this time through's groups from where couples stand. Anyone left over is out (at an end).
-  function formGroups(couples, lines, pose, P, F) {
+  function formGroups(couples, lines, pose, P, F, midway) {
     const groups = [], outs = [], used = new Set(), gap = P.neighborGap;
     const midOf = c => ({ x: (pose[c.lark].x + pose[c.robin].x) / 2, y: (pose[c.lark].y + pose[c.robin].y) / 2 });
     const group = (members, frame, lineK) => {
@@ -2668,12 +2679,15 @@ const Contra = (() => {
         group([c, t], { ox: o.x, oy: o.y, th: angleTo(mt, m) }, c.line);
       }
     } else {
-      const want = F.kind === 'becket' ? 0 : F.twosAt * gap;
       for (const c of couples) {
         if (c.role !== 'ones') continue;
-        const m = midOf(c);
+        const m = midOf(c), cx = lines[c.line].cx;
+        // Partners standing side by side on one side of the set (a Becket, or a contra regrouping partway through,
+        // after a slide along the set) take hands with the twos level with them across the set; partners across the set
+        // (improper and the like), with the twos where the formation puts them (one place below, or above).
+        const sideBySide = F.kind === 'becket' || (midway && Math.abs(m.x - cx) > 0.25), want = sideBySide ? 0 : F.twosAt * gap;
         const t = couples.find(q => q.role === 'twos' && lineOf(q) === lineOf(c) && !used.has(q) && Math.abs(midOf(q).y - m.y - want) < 0.3 * gap
-          && (F.kind !== 'becket' || Math.sign(midOf(q).x - lines[c.line].cx) !== Math.sign(m.x - lines[c.line].cx)));
+          && (!sideBySide || Math.sign(midOf(q).x - cx) === -Math.sign(m.x - cx)));
         if (t) group([c, t], null, lineOf(c));
       }
     }
@@ -2822,6 +2836,9 @@ const Contra = (() => {
       // progression); otherwise across, to whoever is facing you.
       if (who === 'facing') { const prev = flatPrev(); who = prev && ['circle', 'star', 'balanceRing', 'petronella'].includes(prev.fig) ? 'along' : 'across'; }
       if (crew && fig && fig.group === 'pair' && (!who || who === crew)) who = 'partners';
+      // Turning as a couple and the like, unnamed, is danced with the one beside you ("down the hall and turn as a
+      // couple": the two walking side by side).
+      if (fig && fig.group === 'pair' && (!who || who === 'all') && ['turnAsCouple', 'courtesyTurn', 'butterflyWhirl', 'californiaTwirl', 'rollAway', 'halfSashay'].includes(call.fig)) who = 'beside you';
       if (fig && fig.group === 'pair' && (!who || who === 'all')) {
         who = 'partners';
         warnings.push({ level: 'warn', text: `${part.name}: “${call.text}” doesn't say who dances it; assuming partners.` });
@@ -2838,8 +2855,12 @@ const Contra = (() => {
     const PROGRESS_AFTER = /\bto (the |your )?(next|new)\b|⁋|\balong (the )?(set|line)\b|\bprogress/i, NEXT_NEIGHBORS = /\b(next|new)\s+neighbou?rs?\b/i;
     const regroupAfter = new Set();
     if (F.kind === 'longways' || F.kind === 'becket') {
-      // (A mark in A1 means the new neighbors meet at the start of the time through: nothing to do.)
-      const k = flat.findIndex((q, i) => i < flat.length - 1 && q.part !== dance.parts[0] && (PROGRESS_AFTER.test(q.call.text) || NEXT_NEIGHBORS.test(flat[i + 1].call.text)));
+      // In A1 a mark on a figure that stays put ("long lines forward & back ⁋"), or a figure danced with the "new
+      // neighbors", means they met at the start of the time through; only a move along the set (a slide, a slice, a
+      // pass through) moves them on there.
+      const along = q => ['shift', 'slice', 'passThrough'].includes(q.call.fig);
+      const k = flat.findIndex((q, i) => i < flat.length - 1 && ((PROGRESS_AFTER.test(q.call.text) && (q.part !== dance.parts[0] || along(q)))
+        || (NEXT_NEIGHBORS.test(flat[i + 1].call.text) && !NEXT_NEIGHBORS.test(q.call.text) && flat[i + 1].part !== dance.parts[0])));
       if (k >= 0) regroupAfter.add(k);
     }
     const crossBeats = Math.min(8, perPass);
@@ -2853,8 +2874,8 @@ const Contra = (() => {
     // - triple minor: a couple reaching the bottom as ones comes back in as a two after one wait; a couple
     //   reaching the top waits out twice and comes back in as ones.
     // - four facing four: a line at the end turns around (each couple turning as a couple) and comes back in.
-    const startPass = (from, t0) => {
-      const { groups, outs } = formGroups(couples, lines, from, P, F);
+    const startPass = (from, t0, midway) => {
+      const { groups, outs } = formGroups(couples, lines, from, P, F, midway);
       const cross = {}, inFn = {};
       for (const g of groups) for (const id of Object.values(g.ids)) {
         if (g.faceIn) inFn[id] = () => g.faceIn[id];
@@ -2969,6 +2990,13 @@ const Contra = (() => {
         const groupWho = fig.group === 'four' ? (size > 4 && !fig.any ? 'four' : 'all') : who === 'neighbors' && PROPER ? 'beside' : who;
         // Each entry: who dances together, the frame it's planned in, and the keys naming them.
         let plans = whoSets(groupWho, g.ids).map(ids => ({ ids, frame: g.frame, idmap: g.ids }));
+        // The one beside you: each lark with the nearest robin, closest pairs first.
+        if (who === 'beside you' && fig.group === 'pair') {
+          const left = new Set(Object.values(g.ids)), pairs = [], isLark = id => id.endsWith('L');
+          const all = [...left].filter(isLark).flatMap(a => [...left].filter(b => !isLark(b)).map(b => [a, b, dist(from[a], from[b])])).sort((x, y) => x[2] - y[2]);
+          for (const [a, b] of all) if (left.has(a) && left.has(b)) { pairs.push([a, b]); left.delete(a); left.delete(b); }
+          plans = pairs.map(ids => ({ ids, frame: g.frame, idmap: g.ids }));
+        }
         // Along the set (the closest on your own side) or across it (the closest on the other side), from where
         // everyone stands, closest pairs first.
         if ((who === 'along' || who === 'across') && fig.group === 'pair' && !g.center && !g.longSet) {
@@ -3124,7 +3152,7 @@ const Contra = (() => {
           if (!last && regroupAfter.has(k)) {
             if (regroupWant) passInfo[p - 1].check = checkPass(regroupWant, ends);
             endOfWait(pass);
-            nextPass = startPass(ends, pass.t0);
+            nextPass = startPass(ends, pass.t0, true);
             regroupWant = expectAfter(nextPass, ends);
           }
           if (last) {
@@ -3171,6 +3199,8 @@ const Contra = (() => {
     }
     // The last time through of a dance that progresses partway through has no next changeover to check it at.
     for (const pi of passInfo) if (!pi.check) { const n = Object.keys(pi.want).length; pi.check = { good: n, total: n, off: [], unchecked: true }; }
+    // A time through in which no hands-fours form at all (everyone waiting out) has lost the dance, whatever else says.
+    if (F.kind !== 'square' && F.kind !== 'set' && couples.length >= 4) for (const pi of passInfo) if (!pi.groups.length) pi.check = { ...pi.check, good: 0, off: Object.keys(pi.want) };
     if (perPass !== 64) warnings.push({ level: 'warn', text: `The dance is ${perPass} beats long; a contra is usually 64.` });
     joinHolds(calls);
     warnings.push(...handChecks(calls.filter(k => k.pass === 0), (id, t) => { const i = calls.findIndex(k => k.t1 >= t), sg = segs[id][Math.max(0, i)]; return sg.f(clamp01((t - sg.t0) / (sg.t1 - sg.t0))); }));
