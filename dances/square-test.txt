@@ -1,0 +1,23 @@
+Simple Square (test dance)
+by the simulator
+
+Permission: test dance written for the simulator
+
+FormationBase:	Square
+Progression:	Single
+Figures:
+A1
+(8) Heads forward and back
+(8) Sides forward and back
+
+A2
+(8) Heads ladies chain
+(8) Heads ladies chain
+
+B1
+(8) Sides right and left through
+(8) Sides right and left through
+
+B2
+(8) Grand right and left
+(8) Promenade home

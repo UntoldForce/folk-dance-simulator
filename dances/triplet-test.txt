@@ -1,0 +1,24 @@
+Triplet (test dance)
+by the simulator
+
+Permission: test dance written for the simulator
+
+FormationBase:	Triplet - Proper
+Progression:	Single
+Figures:
+A1
+(8) In long lines, go forward and back
+(4) 1s cast off
+(4) 1s cast off with the 3s
+
+A2
+(8) 2s and 3s circle left
+(8) 2s and 3s circle right
+
+B1
+(8) 2s and 3s first corners do-si-do
+(8) 3s and 1s right and left through
+
+B2
+(8) 3s and 1s right and left through
+(8) Turn single right

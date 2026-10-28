@@ -12,7 +12,30 @@ approximations Ryan should check by eye: hey for four (start positions other tha
 chain, right and left through, flutterwheel, star promenade and weathervane, give and take, figure eight, slice,
 shift, veer, lead down, down and up the hall, cast off, petronella, poussette, California twirl, star through,
 roll away, balance the wave (forward and back only), cross (treated as a pass through), turn as a couple and
-butterfly whirl (half a turn as a couple). Not animated: hey for three, contra corners, Dixie twirl.
+butterfly whirl (half a turn as a couple), and the square figures (promenade, grand right and left, forward and back,
+pass through to the next square) and the English figures (siding, sharp siding, up a double, fall back, honour,
+hole in the wall cross, hand turn, Bentley allemande, half draw poussette, hey for three). Every move in the pool is now animated. The full review against The Caller's Box glossary and the English
+tutorial is in [REVIEW.md](REVIEW.md). Built from or checked against the tutorial's animated GIFs (Ryan supplied them; identified by matching
+each GIF's size to the tutorial page's image list): dolphin hey, double figure eight, half draw poussette, half open
+ladies chain, chevron, mad robin, cast down and long cast, cast across, crossover mirror hey, hey for three on the side,
+Bentley allemande, hole in the wall cross (first corners), siding (meeting level, shoulder to shoulder), the English
+gate (neighbours on each side, a full circle, mirror images, the gated couple walking forward) and the hey for four
+across starting in the middle (the ends loop out while the middle pair pass first), sharp siding (two narrow lanes),
+turn single (a small circle off to one side; cloverleaf: everyone turns away from the middle), and up a double
+(hands across the set, then acknowledging partners).
+
+The tutorial's animations appear to be drawn mirror-image (its "turn single left" turns clockwise in the GIF), so
+directions follow the tutorial's text and shapes follow the animations.
+
+**Neighbour in a proper set** (Ryan's call): English dances are almost always proper, and there your neighbour is the
+dancer beside you on your side (the same role). In improper and other formations it stays the contra meaning, the
+opposite role in the other couple.
+
+English figures follow [English Country Dance Basics, a Tutorial](https://upadouble.info/ecdTutorial.php) by
+George W. Williams V (CC BY 4.0). Some English names are read as the matching contra figure: back to back is a
+do-si-do, arming is an arm turn, rights and lefts (a circular hey for four) is a square through by changes, foot it is
+a set, and kiss or salute is an honour. "Allemande" alone keeps its contra meaning; the English one is the Bentley
+allemande. 
 
 Typical beats come from the [ContraLab](https://contralab.org/) Contra Timing Chart where it lists the figure
 (Ryan supplied the chart). Pull by isn't in the chart; per Contrafusion it typically takes 4 beats, or 2 when done rapidly as a single change. The simulator notes any figure given fewer beats than the chart, and any 8- or 16-beat
@@ -96,4 +119,37 @@ placed in a dance; dancers stand still during them and the checks show a caution
 | [Star promenade](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#star-promenade) / [butterfly whirl](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#butterfly-whirl) | Two couples | 4 + 4 | Centers hold hands in the middle, arms around partners, all rotate; then couples spin as a unit | Usually across the set | built |
 | [Line of four down / up the hall](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#line-of-four-go-down-up-the-hall) | Hands-four in a line | 8 + 8 | Walk down the hall in a line, turn (alone or as couples), come back | Back in the set | built |
 | [Turn alone](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#turn-alone) | Individuals | 1–2 | Face the other way; direction depends on the figures around it | Same place, turned 180° | built |
-| [Contra corners](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#contra-corners) | Ones (actives) | 16 | Allemandes: across right ⅝, first corner left 1, across right ¾, second corner left 1 | Unusual position; usually into a center swing | planned |
+| [Contra corners](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#contra-corners) | Ones (actives) | 16 | Allemandes: across right ⅝, first corner left 1, across right ¾, second corner left 1. First corner = across and one place to your right (facing across) | Unusual position; usually into a center swing | built (needs both corners in the group: triple minor or three-couple set) |
+| [Promenade](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#promenade) | Couples in a square | 8 from across the square | Side by side, lark on the inside, walk counter-clockwise around the square; wheel a quarter turn into it and back out to face in | Home (the lark's place) or by the amount | built |
+| [Grand right and left](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#grand-right-and-left) | Everyone in a square | 8 half, 16 all the way | Pull by partner right, next left, and so on; larks counter-clockwise, robins clockwise, weaving inside and outside | Half: meet partner on the far side; all the way: home | built |
+| Forward and back | Heads, sides or everyone | 8 | Four steps into the middle and four back | Where they started | built |
+| Pass through to the next square | Heads or sides in a grid square | 8 | Walk forward through the middle, passing right shoulders, into the same place in the next square | Next square, or (no square beyond) the opposite place after a courtesy turn | built |
+| Siding (English) | Pair | 8 | Walk toward each other and a little to your left so right shoulders come side by side (left siding: mirror), then fall back, facing each other | Home | built |
+| Sharp siding (English) | Pair | 8 | Cross to each other's places passing left shoulders while turning to keep facing, then back along the same track | Home | built |
+| Up a double and back (English) | Everyone | 8 | Face up the hall (or down), four steps forward, four back | Home | built |
+| Fall back (English) | Everyone | 4 | Facing the middle, walk backward away from it | Further out | built |
+| Honour (English) | Pair | 2 | Bow or curtsey to each other (a small dip toward them) | Home | built |
+| Hole in the wall cross (English) | Pair, usually corners | 4 | Approach, sidle around each other face to face (right shoulders), back away | Traded | built |
+| Hand turn (English) | Pair | 4 half, 8 full | A one-hand turn at arm's length (finger clasp) | By the amount | built |
+| Bentley allemande (English) | Lark and robin | 8 | The robin steps forward and turns in place with the named hand raised; the lark walks once around her by that shoulder | Home | built |
+| Half draw poussette (English) | Two couples | 8 | A half poussette in which each couple also turns half round, so they end on each other's side | Progressed, sides traded | built |
+| Hey for three | Three on each side (a hands-six or a three-couple set) | 8 (English), 12–16 (contra) | Figure eight along each side, top dancer starting toward the middle; half swaps the ends | Home (full), ends swapped (half) | built |
+| Double figure eight (English) | Both couples | 16 | Everyone on the figure-eight track around both couples, out of step: by default the twos cross up through the middle while the ones cast down around the outside (the same track backwards); "1s cross" swaps them | Home | built |
+| Half open ladies chain (English) | Robins, with the larks | 8 | Robins pull by right in the middle and go on to the far lark's place; each lark loops along his side (outside first), and halfway round takes the arriving robin's left hand to turn her half | Larks home; robins diagonally across | built |
+| Chevron (English) | Two couples, proper | 8 | One pair of corners (first by default) cross diagonally by the named shoulder; the other pair cast round the outside of their own side into the crossers' places while the crossers back straight across into theirs | Progressed, still proper | built |
+| Dolphin hey (English) | Active couple as one unit, with the other couple | 16 | A hey for three across the set; the active pair travel together, robin leading toward the robins' side and lark leading back, turning around at each end so the lead changes; the other couple weave at the ends | Ends home (full) or traded (half); the pair in the middle of the line | built |
+| Cast across (English) | Leaders (robins by default) | 8 | Holding inside hands, lead across between the two opposite, part, and cast back round the outside of them | Home | built |
+| Long cast (English) | Active couple | 8 | Come into the middle to touch hands, then turn out and cast down one place; in a proper set the others lead up through the middle holding hands (also in a short cast) | One place down | built |
+| Hey for three on the side (English) | One crosser (first lark by default) and the two opposite | 8 | The crosser goes between the two on the other side, passing the lower one by the right, and the three weave a figure eight along that side; the crosser loops back home | Home | built |
+| Crossover mirror hey (English) | Three-couple set | 16 | The first couple cross over, then each side heys for three, the two heys mirror images | First couple crossed; others home | built |
+| [Dixie twirl](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#dixie-twirl) | Line of four | 4 | As couples, a California twirl: the centers arch, the right-hand couple goes under, the left-hand couple walks forward round them | Line reversed, facing the other way | built |
+| [Promenade across the set](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#promenade-across-the-set) | Couples | 8 | Side by side in promenade hold, straight across the set, then courtesy turn | Across from where they started, facing in | built |
+| Form a wave of four / long waves | Hands-four | 4 (or the end of any figure: "...; form wave of four (NR,WL)") | Short wave: a line across the set, alternate dancers facing up and down, hands joined; (NR,WL) = ends hold right hands with neighbors, robins left hands in the center; (NR, PL) = an alternating wave, lark, robin, lark, robin, neighbours on the ends and partners in the center. Long waves: each side alternately facing in and out, e.g. (NR, women face in) | In the wave | built |
+| Pass the ocean / pass the sea | Couples on the sides | 4 | Pass through across; the right-hand dancers (left for the sea) hook in the middle as centers, the others go on across and take hands with the one they stood beside | Right-handed (left-handed) wave of four | built |
+| Balance the wave | A wave | 4 | Hands joined in the wave, balance forward and back | Same wave | built |
+| Trade the wave | Wave of four | 6 | Those facing the same way trade, curving round toward each other, passing right shoulders | Ends and centers swapped, facing the other way, other hand | built |
+| Slide right / left | A wave | 4 | Let go, sidestep to your right (left) in front of the dancer there into their place | Same facing | built |
+| Spin the top | Wave of four | 8 | Ends and adjacent centers turn ½; new centers turn ¾ while the ends walk a quarter round | Wave turned a quarter | built |
+| Circulate | Long waves | 4 | Facing in: walk across. Facing out: loop into the place beside you | Long waves again | built |
+| Walk and dodge | Long waves | 4 | Facing in: walk across. Facing out: sidestep into the place beside you | All facing out | built |
+| Scoot back | Long waves | 6–8 | Facing out: loop into the place beside you. Facing in: walk to the middle, allemande right ½, walk on out to the far side | Long waves again | built |

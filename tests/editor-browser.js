@@ -56,6 +56,50 @@ const { chromium } = require('playwright');
   await p.click('.chip:has-text("Circle")'); await p.selectOption('#bAmt', '0.75'); await p.selectOption('#bPart', '0'); await p.click('#bAdd');
   check(/A1\n\(8\) Circle left 3\/4/.test(await p.evaluate(() => $('danceText').value)), 'a first move can be added to the new dance');
 
+  // Move explorer: opens from the builder, closes with Escape, and works for every move.
+  await p.click('.chip:has-text("Robins chain")'); await p.waitForTimeout(200);
+  check(await p.locator('#bPrev').isVisible(), 'the builder shows a live preview of the move');
+  await p.click('#bExplore'); await p.waitForTimeout(400);
+  check(await p.evaluate(() => $('explorer').open && /Robins pull by right/.test($('exDesc').textContent)), 'Explore opens the move with its description');
+  await p.keyboard.press('Escape');
+  check(!(await p.evaluate(() => $('explorer').open)), 'Escape closes the explorer');
+  const opened = await p.evaluate(() => POOL.filter(d => { openExplorer(d, { ...d.d }, d.beats || 4); const ok = $('explorer').open; $('explorer').close(); return ok; }).length);
+  const total = await p.evaluate(() => POOL.length);
+  check(opened === total, `every move opens in the explorer (${opened} of ${total})`);
+
+  // Collisions: every move in the list, with each choice of who and side, as its preview plays it and again on a
+  // fuller floor (three hands-fours, so neighbouring groups can get in each other's way). Nobody should pass
+  // closer than 0.38 m (where the dots would overlap).
+  const bumps = await p.evaluate(() => {
+    const out = [], close = (c, t0, t1) => { let m = Infinity, who = '';
+      for (let t = t0; t <= t1 + 1e-9; t += 0.05) { const ps = c.dancers.map(d => Contra.poseAt(c, d.id, t));
+        for (let i = 0; i < ps.length; i++) for (let j = i + 1; j < ps.length; j++) { const d = Math.hypot(ps[i].x - ps[j].x, ps[i].y - ps[j].y); if (d < m) { m = d; who = `${c.dancers[i].role} ${c.dancers[i].num}, ${c.dancers[j].role} ${c.dancers[j].num} at beat ${(t - t0).toFixed(1)}`; } } }
+      return { m, who }; };
+    let n = 0;
+    for (const def of POOL.filter(d => d.fig)) {
+      const variants = [{ ...def.d }];
+      for (const w of def.who || []) if (w !== def.d.who) variants.push({ ...def.d, who: w });
+      if (def.side && def.d.side) variants.push({ ...def.d, side: def.d.side === 'L' ? 'R' : 'L' });
+      for (const m of variants) for (const sets of [1, 3]) {
+        const { text } = previewText(def, m, def.beats || 4), c = Contra.compile(Contra.parseDance(text), { lines: 1, sets: def.square === 'Grid Square' ? 2 : sets, passes: 1, loop: false });
+        const k = c.calls[c.calls.length - 1], r = close(c, k.t0, k.t1); n++;
+        if (r.m < 0.38) out.push(`${text.split('\n').pop()} [${sets} hands-four${sets > 1 ? 's' : ''}]: ${r.m.toFixed(2)} m (${r.who})`);
+      }
+    }
+    return { out, n };
+  });
+  check(bumps.out.length === 0, `no move has dancers bumping into each other (${bumps.n} versions checked)${bumps.out.length ? '\n      ' + bumps.out.join('\n      ') : ''}`);
+
+  // Settings: music starts off; hands toggle; references open in a pop-up.
+  check(await p.evaluate(() => !$('music').checked && !$('melody').checked), 'music and melody start off');
+  await p.click('#hands'); await p.waitForTimeout(100); await p.click('#hands'); await p.waitForTimeout(100);
+  check(await p.evaluate(() => $('hands').checked), 'the hands switch turns off and back on');
+  check(!(await p.locator('#refsDialog').isVisible()), 'references are hidden until asked for');
+  await p.click('#refsOpen'); await p.waitForTimeout(150);
+  check(await p.locator('#refsDialog').isVisible() && (await p.locator('#refsDialog a').count()) >= 6, 'the References button opens the list of sources');
+  await p.click('#refsClose');
+  check(!(await p.locator('#refsDialog').isVisible()), 'and it closes again');
+
   check(errs.length === 0, `no page errors ${errs.join(' | ')}`);
   await b.close();
   console.log(failures ? `\n${failures} check(s) failed` : '\nAll checks passed');

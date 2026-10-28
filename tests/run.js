@@ -106,6 +106,7 @@ check(made.every(k => { const r = Contra.parseDance('A1\n(8) ' + Contra.callText
   check(m.passes[0].outs.length === 0 && m.passes[1].outs.map(o => o.couple + ' ' + o.end).join() === '0.2 top,0.5 bottom',
     `time 2: couple 2 out at the top, couple 5 out at the bottom (${m.passes[1].outs.map(o => o.couple + ' ' + o.end).join()})`);
   check(m.passes[2].outs.length === 0 && m.passes[2].groups.length === 3, 'time 3: everyone back in, three hands-fours');
+  check(m.passes.every((p, i) => p.groups.length === (i % 2 ? 2 : 3)), `hands-fours keep forming every time through (${m.passes.map(p => p.groups.length).join(', ')})`);
   const mt = (id, t) => Contra.poseAt(m, id, t);
   check(mt('0.2L', 64 + 8).x > 0.5 && mt('0.2R', 64 + 8).x < -0.5, 'couple 2 crosses over in the first 8 beats of waiting at the top');
   const facesInAt = (id, t) => { const p = mt(id, t); return Math.cos(p.a) * Math.sign(-p.x) > 0.95; };
@@ -135,6 +136,186 @@ check(made.every(k => { const r = Contra.parseDance('A1\n(8) ' + Contra.callText
   check(at4(32, { '0.1L': [-0.6, 0.5], '0.1R': [-0.6, -0.5], '0.2L': [0.6, -0.5], '0.2R': [0.6, 0.5] }), 'half hey: everyone ends diagonally across from where they started');
   const robinsMeet = Math.hypot(q('0.1R', 26).x - q('0.2R', 26).x, q('0.1R', 26).y - q('0.2R', 26).y);
   check(robinsMeet < 1.0, `half hey: the robins pass close in the middle first (${robinsMeet.toFixed(2)} m apart at beat 3 of the hey)`);
+}
+
+// ---------- Formations ----------
+{
+  const side = (c, id) => Math.sign(c.start[id].x);
+  const lay = name => Contra.compile(Contra.parseDance(`FormationBase: ${name}\nA1\n(8) In long lines, go forward and back`), { lines: 1, sets: 2, passes: 1 });
+  const expect = {
+    'Duple Minor - Improper': [1, -1, -1, 1], 'Duple Minor - Proper': [-1, 1, -1, 1], 'Duple Minor - Indecent': [-1, 1, 1, -1],
+    'Duple Minor - All Improper': [1, -1, 1, -1], 'Duple Minor - Progressed Improper': [1, -1, -1, 1], 'Duple Minor - Reverse Progression Improper': [-1, 1, 1, -1],
+  };
+  for (const [name, [l1, r1, l2, r2]] of Object.entries(expect)) {
+    const c = lay(name);
+    const ok = side(c, '0.1L') === l1 && side(c, '0.1R') === r1 && side(c, '0.2L') === l2 && side(c, '0.2R') === r2 && c.passes[0].groups.length === 2 && !c.warnings.some(w => /isn't supported/.test(w.text));
+    check(ok, `${name}: couples start on the right sides and form two hands-fours`);
+  }
+  const pi = lay('Duple Minor - Progressed Improper');
+  check(pi.start['0.1L'].y < pi.start['0.2L'].y, 'progressed improper: the ones start below the twos');
+  for (const [name, onesSide] of [['Duple Minor - Becket CW', 1], ['Duple Minor - Becket CCW', -1]]) {
+    const c = lay(name), same = id => side(c, id + 'L') === side(c, id + 'R');
+    check(same('0.1') && same('0.2') && side(c, '0.1L') === onesSide && side(c, '0.2L') === -onesSide && c.passes[0].groups.length === 2,
+      `${name}: partners side by side, ones on the ${onesSide > 0 ? '+x' : '-x'} side, two hands-fours`);
+  }
+  // A Becket dance that progresses by slicing: every time through, couples face a new couple across;
+  // couples out at the ends cross the set together and come back in.
+  const b = Contra.compile(Contra.parseDance('FormationBase: Duple Minor - Becket CW\nA1\n(8) Slice left'), { lines: 1, sets: 3, passes: 8 });
+  check(b.progression.firstBad === -1, `Becket slice left progresses every time through (${b.passes.map(p => p.check.good + '/' + p.check.total).join(', ')})`);
+  check(b.passes[1].outs.length === 2, 'Becket: the second time through, a couple waits out at each end');
+  check(b.passes.every((p, i) => p.groups.length === (i % 2 ? 2 : 3)), `Becket: couples come back in, so hands-fours keep forming (${b.passes.map(p => p.groups.length).join(', ')})`);
+  const pr = Contra.compile(Contra.parseDance('FormationBase: Duple Minor - Proper\nA1\n(8) In long lines, go forward and back'), { lines: 1, sets: 2, passes: 1 });
+  check(pr.warnings.every(w => !/isn't supported/.test(w.text)), 'proper is a supported formation');
+  const odd = Contra.parseDance('FormationBase: Zia\nA1\n(8) In long lines, go forward and back');
+  check(odd.warnings.some(w => /isn't supported yet/.test(w.text)), 'a zia is flagged as not supported yet');
+}
+
+// Triple minor, four facing four and Sicilian circle: groups keep forming and everyone progresses.
+{
+  const run = (f, body, sets, passes) => Contra.compile(Contra.parseDance(`FormationBase: ${f}\nA1\n${body}`), { lines: 1, sets, passes });
+  for (const f of ['Triple Minor - Proper', 'Triple Minor - Ones Improper']) {
+    const c = run(f, '(8) In long lines, go forward and back\n(4) Ones cast off', 3, 12);
+    check(c.progression.firstBad === -1 && c.passes.every((p, i) => p.groups.length === [3, 3, 2][i % 3]), `${f}: progresses 12 times through, groups ${c.passes.map(p => p.groups.length).join(',')}`);
+    check(c.passes[1].outs.some(o => o.couple === '0.2' && o.end === 'top') && c.passes[2].outs.some(o => o.couple === '0.2'), `${f}: a couple reaching the top waits out twice`);
+    check(c.passes[2].outs.some(o => o.couple === '0.7' && o.end === 'bottom') && !c.passes[3].outs.some(o => o.couple === '0.7'), `${f}: ones reaching the bottom wait once`);
+  }
+  const f4 = run('Four Facing Four', '(8) Neighbor pass through', 2, 9);
+  check(f4.progression.firstBad === -1 && f4.passes.every((p, i) => p.groups.length === (i % 2 ? 2 : 4)), `four facing four: lines pass through to new lines, ends turn around (${f4.passes.map(p => p.groups.length).join(',')})`);
+  const si = run('Sicilian Circle', '(8) Neighbor pass through', 4, 9);
+  check(si.progression.firstBad === -1 && si.passes.every(p => p.groups.length === 4 && p.outs.length === 0), 'Sicilian circle: couples progress around the circle with no ends');
+  for (const f of ['Duple Minor - Progressed Improper', 'Duple Minor - Reverse Progression Improper']) {
+    const c = run(f, '(4) Ones cast off', 3, 10);
+    check(c.passes.every((p, i) => p.groups.length === (i % 2 ? 2 : 3)), `${f}: couples at the ends wait one time and come back in (${c.passes.map(p => p.groups.length).join(',')})`);
+  }
+}
+
+// Squares and grid squares.
+{
+  check(['Square', 'Grid Square', 'Double Square', 'Hexagon'].map(f => Contra.parseDance(`FormationBase: ${f}\nA1\n(8) Circle left`).formation).join() === 'square,gridSquare,improper,improper',
+    'square and grid square read; double squares and hexagons flagged as not supported yet');
+  const sq = Contra.parseDance(fs.readFileSync(path.join(__dirname, '..', 'dances', 'square-test.txt'), 'utf8'));
+  check(sq.parts.flatMap(p => p.calls).every(k => k.fig), 'square test dance: every figure recognised');
+  const c = Contra.compile(sq, { lines: 1, sets: 1, passes: 3 });
+  const home = c.dancers.every(d => Math.hypot(c.final[d.id].x - c.start[d.id].x, c.final[d.id].y - c.start[d.id].y) < 0.05);
+  check(c.warnings.length === 0 && c.progression.firstBad === -1 && home, 'square: forward and back, chains, right and left throughs, grand right and left and promenade home bring everyone home');
+  check(c.passes.every(p => p.groups.length === 1 && p.groups[0].members.length === 4 && p.outs.length === 0), 'square: one square of four couples, nobody out');
+  const swap = Contra.compile(Contra.parseDance('FormationBase: Square\nA1\n(8) Corner swing\n(8) Promenade 1/2'), { lines: 1, sets: 1, passes: 1 });
+  const near = (a, b) => Math.hypot(swap.final[a].x - swap.final[b].x, swap.final[a].y - swap.final[b].y) < 1.1;
+  check(near('0.1L', '0.4R') && near('0.3L', '0.2R') && swap.progression.firstBad === -1, 'square: after a corner swing, each lark promenades with his corner');
+  const grid = Contra.compile(Contra.parseDance(fs.readFileSync(path.join(__dirname, '..', 'dances', 'grid-square-test.txt'), 'utf8')), { lines: 2, sets: 2, passes: 6 });
+  const visits = Contra.meetings(grid, '0.1').map(m => m.square);
+  check(grid.warnings.length === 0 && grid.progression.firstBad === -1 && grid.passes.every(p => p.groups.length === 4), `grid square: couples pass to the next square and every square keeps dancing (couple 0.1 in squares ${visits.join(',')})`);
+  check(new Set(visits).size > 1, 'grid square: a couple travels to other squares');
+}
+
+// Other formations: fixed sets, circle mixers, tempest, grid contras.
+{
+  const read = f => Contra.parseDance(`FormationBase: ${f}\nA1\n(8) Circle left`).formation;
+  check(['Triplet - Proper', 'Triplet - Improper', 'Two couple longways set', 'Quadruplet', '5 couple longways set', 'Circle Mixer', 'Tempest', 'Grid Contra - Improper', 'Hexagon'].map(read).join()
+    === 'set3Proper,set3Improper,set2Improper,set4Proper,set5Proper,circleMixer,tempest,gridContra,improper', 'formations read: sets of 2-6 couples, circle mixer, tempest, grid contra; hexagon flagged');
+  const file = f => Contra.parseDance(fs.readFileSync(path.join(__dirname, '..', 'dances', f), 'utf8'));
+  const tri = Contra.compile(file('triplet-test.txt'), { lines: 1, sets: 1, passes: 6 });
+  const tops = tri.passes.map(p => p.groups[0].members[0]);
+  check(tri.warnings.length === 0 && tri.progression.firstBad === -1 && tops.join() === '0.1,0.2,0.3,0.1,0.2,0.3',
+    `triplet: everyone ends in a place every time, and each couple takes a turn at the top (${tops.join(', ')})`);
+  const mix = Contra.compile(file('circle-mixer-test.txt'), { lines: 1, sets: 3, passes: 4 });
+  const robinNear = c => c.dancers.filter(d => d.role === 'robin').sort((a, b) => Math.hypot(c.final[a.id].x - c.final['0.1L'].x, c.final[a.id].y - c.final['0.1L'].y) - Math.hypot(c.final[b.id].x - c.final['0.1L'].x, c.final[b.id].y - c.final['0.1L'].y))[0].id;
+  check(mix.warnings.length === 0 && mix.progression.firstBad === -1 && mix.couples.length === 10 && robinNear(mix) !== '0.1R',
+    `circle mixer: 10 couples, everyone ends in a place, and lark 1 has a new partner (${robinNear(mix)})`);
+  const tp = Contra.compile(file('tempest-test.txt'), { lines: 1, sets: 2, passes: 1 });
+  check(tp.passes[0].groups.length === 4 && tp.passes[0].outs.length === 0 && tp.dancers.length === 16, 'tempest: two minor sets of four couples, each ones couple with its side couple');
+  const g111 = Contra.compile(Contra.parseDance(text.replace('Duple Minor - Improper', 'Grid Contra - Improper')), { lines: 3, sets: 3, passes: 4 });
+  check(g111.progression.firstBad === -1 && Math.abs(g111.bounds.maxX - g111.bounds.minX - 6) < 0.01, 'grid contra: "111" progresses in three lines packed side by side');
+  const ecd = Contra.parseDance('A1\n(8) Partner side right\n(8) Sharp siding\n(8) Up a double and back\n(4) 1st corners hole in the wall cross\n(8) Partner Bentley allemande right\n(8) Hey for three\n(8) Rights and lefts\n(8) 2s and 3s first corners do-si-do');
+  check(ecd.parts[0].calls.map(k => k.fig).join() === 'siding,sharpSiding,upDouble,holeInWall,bentleyAllemande,heyThree,squareThrough,dosido'
+    && ecd.parts[0].calls[7].turns === 1 && ecd.parts[0].calls[7].who === 'firstCorners', 'English figures read (and couple numbers are not read as amounts)');
+}
+
+// Hands.
+{
+  const c = Contra.compile(dance, { lines: 1, sets: 2, passes: 1 });
+  const H = Contra.handsAt(c, 12), r1 = H['0.1R'].L, r2 = H['0.2R'].L;
+  check(r1.held && r2.held && Math.hypot(r1.x - r2.x, r1.y - r2.y) < 0.05 && !H['0.1L'].L.held, 'hands: robins join left hands in their allemande; larks\' hands are free');
+  const ring = Contra.handsAt(c, 52);
+  check(c.dancers.every(d => ring[d.id].L.held && ring[d.id].R.held), 'hands: everyone holds both hands in the circle');
+  check(!c.warnings.some(w => w.hands), '"111" has no hand problems');
+  const far = Contra.compile(Contra.parseDance('FormationBase: Triplet - Proper\nA1\n(4) 1s and 3s first corners balance (RH)'), { lines: 1, sets: 1, passes: 1 });
+  check(far.warnings.some(w => w.hands && /stretch/.test(w.text)), 'hands: a hand balance between couples two places apart is flagged as out of reach');
+  // A balance by the right into a pull by right: the same hands stay joined across the change of figure.
+  const kept = [19.9, 20, 20.1, 20.4].every(t => Contra.handsAt(c, t)['0.1L'].R.held);
+  check(kept, 'hands: partners keep right hands joined from the balance into the pull by');
+  const sw = Contra.handsAt(c, 40)['0.1L'];
+  check(sw.L.held && sw.R.held && sw.R.touch, 'hands: in a swing the lark holds her right hand with his left, his right hand at her back');
+  const quick = Contra.compile(Contra.parseDance('A1\n(4) Neighbor balance (RH)\n(4) Partner pull by right'), { lines: 1, sets: 1, passes: 1 });
+  check(quick.warnings.some(w => w.hands && /almost at once/.test(w.text)), 'hands: letting go of a neighbor\'s hand and taking a partner\'s at once is noted');
+  const holdsOf = text => Contra.compile(Contra.parseDance(`A1\n(8) Neighbor swing\n(8) ${text}`), { lines: 1, sets: 1, passes: 1 }).calls[1].holds.length;
+  check(['Square through 2', 'Flutterwheel', 'Robins give and take'].every(f => holdsOf(f) > 0), 'hands: square through, flutterwheel and give and take take hands');
+}
+
+// More formations from the glossary: six facing six, singlet, whole-set longways dances; the new contra moves.
+{
+  const read = f => Contra.parseDance(`FormationBase: ${f}\nA1\n(8) Circle left`).formation;
+  check(['Six Facing Six', 'Singlet', 'Longways set', 'Three facing three', 'Zia'].map(read).join() === 'sixFacingSix,singlet,set6Proper,improper,improper', 'six facing six, singlet and whole-set longways read; three facing three and zia flagged');
+  const six = Contra.compile(Contra.parseDance('FormationBase: Six Facing Six\nA1\n(8) Neighbor pass through'), { lines: 1, sets: 2, passes: 4 });
+  check(six.progression.firstBad === -1 && six.passes[0].groups.length === 6, 'six facing six: lines of three couples pass through to new lines');
+  const sg = Contra.compile(Contra.parseDance('FormationBase: Singlet\nA1\n(8) Partner do-si-do'), { lines: 1, sets: 1, passes: 2 });
+  check(sg.couples.length === 1 && sg.progression.firstBad === -1, 'singlet: one couple dancing on its own');
+  const figs = Contra.parseDance('A1\n(2) Turn alone\n(8) Partner promenade across the set\n(4) Dixie twirl\n(16) Ones turn contra corners\n(8) Weathervane').parts[0].calls;
+  check(figs.map(k => k.fig).join() === 'turnAlone,promenadeAcross,dixieTwirl,contraCorners,starPromenade' && figs[4].turns === 1, 'turn alone, promenade across, Dixie twirl and contra corners read; a weathervane goes once around');
+  const pa = Contra.compile(Contra.parseDance('A1\n(8) Partner swing\n(8) Partner promenade across the set'), { lines: 1, sets: 1, passes: 1 });
+  const across = ['0.1L', '0.1R', '0.2L', '0.2R'].every(id => Math.sign(pa.final[id].x) !== Math.sign(Contra.poseAt(pa, id, 8).x));
+  check(across, 'promenade across: each couple ends on the other side of the set');
+}
+
+// Waves: a wave of four across the set and long waves on the sides, alternate dancers facing opposite ways, hands joined.
+{
+  const w = Contra.compile(Contra.parseDance('A1\n(4) Form a wave of four (NR, WL)\n(4) Balance the wave\n(6) Trade the wave'), { lines: 1, sets: 1, passes: 1 });
+  const at = t => ['0.1L', '0.1R', '0.2L', '0.2R'].map(id => ({ id, ...Contra.poseAt(w, id, t) })).sort((a, b) => a.x - b.x);
+  const line = at(4), level = line.every(d => Math.abs(d.y - line[0].y) < 0.05), alt = line.every((d, i) => i === 0 || Math.cos(d.a - line[i - 1].a) < -0.9);
+  check(level && alt && line[1].id.endsWith('R') && line[2].id.endsWith('R'), `wave of four (NR, WL): a line across the set, facing alternately, robins in the center (${line.map(d => d.id).join(' ')})`);
+  const H = Contra.handsAt(w, 6);
+  check(line.every(d => H[d.id].L.held || H[d.id].R.held), 'balance the wave: everyone holds hands with the dancers beside them');
+  const after = at(14);
+  check(after[1].id.endsWith('L') && after[2].id.endsWith('L'), `trade the wave: ends become centers (${after.map(d => d.id).join(' ')})`);
+  const altWave = Contra.compile(Contra.parseDance('A1\n(8) Circle left 3/4; form wave of four (NR, PL)\n(4) Balance the wave'), { lines: 1, sets: 1, passes: 1 });
+  const row = ['0.1L', '0.1R', '0.2L', '0.2R'].map(id => ({ id, ...Contra.poseAt(altWave, id, 8) })).sort((a, b) => a.x - b.x);
+  const alternates = row.every((d, i) => i === 0 || d.id.slice(-1) !== row[i - 1].id.slice(-1)), partnersMid = row[1].id.slice(0, 3) === row[2].id.slice(0, 3);
+  check(alternates && partnersMid && row.every((d, i) => i === 0 || Math.cos(d.a - row[i - 1].a) < -0.9), `alternating wave of four (NR, PL): lark, robin, lark, robin, partners in the center (${row.map(d => d.id).join(' ')})`);
+  const lw = Contra.compile(Contra.parseDance('A1\n(8) Neighbor do-si-do; form long waves (NR, women face in)\n(4) Circulate'), { lines: 1, sets: 1, passes: 1 });
+  const facesIn = id => { const p = Contra.poseAt(lw, id, 8); return Math.cos(p.a) * -p.x > 0; };
+  check(facesIn('0.1R') && facesIn('0.2R') && !facesIn('0.1L') && !facesIn('0.2L'), 'form long waves (women face in): robins face in, larks out');
+  const crossed = id => Math.sign(lw.final[id].x) !== Math.sign(Contra.poseAt(lw, id, 8).x);
+  check(crossed('0.1R') && crossed('0.2R') && !crossed('0.1L') && !crossed('0.2L'), 'circulate: those facing in cross the set, those facing out loop on their own side');
+  const po = Contra.compile(Contra.parseDance('A1\n(8) Neighbor swing\n(4) Pass the ocean'), { lines: 1, sets: 1, passes: 1 });
+  const ys = ['0.1L', '0.1R', '0.2L', '0.2R'].map(id => po.final[id].y);
+  check(Math.max(...ys) - Math.min(...ys) < 0.1, 'pass the ocean: from couples on the sides into a wave of four across the set');
+}
+
+// English: in a proper set the chevron progresses the couples, and a neighbour is the dancer beside you.
+{
+  const ch = Contra.compile(Contra.parseDance('FormationBase: Duple Minor - Proper\nA1\n(8) First corners chevron'), { lines: 1, sets: 3, passes: 6 });
+  check(ch.progression.firstBad === -1, `chevron in a proper set: everyone progresses one place, proper, every time through (${ch.progression.good}/${ch.progression.total})`);
+  const nb = Contra.compile(Contra.parseDance('FormationBase: Duple Minor - Proper\nA1\n(8) Neighbour back to back'), { lines: 1, sets: 1, passes: 1 });
+  const moved = t => nb.dancers.filter(d => Math.abs(Contra.poseAt(nb, d.id, t).y - nb.start[d.id].y) > 0.2).map(d => d.id).sort().join();
+  check(moved(4) === '0.1L,0.1R,0.2L,0.2R' && nb.dancers.every(d => Math.abs(Contra.poseAt(nb, d.id, 4).x - nb.start[d.id].x) < 0.35),
+    'proper set: neighbours (beside you, same side) back to back along their own side');
+}
+
+// English gate: neighbours on each side turn a full circle, mirror images, the ones stepping into the middle first.
+{
+  const c = Contra.compile(Contra.parseDance('FormationBase: Duple Minor - Proper\nA1\n(8) 2s gate the 1s'), { lines: 1, sets: 1, passes: 1 });
+  const at = (id, t) => Contra.poseAt(c, id, t), inward = id => Math.abs(at(id, 1).x) < Math.abs(c.start[id].x) - 0.05;
+  const home = c.dancers.every(d => Math.hypot(c.final[d.id].x - c.start[d.id].x, c.final[d.id].y - c.start[d.id].y) < 0.05);
+  const half = c.dancers.every(d => Math.abs(at(d.id, 4).y + c.start[d.id].y) < 0.15);
+  check(home && half && inward('0.1L') && inward('0.1R') && !inward('0.2L') && !inward('0.2R'),
+    'English gate: a full circle on each side (traded halfway, home at the end), the ones walking into the middle first');
+}
+
+// Corners in a three-couple set count from the middle couple.
+{
+  const c = Contra.compile(Contra.parseDance('FormationBase: Triplet - Proper\nA1\n(8) First corners do-si-do\n(8) Second corners do-si-do'), { lines: 1, sets: 1, passes: 1 });
+  const mover = t => c.dancers.filter(d => { const a = Contra.poseAt(c, d.id, t), b = c.start[d.id]; return Math.hypot(a.x - b.x, a.y - b.y) > 0.3; }).map(d => d.id).sort().join();
+  check(mover(4) === '0.1L,0.2L,0.2R,0.3R' && mover(12) === '0.1R,0.2L,0.2R,0.3L', `three-couple set: first corners are 1L-2R and 2L-3R, second corners 1R-2L and 2R-3L (${mover(4)} / ${mover(12)})`);
 }
 
 // Speeds per figure, at 120 beats per minute (2 beats per second). Not a pass/fail check yet.

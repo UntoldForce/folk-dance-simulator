@@ -1,0 +1,21 @@
+Circle Mixer (test dance)
+by the simulator
+
+Permission: test dance written for the simulator
+
+FormationBase:	Circle Mixer
+Progression:	Single
+Figures:
+A1
+(8) Everyone forward and back
+(8) Circle left 1/4
+
+A2
+(8) Partner do-si-do
+(8) Corner allemande left 1
+
+B1
+(16) Corner swing
+
+B2
+(16) Promenade 1/4

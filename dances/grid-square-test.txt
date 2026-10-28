@@ -1,0 +1,22 @@
+Grid Square (test dance)
+by the simulator
+
+Permission: test dance written for the simulator
+
+FormationBase:	Grid Square
+Progression:	Single
+Figures:
+A1
+(8) Circle left
+(8) Corner allemande left
+
+A2
+(8) Partner swing
+(8) Heads star right
+
+B1
+(8) Heads pass through to the next square
+(8) Sides pass through to the next square
+
+B2
+(16) Partner swing
