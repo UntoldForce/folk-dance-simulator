@@ -211,7 +211,24 @@ What the first 402 dances taught the simulator:
 - **The progression check** looks only at where dancers stand (within 0.35 m), not which way they face: by the end of
   a time through they're already turning toward the next figure.
 
-After these: 75% of the dances have every figure read; 34% are read, progress correctly, and have no bumps or hand
+Later rounds (Ryan: keep "balance and swing" as one move; fix the Becket swing problem; add the missing figures):
+- A line with a part the simulator doesn't know ("balance & box circulate" before box circulate was built) is reported
+  as unknown rather than danced as just the part it knows. Words that say how a figure ends ("bend into a ring",
+  "face…", "look for…", "meet…", "straight back") aren't figures. "Once or once and a half": the first is danced.
+- Progressing partway through also happens in A1 after a move along the set (a slide, slice or pass through with
+  ContraDB's ⁋); a ⁋ on a figure that stays put ("long lines forward & back ⁋") marks the first figure with the new
+  neighbors and changes nothing. Regrouping partway through pairs couples standing side by side with the couple
+  level across from them. A time through in which no hands-fours form at all counts as the progression going wrong
+  (it had hidden failures).
+- Turn as a couple, courtesy turn and the like, unnamed, are danced with the one beside you ("down the hall and turn
+  as a couple" turns each pair walking side by side, not partners at opposite ends of the line).
+- New figures: swing through, box circulate, arch and dive, cross trails, a long wave in the middle, one role to the
+  middle and back, elbow turns, the right-hand chain.
+- Becket: the "swing side" turned out not to be the cause (both choices give the same results). The Becket failures
+  that remain come from where couples face after moves like the butterfly whirl and from end effects after
+  progressing partway through; the first time through is right in about half of them.
+
+After the first round: 75% of the dances had every figure read; 34% are read, progress correctly, and have no bumps or hand
 problems (from 3%). Still to do: Becket and proper dances often finish with couples on the wrong side after a partner
 swing (which side a swing ends on is a guess); figures not built yet (swing through, arch and dive, zig-zag, cross
 trails, rang tang); notes in the figure text ("larks take partners", "look for your partner").

@@ -153,3 +153,8 @@ placed in a dance; dancers stand still during them and the checks show a caution
 | Circulate | Long waves | 4 | Facing in: walk across. Facing out: loop into the place beside you | Long waves again | built |
 | Walk and dodge | Long waves | 4 | Facing in: walk across. Facing out: sidestep into the place beside you | All facing out | built |
 | Scoot back | Long waves | 6–8 | Facing out: loop into the place beside you. Facing in: walk to the middle, allemande right ½, walk on out to the far side | Long waves again | built |
+| Swing through | Wave of four | 8 | Ends and the centers beside them turn half by the hand they hold, then the new centers half by the other | Wave of four | built |
+| Box circulate | Hands-four, facing across | 4 (after a 4-beat balance) | The named role (robins unless said) crosses straight over, passing right shoulders, and turns to face in; the others loop right round the outside into the place the crosser on their side left | Hands-four, facing across | built |
+| Arch and dive | Two couples facing | 4 | Couples trade places; the archers (twos unless said) spread a little and pass over, the divers draw in and pass under | Couples facing away | built |
+| Cross trails | Hands-four | 4 | Pass the one across by the right shoulder, then the one along the set by the left; end diagonally across | Hands-four, facing in | built |
+| Long wave in the middle | Contra lines | 4 | The named role steps into the middle of the set keeping their facing; others in the middle step back out | A long wave down the center | built |

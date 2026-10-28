@@ -110,6 +110,11 @@ the move explorer.
 | Circulate | CB, CALLERLAB | new | Long waves |
 | Walk and dodge | CB | new | |
 | Scoot back | CB, CALLERLAB | new | |
+| Swing through | CALLERLAB, ContraDB | new | Found by testing against ContraDB's dances |
+| Box circulate | ContraDB | new | As ContraDB's dances describe it ("robins cross while larks loop right"), usually after a balance |
+| Arch and dive | CB, ContraDB | new | |
+| Cross trails | ContraDB | new | |
+| Long wave in the middle | ContraDB | new | "Robins dance in to a long wave in the center" |
 
 **Not built** (in CB, less common): do paso, arch and dive / dip and dive, bend the line,
 hand cast, assisted cast off, hey for three across the set, the contra "open ladies chain", Allemande X, grand square,
