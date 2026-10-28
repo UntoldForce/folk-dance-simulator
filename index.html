@@ -909,7 +909,18 @@ const Contra = (() => {
     courtesyTurn: { group: 'pair', plan: (ps, call, ctx) => pivotPair(ps, ctx, Math.PI) },
     turnAsCouple: { group: 'pair', plan: (ps, call, ctx) => pivotPair(ps, ctx, Math.PI) },
     butterflyWhirl: { group: 'pair', plan: (ps, call, ctx) => pivotPair(ps, ctx, Math.PI) },
-    gate: { group: 'pair', plan: (ps, call, ctx) => pivotPair(ps, ctx, (call.side === 'L' ? 1 : -1) * call.turns * TAU) },
+    // Gate. In an English (proper) set, as in the tutorial's animation, neighbours on a side turn a full circle by
+    // default, the two sides mirror images: the dancers being gated (the ones, unless "1s gate the 2s") walk
+    // forward into the middle while the gaters back up. Elsewhere, half a turn counter-clockwise by default.
+    gate: { group: 'pair', plan(ps, call, ctx) {
+      const turns = call.turns != null ? call.turns : ctx.english ? 1 : 0.5;
+      let dir = call.side ? (call.side === 'L' ? 1 : -1) : 1;
+      if (!call.side && ctx.english && ctx.keys) {
+        const g = ctx.keys.findIndex(k => k && k[1] !== (call.gaters || '2')), m = mid(ps[0], ps[1]);
+        if (g >= 0) { const v = { x: ps[g].x - m.x, y: ps[g].y - m.y }; dir = -v.y * (ctx.cx - m.x) >= 0 ? 1 : -1; }   // the gated one moves toward the middle
+      }
+      return pivotPair(ps, ctx, dir * turns * TAU);
+    } },
 
     // ---------- Two-couple exchanges ----------
     // Robins chain: robins pull by right through the middle to the other side, then courtesy turn
@@ -1253,7 +1264,8 @@ const Contra = (() => {
     siding: { group: 'pair', plan([p, q], call, ctx) {
       const c = mid(p, q), side = call.side === 'L' ? -1 : 1;
       return [[p, q], [q, p]].map(([d, o]) => {
-        const f = angleTo(d, o), t = { x: c.x - Math.cos(f) * 0.1 - Math.sin(f) * side * 0.22, y: c.y - Math.sin(f) * 0.1 + Math.cos(f) * side * 0.22 };
+        // They meet level in the middle, each a step to their own left (right siding), shoulder to shoulder.
+        const f = angleTo(d, o), t = { x: c.x - Math.sin(f) * side * 0.3, y: c.y + Math.cos(f) * side * 0.3 };
         return u => { const s = bump(u); return { x: lerp(d.x, t.x, s), y: lerp(d.y, t.y, s), a: settle(d.a, f, u, 0.15) }; };
       });
     } },
@@ -1625,7 +1637,8 @@ const Contra = (() => {
     if (/courtesy turn/.test(t)) return { fig: 'courtesyTurn', who: who || 'partners' };
     if (/turn as (a )?couples?|wheel around/.test(t)) return { fig: 'turnAsCouple', who: who || 'partners' };
     if (/butterfly whirl/.test(t)) return { fig: 'butterflyWhirl', who: who || 'partners' };
-    if (/\bgate\b/.test(t)) return { fig: 'gate', who: who || 'neighbors', side: rot('L'), turns: amount(0.5) };
+    if (/\bgate\b/.test(t)) return { fig: 'gate', who: who === 'ones' || who === 'twos' || !who ? 'neighbors' : who, side: /clockwise|\bcw\b|\bccw\b/.test(t) ? rot('L') : null,
+      turns: amount(null), gaters: /\b(1s|ones) gate/.test(t) ? '1' : '2' };
     if (/dolphin hey/.test(t)) return { fig: 'dolphinHey', who: who === 'twos' ? 'twos' : 'ones', side: /\bleft\b/.test(t) ? 'L' : 'R', turns: /half|1\/2/.test(t) ? 0.5 : 1 };
     if (/chevron/.test(t)) return { fig: 'chevron', who: who === 'secondCorners' ? 'secondCorners' : 'firstCorners', side: lr() };
     if ((m = t.match(/open (robins|ladies|women|larks|gents|men)'? chain/))) return { fig: 'openChain', who: /robins|ladies|women/.test(m[1]) ? 'robins' : 'larks' };
@@ -2666,6 +2679,7 @@ const POOL = [
   { cat: 4, label: 'Weathervane', fig: 'starPromenade', amount: 'half', d: { amt: 0.5 }, beats: 8, say: 'Weathervane {amt}', re: /weathervane/ },
   { cat: 5, label: 'Courtesy turn', fig: 'courtesyTurn', who: ['partners', 'neighbors'], d: { who: 'partners' }, beats: 4, say: '{who} courtesy turn', re: /courtesy turn/ },
   { cat: 5, label: 'Turn as a couple', fig: 'turnAsCouple', who: ['partners', 'neighbors'], d: { who: 'partners' }, beats: 4, say: '{who} turn as a couple', re: /turn as (a )?couples?|wheel around/ },
+  { cat: 5, label: 'English gate', fig: 'gate', d: {}, beats: 8, setup: 'none', say: '2s gate the 1s', re: /\b(1s|2s|ones|twos) gate/, ecd: true },
   { cat: 5, label: 'Gate', fig: 'gate', who: ['partners', 'neighbors'], side: 'rot', amount: 'turns', d: { who: 'neighbors', side: 'L', amt: 0.5 }, beats: 4, say: '{who} gate {side} {amt}', re: /\bgate\b/ },
   { cat: 5, label: 'Butterfly whirl', fig: 'butterflyWhirl', who: ['partners', 'neighbors'], d: { who: 'partners' }, beats: 4, say: '{who} butterfly whirl', re: /butterfly whirl/ },
   { cat: 5, label: 'Dixie twirl', d: {}, beats: 4, say: 'Dixie twirl', re: /dixie twirl/ },
@@ -2959,7 +2973,8 @@ const DESCRIPTIONS = {
   'Weathervane': 'A star promenade that keeps going around, without a butterfly whirl.',
   'Courtesy turn': 'Side by side, turn counter-clockwise around the point between you: the lark backs up while the robin walks forward.',
   'Turn as a couple': 'Side by side, turn together to face the other way. Shown as half a courtesy turn.',
-  'Gate': 'Side by side, holding near hands, pivot around the middle: one walks forward, the other backs up.',
+  'English gate': 'Neighbours on each side of the set take near hands and turn a full circle, the two sides mirror images: the ones walk forward into the middle while the twos back up, and everyone ends where they started.',
+  'Gate': 'Side by side, holding near hands, pivot around the middle: one walks forward, the other backs up. In English dances ("the 2s gate the 1s") neighbours on each side turn a full circle, mirror images, the ones walking forward into the middle and the twos backing up.',
   'Butterfly whirl': 'Side by side with arms around each other, spin as a pair, one going backward. Shown as half a turn.',
   'Dixie twirl': 'A line of four turns around without letting go, the centers making an arch. Not animated yet.',
   'Robins chain': 'Robins pull by right across the set, then courtesy turn with the lark on the other side, ending facing in.',
@@ -3009,7 +3024,7 @@ const DESCRIPTIONS = {
 const APPROX = new Set(['Hey for four', 'Robins chain', 'Larks chain', 'Right and left through', 'Flutterwheel', 'Star promenade', 'Weathervane',
   'Give and take', 'Figure eight', 'Slice', 'Shift', 'Veer', 'Lead down', 'Down the hall', 'Up the hall', 'Cast off', 'Cast down', 'Petronella',
   'Poussette', 'Half draw poussette', 'California twirl', 'Hey for three', 'Siding', 'Sharp siding', 'Up a double', 'Fall back', 'Honour',
-  'Hole in the wall cross', 'Chevron', 'Dolphin hey', 'Crossover mirror hey', 'Hey for three on the side', 'Cast across', 'Long cast', 'Hand turn', 'Bentley allemande', 'Half open ladies chain', 'Double figure eight', 'Star through', 'Roll away', 'Half sashay', 'Balance the wave', 'Cross', 'Turn as a couple', 'Butterfly whirl']);
+  'Hole in the wall cross', 'Chevron', 'Dolphin hey', 'Crossover mirror hey', 'Hey for three on the side', 'Cast across', 'Long cast', 'English gate', 'Hand turn', 'Bentley allemande', 'Half open ladies chain', 'Double figure eight', 'Star through', 'Roll away', 'Half sashay', 'Balance the wave', 'Cross', 'Turn as a couple', 'Butterfly whirl']);
 // Some moves need the dancers set up first: side by side with the chosen person, or couples on the sides.
 const SETUP = {
   californiaTwirl: 'pair', rollAway: 'pair', halfSashay: 'pair', courtesyTurn: 'pair', turnAsCouple: 'pair', butterflyWhirl: 'pair', gate: 'pair',
@@ -3019,7 +3034,7 @@ const SETUP = {
 const previews = new Map();
 function previewOf(def, m, beats) {
   if (!def || !def.fig) return null;
-  let setup = def.setup === 'triplet' ? '' : def.setup || SETUP[def.fig] || '';
+  let setup = def.setup === 'triplet' || def.setup === 'none' ? '' : def.setup || SETUP[def.fig] || '';
   if (setup === 'pair') setup = `(8) ${WHO_WORD[m.who] || 'Partner'} swing`;
   const line = sayMove(def, m), key = [setup, line, beats, $('swingRate').value].join('|');
   if (previews.has(key)) return previews.get(key);

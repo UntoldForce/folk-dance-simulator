@@ -253,6 +253,16 @@ check(made.every(k => { const r = Contra.parseDance('A1\n(8) ' + Contra.callText
     'proper set: neighbours (beside you, same side) back to back along their own side');
 }
 
+// English gate: neighbours on each side turn a full circle, mirror images, the ones stepping into the middle first.
+{
+  const c = Contra.compile(Contra.parseDance('FormationBase: Duple Minor - Proper\nA1\n(8) 2s gate the 1s'), { lines: 1, sets: 1, passes: 1 });
+  const at = (id, t) => Contra.poseAt(c, id, t), inward = id => Math.abs(at(id, 1).x) < Math.abs(c.start[id].x) - 0.05;
+  const home = c.dancers.every(d => Math.hypot(c.final[d.id].x - c.start[d.id].x, c.final[d.id].y - c.start[d.id].y) < 0.05);
+  const half = c.dancers.every(d => Math.abs(at(d.id, 4).y + c.start[d.id].y) < 0.15);
+  check(home && half && inward('0.1L') && inward('0.1R') && !inward('0.2L') && !inward('0.2R'),
+    'English gate: a full circle on each side (traded halfway, home at the end), the ones walking into the middle first');
+}
+
 // Corners in a three-couple set count from the middle couple.
 {
   const c = Contra.compile(Contra.parseDance('FormationBase: Triplet - Proper\nA1\n(8) First corners do-si-do\n(8) Second corners do-si-do'), { lines: 1, sets: 1, passes: 1 });

@@ -17,7 +17,10 @@ pass through to the next square) and the English figures (siding, sharp siding, 
 hole in the wall cross, hand turn, Bentley allemande, half draw poussette, hey for three). Not animated: contra corners,
 Dixie twirl. Built from or checked against the tutorial's animated GIFs (Ryan supplied them; identified by matching
 each GIF's size to the tutorial page's image list): dolphin hey, double figure eight, half draw poussette, half open
-ladies chain, chevron, mad robin, cast down and long cast, cast across, crossover mirror hey, hey for three on the side.
+ladies chain, chevron, mad robin, cast down and long cast, cast across, crossover mirror hey, hey for three on the side,
+Bentley allemande, hole in the wall cross (first corners), siding (meeting level, shoulder to shoulder), the English
+gate (neighbours on each side, a full circle, mirror images, the gated couple walking forward) and the hey for four
+across starting in the middle (the ends loop out while the middle pair pass first).
 
 **Neighbour in a proper set** (Ryan's call): English dances are almost always proper, and there your neighbour is the
 dancer beside you on your side (the same role). In improper and other formations it stays the contra meaning, the
