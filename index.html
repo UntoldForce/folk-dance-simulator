@@ -18,7 +18,7 @@
   --accent-ink: #ffffff;
   --lark: #2c5ea8;
   --robin: #c4533b;
-  --c1: #7454b8; --c2: #1d8282; --c3: #a8701c; --c4: #3c8a4c; --c5: #b0457a; --c6: #8a5a3c; --c7: #7a861f; --c8: #5c6e82;
+  --c1: #7454b8; --c2: #1d8282; --c3: #a8701c; --c4: #3c8a4c; --c5: #b0457a; --c6: #8a5a3c; --c7: #7a861f; --c8: #5c6e82; --c9: #2b7bb9;
   --ok: #2f7d4f;
   --warn: #a8641a;
   --bad: #b3322a;
@@ -30,14 +30,14 @@
   :root:not([data-theme="light"]) {
     --bg: #111614; --panel: #19201d; --floor: #1e2522; --ink: #e3e9e6; --muted: #9aa7a1; --rule: #2d3733;
     --accent: #72c4a8; --accent-ink: #0d1412; --lark: #78a3ea; --robin: #f08d72;
-    --c1: #a990e8; --c2: #5cc4c0; --c3: #e0a85a; --c4: #79c98a; --c5: #e584b5; --c6: #c9977a; --c7: #bcc75a; --c8: #9db0c4;
+    --c1: #a990e8; --c2: #5cc4c0; --c3: #e0a85a; --c4: #79c98a; --c5: #e584b5; --c6: #c9977a; --c7: #bcc75a; --c8: #9db0c4; --c9: #6fb4e6;
     --ok: #6cc28c; --warn: #e2a457; --bad: #f0796e; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #111614; --panel: #19201d; --floor: #1e2522; --ink: #e3e9e6; --muted: #9aa7a1; --rule: #2d3733;
   --accent: #72c4a8; --accent-ink: #0d1412; --lark: #78a3ea; --robin: #f08d72;
-  --c1: #a990e8; --c2: #5cc4c0; --c3: #e0a85a; --c4: #79c98a; --c5: #e584b5; --c6: #c9977a; --c7: #bcc75a; --c8: #9db0c4;
+  --c1: #a990e8; --c2: #5cc4c0; --c3: #e0a85a; --c4: #79c98a; --c5: #e584b5; --c6: #c9977a; --c7: #bcc75a; --c8: #9db0c4; --c9: #6fb4e6;
     --ok: #6cc28c; --warn: #e2a457; --bad: #f0796e; color-scheme: dark;
 }
 html, body { height: 100%; }
@@ -142,7 +142,7 @@ label.small { font-size: 13px; color: var(--muted); display: inline-flex; align-
 .pool { flex-direction: column; flex-wrap: nowrap; gap: 4px; }
 .cicon { width: 14px; height: 14px; flex: none; vertical-align: -2px; }
 .cat0 { --cat: var(--muted); } .cat1 { --cat: var(--c1); } .cat2 { --cat: var(--c2); } .cat3 { --cat: var(--c3); } .cat4 { --cat: var(--c4); }
-.cat5 { --cat: var(--c5); } .cat6 { --cat: var(--c6); } .cat7 { --cat: var(--c7); } .cat8 { --cat: var(--c8); }
+.cat5 { --cat: var(--c5); } .cat6 { --cat: var(--c6); } .cat7 { --cat: var(--c7); } .cat8 { --cat: var(--c8); } .cat9 { --cat: var(--c9); }
 .chip.soon { border-style: dashed; color: var(--muted); }
 .pgroup .chip:hover { border-color: var(--cat); }
 .fblk { border-left: 4px solid var(--cat); }
@@ -401,6 +401,9 @@ ul.checks li.passed { color: var(--muted); }
       formations: two- to six-couple sets, triple minor and circles. Shared under a Creative Commons Attribution 4.0 license.</dd>
     <dt><a href="https://www.cdss.org/elibrary/cracking-chestnuts/tempest.html" target="_blank" rel="noopener">Cracking Chestnuts: The Tempest</a>, Country Dance and Song Society</dt>
     <dd>How the tempest formation is set up.</dd>
+    <dt><a href="https://www.tamtwirlers.org/taminations/" target="_blank" rel="noopener">Taminations</a>, by Brad Christie, with CALLERLAB's definitions</dt>
+    <dd>Animations and the official CALLERLAB definitions of square dance calls that contra borrowed: pass the ocean,
+      trade the wave, spin the top, circulate, scoot back. Used as a reference only (no code or data copied).</dd>
     <dt><a href="https://github.com/contradb/contra" target="_blank" rel="noopener">contradb</a></dt>
     <dd>Its list of figure types, used as a checklist for which moves to build.</dd>
     <dt><a href="https://fonts.google.com/" target="_blank" rel="noopener">Google Fonts</a></dt>
@@ -487,6 +490,58 @@ const Contra = (() => {
   const bump = u => (u < 0.5 ? mj(u * 2) : mj((1 - u) * 2));
 
   // ---------- Shared pieces for figures ----------
+  // Waves (The Caller's Box: "wave of four", "long wave"). Adjacent dancers face opposite ways, hands joined.
+  // spec.kind 'short': a wave of four in a line across the set at the group's height, spaced 0.7 m; the centers
+  //   are dancers of role spec.centers ('R' robins by default) and each end takes hands with the center next to
+  //   them (`pair(end, center)` says who may stand together; default anyone). spec.hand 'R' (right-handed: the ends
+  //   hold right hands, the centers left) or 'L'. Facing alternates along the line.
+  // spec.kind 'long': long waves on the sides: on each side of the set its two dancers stand one place apart along
+  //   it, the one of role spec.faceIn ('R' by default) facing in and the other facing out, joined by spec.hand.
+  // Returns target poses by dancer index.
+  function waveTargets(ps, keys, ctx, spec) {
+    const c = centroid(ps), hand = spec.hand === 'L' ? -1 : 1, out = [], role = i => (keys[i] || 'R')[0];
+    if (spec.kind === 'long') {
+      for (const side of [-1, 1]) {
+        const on = ps.map((d, i) => i).filter(i => Math.sign(ps[i].x - ctx.cx) === side || (Math.abs(ps[i].x - ctx.cx) < 0.05 && side > 0 && !out[i]));
+        if (on.length !== 2) continue;
+        let fin = on.find(i => role(i) === (spec.faceIn || 'R'));
+        if (fin == null || on.every(i => role(i) === role(fin))) fin = on.slice().sort((a, b) => ps[a].y - ps[b].y)[0];
+        const fout = on.find(i => i !== fin), x = ctx.cx + side * ctx.p.partnerGap / 2, inA = side > 0 ? Math.PI : 0;
+        // Holding right hands, the dancer facing in has the other on their right.
+        const up = -side * hand, h = ctx.p.neighborGap / 2;
+        out[fin] = { x, y: c.y - up * h, a: inA };
+        out[fout] = { x, y: c.y + up * h, a: inA + Math.PI };
+      }
+      return out;
+    }
+    const xs = [-1.05, -0.35, 0.35, 1.05].map(v => ctx.cx + v), up = Math.PI / 2;
+    const faces = hand > 0 ? [up, -up, up, -up] : [-up, up, -up, up];
+    const centers = ps.map((d, i) => i).filter(i => role(i) === (spec.centers || 'R')), ends = ps.map((d, i) => i).filter(i => !centers.includes(i));
+    if (centers.length !== 2 || ends.length !== 2) return out;
+    const ok = spec.pair || (() => true);
+    let best = null;
+    for (const [c1, c2] of [[centers[0], centers[1]], [centers[1], centers[0]]]) for (const [e1, e2] of [[ends[0], ends[1]], [ends[1], ends[0]]]) {
+      const order = [e1, c1, c2, e2], cost = order.reduce((sum, i, k) => sum + dist(ps[i], { x: xs[k], y: c.y }), 0) + (ok(e1, c1) && ok(e2, c2) ? 0 : 100);
+      if (!best || cost < best.cost) best = { cost, order };
+    }
+    best.order.forEach((i, k) => (out[i] = { x: xs[k], y: c.y, a: faces[k] }));
+    return out;
+  }
+  // The wave a call ends in ("; form long waves (NR, women face in)", "; form wave of four (NR,WL)").
+  const waveSpec = (call, ps, keys) => ({ ...call.form, pair: call.form.rel === 'P' ? (e, c) => keys[e].slice(1) === keys[c].slice(1) : call.form.rel === 'N' ? (e, c) => keys[e].slice(1) !== keys[c].slice(1) : null });
+  // Dancers in the wave beside each other (for hand holds): pairs of indices about 0.7-1.0 m apart.
+  function waveNeighbours(t) {
+    const idx = t.map((q, i) => (q ? i : -1)).filter(i => i >= 0), out = [];
+    for (const i of idx) for (const j of idx) if (i < j && dist(t[i], t[j]) < 1.05 && Math.abs(wrap(t[i].a - t[j].a)) > 2.5) out.push([i, j]);
+    return out;
+  }
+  // Move from where everyone is to the wave over the figure (straight there, turning to face the wave's way).
+  const intoWave = (ps, t, from = 0) => ps.map((d, i) => {
+    const e = t[i];
+    if (!e) return () => d;
+    return u => { const s = mj(clamp01((u - from) / (1 - from))), head = dist(d, e) > 0.2 ? angleTo(d, e) : e.a;
+      return { x: lerp(d.x, e.x, s), y: lerp(d.y, e.y, s), a: u < 0.7 ? settle(d.a, head, u, 0.2) : lerpAngle(head, e.a, mj((u - 0.7) / 0.3)) }; };
+  });
   // Contra corners as a timeline of allemandes (see FIGURES.contraCorners): the dancers' paths, and the hand holds.
   function cornersPlan(ps, call, ctx) {
     const keys = ctx.keys || [], act = call.who === 'twos' ? '2' : '1', A = ps.map((d, i) => i).filter(i => (keys[i] || '')[1] === act);
@@ -900,7 +955,7 @@ const Contra = (() => {
       });
     } },
     // Balance the wave: each steps forward and back the way they face (direction of a wave balance varies).
-    balanceWave: { group: 'four', any: true, plan(ps, call, ctx) {
+    balanceWave: { group: 'four', any: true, keepsFacing: true, plan(ps, call, ctx) {
       return ps.map(d => { const f = d.a == null ? 0 : d.a;
         return u => { const s = ctx.p.balanceStep * bump(u); return { x: d.x + s * Math.cos(f), y: d.y + s * Math.sin(f), a: f }; }; });
     } },
@@ -1358,6 +1413,121 @@ const Contra = (() => {
     // corners allemande left once. Both corners must be in the group (a hands-six or a three-couple set).
     contraCorners: { group: 'four', any: true, plan: (ps, call, ctx) => cornersPlan(ps, call, ctx).fns },
 
+    // ---------- Waves ----------
+    // Form a wave: everyone steps into a wave of four across the set, or long waves on the sides.
+    formWave: { group: 'four', plan: (ps, call, ctx) => intoWave(ps, waveTargets(ps, ctx.keys, ctx, waveSpec(call, ps, ctx.keys))) },
+    // Pass the ocean (pass the sea): from couples on the sides, pass through across; the right-hand dancers (left-hand
+    // for the sea) hook in the middle and turn a quarter to be the centers, the others go on across and take hands
+    // with the one they were standing beside. Ends in a right-handed (left-handed) wave of four.
+    passOcean: { group: 'four', plan(ps, call, ctx) {
+      const sea = call.side === 'L', keys = ctx.keys;
+      // The centers: whoever stands on the right (left for the sea) of the couple on each side.
+      const sides = [-1, 1].map(sg => [0, 1, 2, 3].filter(i => Math.sign(ps[i].x - ctx.cx) === sg));
+      const centerOf = on => { if (on.length !== 2) return null; const F = ps[on[0]].x > ctx.cx ? Math.PI : 0, r = { x: Math.sin(F), y: -Math.cos(F) };
+        const proj = i => (ps[i].x - ctx.cx) * r.x + ps[i].y * r.y; return on.slice().sort((a, b) => proj(b) - proj(a))[sea ? 1 : 0]; };
+      const cs = sides.map(centerOf);
+      if (cs.includes(null)) return intoWave(ps, waveTargets(ps, keys, ctx, { kind: 'short', hand: sea ? 'L' : 'R' }));
+      const beside = i => sides.find(on => on.includes(i)).find(j => j !== i);
+      const t = waveTargets(ps, ps.map((d, i) => (cs.includes(i) ? 'R' : 'L') + i), ctx, { kind: 'short', hand: sea ? 'L' : 'R', centers: 'R', pair: (e, c) => beside(e) === c });
+      return ps.map((d, i) => { const e = t[i], head = angleTo(d, e), off = (sea ? -1 : 1) * 0.15;
+        return u => { const s = mj(u), b = off * Math.sin(Math.PI * s);
+          return { x: lerp(d.x, e.x, s) + Math.sin(head) * b, y: lerp(d.y, e.y, s) - Math.cos(head) * b, a: u < 0.7 ? settle(d.a, head, u, 0.2) : lerpAngle(head, e.a, mj((u - 0.7) / 0.3)) }; }; });
+    } },
+    // Trade the wave (a wave of four): those facing the same way trade, stepping forward and curving round toward
+    // each other, passing right shoulders; ends become centers and the wave changes hands.
+    tradeWave: { group: 'four', keepsFacing: true, plan(ps, call, ctx) {
+      const idx = [0, 1, 2, 3], out = ps.map(d => () => d);
+      for (const i of idx) {
+        const j = idx.find(k => k !== i && Math.abs(wrap((ps[k].a || 0) - (ps[i].a || 0))) < 0.8);
+        if (j == null) continue;
+        const d = ps[i], e = ps[j], F = d.a || 0, fw = { x: Math.cos(F), y: Math.sin(F) };
+        // Passing right shoulders: of the two, the one travelling toward its right goes wide.
+        const goingRight = (e.x - d.x) * Math.sin(F) - (e.y - d.y) * Math.cos(F) > 0, depth = goingRight ? 0.75 : 0.45;
+        const path = s => ({ x: lerp(d.x, e.x, s) + fw.x * depth * Math.sin(Math.PI * s), y: lerp(d.y, e.y, s) + fw.y * depth * Math.sin(Math.PI * s) });
+        out[i] = u => { const s = mj(u), p = path(s); return { ...p, a: settle(d.a, heading(path, Math.min(0.98, Math.max(0.02, s))), u, 0.1) }; };
+      }
+      return out;
+    } },
+    // Slide right (left): from a wave, let go and sidestep to your right (left), passing in front of the dancer there,
+    // into their place, still facing the same way.
+    slideWave: { group: 'four', keepsFacing: true, plan(ps, call, ctx) {
+      const dir = call.side === 'L' ? -1 : 1;
+      return ps.map((d, i) => {
+        const F = d.a || 0, r = { x: Math.sin(F) * dir, y: -Math.cos(F) * dir };
+        const j = ps.map((q, k) => k).filter(k => k !== i && ((ps[k].x - d.x) * r.x + (ps[k].y - d.y) * r.y) > 0.3).sort((a, b) => dist(ps[a], d) - dist(ps[b], d))[0];
+        if (j == null) return () => d;
+        const e = ps[j];
+        return u => { const s = mj(u), b = 0.2 * Math.sin(Math.PI * s);
+          return { x: lerp(d.x, e.x, s) + Math.cos(F) * b, y: lerp(d.y, e.y, s) + Math.sin(F) * b, a: settle(d.a, F, u, 0.15) }; };
+      });
+    } },
+    // Circulate (long waves): those facing in walk straight across the set and stay facing out; those facing out loop
+    // into the place of the dancer beside them (round the outside, so right in a right-handed wave) and face in.
+    circulate: { group: 'four', keepsFacing: true, plan(ps, call, ctx) {
+      return ps.map((d, i) => {
+        const F = d.a == null ? 0 : d.a, inward = Math.cos(F) * (ctx.cx - d.x) > 0;
+        if (inward) { const e = { x: 2 * ctx.cx - d.x, y: d.y };
+          return u => { const s = mj(u); return { x: lerp(d.x, e.x, s), y: lerp(d.y, e.y, s), a: settle(d.a, F, u, 0.15) }; }; }
+        const j = ps.map((q, k) => k).filter(k => k !== i && Math.sign(ps[k].x - ctx.cx) === Math.sign(d.x - ctx.cx)).sort((a, b) => dist(ps[a], d) - dist(ps[b], d))[0];
+        if (j == null) return () => d;
+        // A loop forward (out of the set) and round into the place beside them; "loop left" goes the other way round.
+        // (The turn is the way round that starts them walking forward, out of the set.)
+        const e = ps[j], m = mid(d, e), r = dist(d, e) / 2, a0 = angleTo(m, d), turn = Math.sin(F - a0) >= 0 ? 1 : -1;
+        return u => { const s = mj(u), ang = a0 + turn * Math.PI * s, rr = r * (1 + 0.5 * Math.sin(Math.PI * s));
+          return { x: m.x + rr * Math.cos(ang), y: m.y + rr * Math.sin(ang), a: settle(d.a, F + turn * Math.PI * s, u, 0.05) }; };
+      });
+    } },
+    // Walk and dodge (long waves): those facing in walk straight across and stay facing out; those facing out
+    // sidestep (dodge) into the place beside them, still facing out.
+    walkDodge: { group: 'four', keepsFacing: true, plan(ps, call, ctx) {
+      return ps.map((d, i) => {
+        const F = d.a == null ? 0 : d.a, inward = Math.cos(F) * (ctx.cx - d.x) > 0;
+        const e = inward ? { x: 2 * ctx.cx - d.x, y: d.y } : ps[ps.map((q, k) => k).filter(k => k !== i && Math.sign(ps[k].x - ctx.cx) === Math.sign(d.x - ctx.cx))[0]] || d;
+        return u => { const s = mj(u); return { x: lerp(d.x, e.x, s), y: lerp(d.y, e.y, s), a: settle(d.a, F, u, 0.15) }; };
+      });
+    } },
+    // Scoot back (long waves): those facing out loop right into the place beside them; those facing in walk
+    // forward to meet in the middle, allemande right 1/2, and walk on out to the far side, ending facing out.
+    scootBack: { group: 'four', keepsFacing: true, plan(ps, call, ctx) {
+      const isIn = i => Math.cos(ps[i].a || 0) * (ctx.cx - ps[i].x) > 0, ins = [0, 1, 2, 3].filter(isIn), outs = [0, 1, 2, 3].filter(i => !isIn(i));
+      const loops = FIGURES.circulate.plan(ps, call, ctx), out = ps.slice().map(d => () => d);
+      for (const i of outs) out[i] = loops[i];
+      if (ins.length !== 2) return out;
+      const ym = (ps[ins[0]].y + ps[ins[1]].y) / 2, M = { x: ctx.cx, y: ym };
+      for (const i of ins) {
+        const d = ps[i], sg = Math.sign(d.x - ctx.cx), meet = { x: ctx.cx + sg * 0.3, y: ym };
+        const dest = ps[outs.find(k => Math.sign(ps[k].x - ctx.cx) === -sg)] || { x: 2 * ctx.cx - d.x, y: d.y };
+        out[i] = u => {
+          const a0 = angleTo(M, meet);
+          if (u < 0.3) { const s = mj(u / 0.3), walk = settle(d.a, angleTo(d, meet), u / 0.3, 0.2);   // arriving, they turn to face each other
+            return { x: lerp(d.x, meet.x, s), y: lerp(d.y, meet.y, s), a: u < 0.22 ? walk : lerpAngle(walk, a0 + Math.PI, mj((u - 0.22) / 0.08)) }; }
+          if (u < 0.65) { const th = -Math.PI * mj((u - 0.3) / 0.35), ang = a0 + th;   // allemande right: clockwise
+            return { x: M.x + 0.3 * Math.cos(ang), y: M.y + 0.3 * Math.sin(ang), a: ang + Math.PI + 1.0 * mj((u - 0.3) / 0.08) }; }
+          const from = { x: M.x + 0.3 * Math.cos(a0 - Math.PI), y: M.y + 0.3 * Math.sin(a0 - Math.PI) }, s = mj((u - 0.65) / 0.35), head = angleTo(from, dest);
+          return { x: lerp(from.x, dest.x, s), y: lerp(from.y, dest.y, s), a: lerpAngle(a0 + 1.0, head, mj((u - 0.65) / 0.1)) };
+        };
+      }
+      return out;
+    } },
+    // Spin the top (a wave of four): each end and the center beside them turn 1/2 by the hand they hold; then the new
+    // centers turn 3/4 by the other hand while the new ends move forward a quarter round the outside. The wave ends
+    // turned a quarter, centers and ends swapped.
+    spinTop: { group: 'four', keepsFacing: true, plan(ps, call, ctx) {
+      const c = centroid(ps), along = d => d.x - c.x, order = [0, 1, 2, 3].sort((a, b) => along(ps[a]) - along(ps[b]));
+      const rightHanded = Math.abs(wrap((ps[order[0]].a || 0) - Math.PI / 2)) < 1.0;
+      const h1 = rightHanded ? 'R' : 'L', h2 = rightHanded ? 'L' : 'R', cur = ps.slice(), segs = [];
+      const run = (u0, u1, fns) => { for (const k in fns) cur[k] = fns[k](1); segs.push({ u0, u1, fns }); };
+      const half = {};
+      for (const [a, b] of [[order[0], order[1]], [order[2], order[3]]]) { const fs = FIGURES.allemande.plan([cur[a], cur[b]], { hand: h1, turns: 0.5 }, ctx); half[a] = fs[0]; half[b] = fs[1]; }
+      run(0, 0.4, half);
+      const byX = [0, 1, 2, 3].sort((a, b) => along(cur[a]) - along(cur[b])), ctr = [byX[1], byX[2]], ends = [byX[0], byX[3]], second = {};
+      const fs = FIGURES.allemande.plan([cur[ctr[0]], cur[ctr[1]]], { hand: h2, turns: 0.75 }, ctx); second[ctr[0]] = fs[0]; second[ctr[1]] = fs[1];
+      for (const i of ends) { const d = cur[i], a0 = angleTo(c, d), r = dist(c, d), sw = (rightHanded ? -1 : 1) * Math.PI / 2;
+        second[i] = u => { const ang = a0 + sw * mj(u); return { x: c.x + r * Math.cos(ang), y: c.y + r * Math.sin(ang), a: (d.a || 0) + sw * mj(u) }; }; }
+      run(0.4, 1, second);
+      return ps.map((d, i) => u => { let st = d; for (const sg of segs) { if (!sg.fns[i]) continue; if (u < sg.u0) return st; if (u <= sg.u1) return sg.fns[i]((u - sg.u0) / (sg.u1 - sg.u0)); st = sg.fns[i](1); } return st; });
+    } },
+
     // ---------- English country dance ----------
     // Siding: walk forward toward the other, a little to your left (right siding) so right shoulders come
     // side by side in the middle, then fall back home, facing them throughout.
@@ -1518,6 +1688,8 @@ const Contra = (() => {
   // 'near' for whichever hand is toward the other) holds b's hand bh from u0 to u1 through the figure. A hold with
   // `center` (a star) reaches into the middle of those dancers instead. Figures not listed are danced without hands.
   const hold = (a, ah, b, bh, u0 = 0, u1 = 1) => ({ a, ah, b, bh, u0, u1 });
+  // Hands joined with your neighbours in the wave the figure ends in, from u0 to the end.
+  const waveHolds = (name, u0) => (ps, call, ctx) => waveNeighbours(FIGURES[name].plan(ps, call, ctx).map(f => f(1))).map(([i, j]) => hold(i, 'near', j, 'near', u0, 1));
   const roleAt = (ctx, i) => (ctx.keys && ctx.keys[i] ? ctx.keys[i][0] : i === 0 ? 'L' : 'R');
   const larkFirst = ctx => (roleAt(ctx, 1) === 'L' && roleAt(ctx, 0) !== 'L' ? [1, 0] : [0, 1]);
   // Neighbors around a ring (in order around its middle) hold near hands.
@@ -1585,6 +1757,16 @@ const Contra = (() => {
       return out;
     },
     contraCorners: (ps, call, ctx) => cornersPlan(ps, call, ctx).holds,
+    // Waves: hands with the dancers beside you in the wave, once you're in it (or throughout a balance).
+    formWave: (ps, call, ctx) => waveHolds('formWave', 0.7)(ps, call, ctx),
+    passOcean: (ps, call, ctx) => waveHolds('passOcean', 0.75)(ps, call, ctx),
+    tradeWave: (ps, call, ctx) => waveHolds('tradeWave', 0.85)(ps, call, ctx),
+    slideWave: (ps, call, ctx) => waveHolds('slideWave', 0.85)(ps, call, ctx),
+    circulate: (ps, call, ctx) => waveHolds('circulate', 0.85)(ps, call, ctx),
+    walkDodge: (ps, call, ctx) => waveHolds('walkDodge', 0.85)(ps, call, ctx),
+    scootBack: (ps, call, ctx) => waveHolds('scootBack', 0.9)(ps, call, ctx),
+    spinTop: (ps, call, ctx) => waveHolds('spinTop', 0.9)(ps, call, ctx),
+    balanceWave: ps => waveNeighbours(ps).map(([i, j]) => hold(i, 'near', j, 'near')),
     promenadeAcross: (ps, call, ctx) => promenadePairs(ps, ctx).flatMap(([l, r]) => [hold(l, 'R', r, 'R', 0.05, 1), hold(l, 'L', r, 'L', 0.05, 1)]),
     dixieTwirl: ps => { const o = ps.map((d, i) => i).sort((i, j) => ps[j].x - ps[i].x); return o.slice(1).map((i, k) => hold(o[k], 'near', i, 'near')); },
     castAcross: (ps, call, ctx) => { const lead = call.who === 'larks' ? 'L' : 'R', two = ps.map((d, i) => i).filter(i => roleAt(ctx, i) === lead);
@@ -1652,7 +1834,7 @@ const Contra = (() => {
 
   // Typical lengths in beats, for figures built so far: the ContraLab timing chart (contralab.org),
   // and Contrafusion for pull by (4 beats; 2 when done rapidly as a single change).
-  const TYPICAL_BEATS = { contraCorners: 16, promenadeAcross: 8, turnAlone: 2, dixieTwirl: 4, castAcross: 8, heyThreeSide: 8, crossoverMirrorHey: 16, dolphinHey: 16, chevron: 8, openChain: 8, doubleFigureEight: 16, longLines: 8, allemande: 8, balance: 4, boxTheGnat: 4, swing: 4, circle: 8, pullBy: 4,
+  const TYPICAL_BEATS = { passOcean: 4, tradeWave: 6, spinTop: 8, scootBack: 6, circulate: 4, walkDodge: 4, contraCorners: 16, promenadeAcross: 8, turnAlone: 2, dixieTwirl: 4, castAcross: 8, heyThreeSide: 8, crossoverMirrorHey: 16, dolphinHey: 16, chevron: 8, openChain: 8, doubleFigureEight: 16, longLines: 8, allemande: 8, balance: 4, boxTheGnat: 4, swing: 4, circle: 8, pullBy: 4,
     shoulderRound: 8, dosido: 8, seesaw: 8, swatTheFlea: 4, californiaTwirl: 4, starThrough: 4, rollAway: 4, halfSashay: 4,
     passThrough: 4, star: 8, petronella: 4, courtesyTurn: 4, turnAsCouple: 4, chain: 8, rightLeftThrough: 8, flutterwheel: 8,
     hey: k => 16 * (k.turns || 1), figureEight: k => 16 * (k.turns || 1), forwardBack: 8, nextSquare: 8, grandRL: k => 16 * (k.turns || 0.5),
@@ -1685,7 +1867,24 @@ const Contra = (() => {
     return found ? total : fallback;
   }
 
+  // A figure can end in a wave: "...; form wave of four (NR,WL)", "...; form long waves (NR, women face in)",
+  // "circle to a wave". The parentheses give the ends' relationship and hand, and who is in the center (short wave)
+  // or who faces in (long waves).
+  const FORM_RE = /[;,]?\s*(?:\band\s+)?(?:form|make|step to|to)\s+(?:an?\s+)?(long waves?|short waves?|waves? of four|ocean wave|wave)\b(.*)$/i;
+  function parseForm(t) {
+    const m = t.match(FORM_RE);
+    if (!m) return null;
+    const paren = (m[2].match(/\(([^)]*)\)/) || [])[1] || '', [a = '', b = ''] = paren.split(/[,;]/).map(x => x.trim().toUpperCase());
+    return { kind: /long/i.test(m[1]) ? 'long' : 'short', hand: /L$/.test(a) ? 'L' : 'R', rel: /^N/.test(a) ? 'N' : /^P/.test(a) ? 'P' : null,
+      centers: /^(M|G|L)/.test(b) ? 'L' : 'R', faceIn: /\b(men|gents|larks)\s+face in/i.test(m[2]) ? 'L' : 'R' };
+  }
   function parseFigure(text) {
+    const form = parseForm(text), main = form ? text.replace(FORM_RE, '').trim() : text;
+    if (form && !/[a-z]/i.test(main)) return { fig: 'formWave', who: form.kind === 'long' ? (form.faceIn === 'L' ? 'larks' : 'robins') : form.centers === 'L' ? 'larks' : 'robins', side: form.hand, form };
+    const r = parseMain(main);
+    return form ? { ...r, form } : r;
+  }
+  function parseMain(text) {
     const t = text.toLowerCase().replace(/\bmad robin\b/g, 'mad-rbn');   // so "robin" there isn't read as who
     const handTag = (t.match(/\((rh|lh)\)/) || [])[1];
     let who = null;
@@ -1696,6 +1895,14 @@ const Contra = (() => {
     const amount = fallback => parseTurns(t.replace(/two-hand/g, '').replace(/\(.*?\)/g, '').replace(/\b\d(s|st|nd|rd|th)\b/g, ''), fallback);
     let m;
     if (/long lines/.test(t)) return { fig: 'longLines', who: 'all' };
+    // Wave figures (checked before trade, pass through and the like).
+    if (/pass the (ocean|sea)/.test(t)) return { fig: 'passOcean', who: 'all', side: /sea/.test(t) ? 'L' : 'R' };
+    if (/trade the wave/.test(t)) return { fig: 'tradeWave', who: 'all' };
+    if ((m = t.match(/^slide (right|left)/))) return { fig: 'slideWave', who: 'all', side: m[1][0].toUpperCase() };
+    if (/walk and dodge/.test(t)) return { fig: 'walkDodge', who: 'all' };
+    if (/scoot back/.test(t)) return { fig: 'scootBack', who: 'all' };
+    if (/\bcirculate\b/.test(t)) return { fig: 'circulate', who: 'all' };
+    if (/spin the top/.test(t)) return { fig: 'spinTop', who: 'all' };
     if (/double (full )?figure.?(8|eight)/.test(t)) return { fig: 'doubleFigureEight', who: 'all', castFirst: /\b(1s|ones|first couples?) cross/.test(t) ? '2' : '1' };
     if (/forward (and|&) back/.test(t)) return { fig: 'forwardBack', who: who === 'heads' || who === 'sides' ? who : 'all' };
     if (/grand right (and|&) left|grand chain/.test(t)) return { fig: 'grandRL', who: 'all', turns: /all the way|full|home/.test(t) ? 1 : amount(0.5) };
@@ -1738,7 +1945,7 @@ const Contra = (() => {
     if (/^set\b|\bset to\b/.test(t)) return { fig: 'set', who };
     if (/turn single/.test(t)) return { fig: 'turnSingle', who: 'all', side: lr(), cloverleaf: /clover/.test(t), toward: (t.match(/turn single (up|down)/) || [])[1] };
     if (/\b(right|left)[- ]hands? turn|\bturn (by the )?(right|left)( hand)?\b|\bhand turn\b/.test(t)) return { fig: 'handTurn', who, side: lr(), turns: amount(1) };
-    if (/balance (the )?wave|wavy line/.test(t)) return { fig: 'balanceWave', who: 'all' };
+    if (/balance (the )?(long |short )?wave|wavy line/.test(t)) return { fig: 'balanceWave', who: 'all' };
     if (/balance (the )?ring/.test(t)) return { fig: 'balanceRing', who: 'all' };
     if (/balance/.test(t)) return { fig: 'balance', who, hand: handTag ? handTag[0].toUpperCase() : null };
     if (/swing/.test(t)) return { fig: 'swing', who };
@@ -2401,6 +2608,19 @@ const Contra = (() => {
           addHolds(call.fig, ps, ctx, ids);
         }
       }
+      // "...; form a wave": the figure takes the first three quarters of its time, then everyone steps into the wave.
+      if (fig && call.form && call.fig !== 'formWave') for (const g of pass.groups) {
+        if (g.center || g.longSet) continue;
+        const keys = Object.keys(g.ids).slice(0, 4), ids = keys.map(k => g.ids[k]), fr = g.frame;
+        const fn = id => fns[id] || standStill(from[id]), end = ids.map(id => { const e = fn(id)(1); return fr ? toLocal(fr, e) : e; });
+        const t = waveTargets(end, keys, { p: P, cx: fr ? 0 : g.cx }, waveSpec(call, end, keys));
+        ids.forEach((id, i) => {
+          if (!t[i]) return;
+          const f = fn(id), T = fr ? toWorld(fr, t[i]) : t[i];
+          fns[id] = u => { if (u < 0.75) return f(u / 0.75); const e = f(1), k = mj((u - 0.75) / 0.25); return { x: lerp(e.x, T.x, k), y: lerp(e.y, T.y, k), a: lerpAngle(e.a == null ? T.a : e.a, T.a, k) }; };
+        });
+        for (const [i, j] of waveNeighbours(t)) holds.push({ fig: 'wave', a: ids[i], ah: 'near', b: ids[j], bh: 'near', t0: t0 + 0.85 * call.beats, t1: t0 + call.beats });
+      }
       const local0 = t0 - pass.t0, local1 = local0 + call.beats;
       for (const o of pass.outs) {
         const { lark, robin } = o.couple;
@@ -2480,8 +2700,10 @@ const Contra = (() => {
           // Look ahead: plan the next call (in the next time through, after the last one) from where
           // everyone ends, to learn which way it wants each dancer to face.
           const ends = {};
-          for (const d of dancers) { const e = fns[d.id](1); ends[d.id] = { x: e.x, y: e.y }; }
-          const last = k === flat.length - 1;
+          // Figures danced from a wave (who faces in or out is part of the formation) see each dancer's facing;
+          // other figures are looked at without it, so they say which way they want dancers to face.
+          const last = k === flat.length - 1, nextFig = flat[last ? 0 : k + 1].fig, keep = nextFig && nextFig.keepsFacing;
+          for (const d of dancers) { const e = fns[d.id](1); ends[d.id] = keep ? { x: e.x, y: e.y, a: e.a } : { x: e.x, y: e.y }; }
           let nextPass = pass;
           // Couples who moved to the next square dance the rest of this time through in their new squares.
           if (!last && F.kind === 'square' && call.fig === 'nextSquare') nextPass = startPass(ends, pass.t0);
@@ -2729,6 +2951,7 @@ const CATEGORIES = [
   { id: 6, name: 'Two-couple exchanges', icon: '<path d="M4 4l8 8M12 4l-8 8"/><circle cx="3" cy="3" r="1.4" fill="currentColor"/><circle cx="13" cy="3" r="1.4" fill="currentColor"/><circle cx="3" cy="13" r="1.4" fill="currentColor"/><circle cx="13" cy="13" r="1.4" fill="currentColor"/>' },
   { id: 7, name: 'Weaves', icon: '<path d="M8 8C6 5 2.5 5 2.5 8S6 11 8 8s5.5-3 5.5 0S10 11 8 8z"/>' },
   { id: 8, name: 'Travel and progress', icon: '<path d="M3 4l4 4-4 4M8.5 4l4 4-4 4"/>' },
+  { id: 9, name: 'Waves', icon: '<path d="M1.5 8c1.6-3.2 3.2-3.2 4.3 0s2.7 3.2 4.3 0 2.7-3.2 4.4 0"/>' },
 ];
 const icon = cat => `<svg class="cicon" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${(CATEGORIES.find(c => c.id === cat) || { icon: '<circle cx="8" cy="8" r="2"/>' }).icon}</svg>`;
 
@@ -2790,7 +3013,19 @@ const POOL = [
   { cat: 3, label: 'Set', fig: 'set', who: PAIR, d: { who: 'partners' }, beats: 4, say: 'Set to {who_l}', re: /^set\b|\bset to\b/ },
   { cat: 3, label: 'Turn single cloverleaf', fig: 'turnSingle', d: {}, beats: 4, say: 'Turn single cloverleaf', re: /turn single clover/, ecd: true },
   { cat: 3, label: 'Turn single', fig: 'turnSingle', side: 'way', d: { side: 'R' }, beats: 4, say: 'Turn single {side}', re: /turn single/ },
-  { cat: 3, label: 'Balance the wave', fig: 'balanceWave', d: {}, beats: 4, say: 'Balance the wave', re: /balance (the )?wave|wavy line/ },
+  { cat: 9, label: 'Form a wave of four', fig: 'formWave', who: ['robins', 'larks'], side: 'hand', d: { who: 'robins', side: 'R' }, beats: 4,
+    say: m => `Form a wave of four (N${m.side}, ${m.who === 'larks' ? 'M' : 'W'}${m.side === 'R' ? 'L' : 'R'})`, re: /wave of four|short wave|ocean wave/ },
+  { cat: 9, label: 'Form long waves', fig: 'formWave', who: ['robins', 'larks'], side: 'hand', d: { who: 'robins', side: 'R' }, beats: 4,
+    say: m => `Form long waves (N${m.side}, ${m.who === 'larks' ? 'larks' : 'robins'} face in)`, re: /long waves?/ },
+  { cat: 9, label: 'Pass the ocean', fig: 'passOcean', d: {}, beats: 4, say: 'Pass the ocean', re: /pass the ocean/, setup: '(8) Neighbor swing' },
+  { cat: 9, label: 'Pass the sea', fig: 'passOcean', d: {}, beats: 4, say: 'Pass the sea', re: /pass the sea/, setup: '(8) Neighbor swing' },
+  { cat: 9, label: 'Balance the wave', fig: 'balanceWave', d: {}, beats: 4, say: 'Balance the wave', re: /balance (the )?(long |short )?wave|wavy line/, setup: '(4) Form a wave of four (NR, WL)' },
+  { cat: 9, label: 'Trade the wave', fig: 'tradeWave', d: {}, beats: 6, say: 'Trade the wave', re: /trade the wave/, setup: '(4) Form a wave of four (NR, WL)' },
+  { cat: 9, label: 'Slide', fig: 'slideWave', side: 'way', d: { side: 'R' }, beats: 4, say: 'Slide {side}', re: /^slide (right|left)/, setup: '(4) Form a wave of four (NR, WL)' },
+  { cat: 9, label: 'Spin the top', fig: 'spinTop', d: {}, beats: 8, say: 'Spin the top', re: /spin the top/, setup: '(4) Form a wave of four (NR, WL)' },
+  { cat: 9, label: 'Circulate', fig: 'circulate', d: {}, beats: 4, say: 'Circulate', re: /\bcirculate\b/, setup: '(4) Form long waves (NR, robins face in)' },
+  { cat: 9, label: 'Walk and dodge', fig: 'walkDodge', d: {}, beats: 4, say: 'Walk and dodge', re: /walk and dodge/, setup: '(4) Form long waves (NR, robins face in)' },
+  { cat: 9, label: 'Scoot back', fig: 'scootBack', d: {}, beats: 8, say: 'Scoot back', re: /scoot back/, setup: '(4) Form long waves (NR, robins face in)' },
   { cat: 3, label: 'Balance the ring', fig: 'balanceRing', d: {}, beats: 4, say: 'Balance the ring', re: /balance (the )?ring/ },
   { cat: 4, label: 'Circle', fig: 'circle', side: 'ring', amount: 'places', d: { side: 'L', amt: 1 }, say: 'Circle {side} {amt}' },
   { cat: 4, label: 'Star', fig: 'star', side: 'hand', amount: 'places', d: { side: 'R', amt: 1 }, beats: 8, say: 'Star {side} {amt}', re: /^star (right|left)|hands across/ },
@@ -3088,7 +3323,17 @@ const DESCRIPTIONS = {
   'Set': 'Step right, then left, in place, facing someone.',
   'Turn single cloverleaf': 'English: everyone turns single at once, each turning away from the middle of the set (the top couple up, the bottom couple down), so from above the four little circles make a four-leaf clover.',
   'Turn single': 'Walk forward round a small circle (about the size of a pizza) off to one side, turning all the way round: right turns clockwise, left counter-clockwise. You end where you started.',
-  'Balance the wave': 'In a wave, balance forward and back. Shown simply as a step forward and back.',
+  'Balance the wave': 'In a wave (a wave of four across the set, or long waves on the sides), hands joined with the dancers beside you, balance forward and back.',
+  'Form a wave of four': 'Four dancers make a line across the set, each facing the opposite way from the dancer beside them, hands joined: (NR, WL) means the ends hold right hands with their neighbors and the robins hold left hands in the center. Any figure can end this way: "...; form wave of four".',
+  'Form long waves': 'Each side of the set becomes one long wave down the hall: dancers alternately face in and out, hands joined with the dancers beside them, e.g. (NR, robins face in). Any figure can end this way: "...; form long waves".',
+  'Pass the ocean': 'From couples on the sides: pass through across the set; the right-hand dancers hook left hands in the middle and turn to be the centers, while the others go on across and take right hands with the one they were standing beside. Ends in a right-handed wave of four.',
+  'Pass the sea': 'The mirror image of pass the ocean: pass left shoulders, the left-hand dancers become the centers holding right hands, ending in a left-handed wave of four.',
+  'Trade the wave': 'From a wave of four, the dancers facing the same way trade places, stepping forward and curving round toward each other, passing right shoulders. Ends become centers, everyone faces the other way, and the wave changes hands.',
+  'Slide': 'From a wave, let go and sidestep to your right (or left), passing in front of the dancer there, into their place, still facing the same way. Often with a spin.',
+  'Spin the top': 'From a wave of four: each end and the center beside them turn half by the hand they hold; then the new centers turn three quarters by the other hand while the new ends walk a quarter round the outside. The wave ends turned a quarter.',
+  'Circulate': 'In long waves: those facing in walk straight across the set and stay facing out; those facing out loop into the place of the dancer beside them and face in.',
+  'Walk and dodge': 'In long waves: those facing in walk straight across the set; those facing out sidestep into the place beside them. Everyone ends facing out.',
+  'Scoot back': 'In long waves: those facing out loop into the place beside them; those facing in walk to the middle, allemande right half, and walk on out to the far side.',
   'Balance the ring': 'Hands in a ring: step in toward the middle and back.',
   'Circle': 'Hands in a ring, everyone facing the middle. Circle left travels clockwise; the amount counts places around the ring.',
   'Star': 'Named hand in the middle, walk forward around. A right-hand star turns clockwise; the amount counts places.',

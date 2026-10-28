@@ -211,6 +211,21 @@ in these are flagged and shown as improper. Not modelled within supported format
 doublet's rotating progression (neighbours become partners and the top of the hall turns 90 degrees each time), and
 the tempest's usual progression (the ones' line goes down the hall and returns only as far as new neighbours).
 
+## Waves
+
+A wave of four (short wave) is a line of four across the set, alternate dancers facing opposite ways, hands joined;
+long waves run down each side, alternately facing in and out. Dances reach them with a figure ending "; form wave of
+four (NR,WL)" / "; form long waves (NR, women face in)" (the figure takes three quarters of its time, then everyone
+steps into the wave), with "form ..." on its own, or with pass the ocean / pass the sea. The parentheses give the ends'
+relationship and hand, and the centers (short) or who faces in (long). Figures from a wave (balance, trade the wave,
+slide, spin the top, circulate, walk and dodge, scoot back) read the dancers' facing, so the engine keeps each
+dancer's facing when it looks ahead to them (`keepsFacing`).
+
+**Taminations** (github.com/bradchristie/taminations-flutter, tamtwirlers.org) animates modern western square dance
+calls. It is GPL-3 licensed, so its code and animation data must not be copied into this MIT project; its CALLERLAB
+definitions (which CALLERLAB allows to be reproduced with its notice) and its animations are used as references only.
+One idea worth borrowing later: it works out hand holds from where dancers stand rather than listing them per figure.
+
 ## Dance editor (decisions)
 
 - The timeline is the editor: four rows (A1, A2, B1, B2), each 16 beats wide; each figure is a block as wide as its length.

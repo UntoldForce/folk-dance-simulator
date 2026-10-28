@@ -258,6 +258,26 @@ check(made.every(k => { const r = Contra.parseDance('A1\n(8) ' + Contra.callText
   check(across, 'promenade across: each couple ends on the other side of the set');
 }
 
+// Waves: a wave of four across the set and long waves on the sides, alternate dancers facing opposite ways, hands joined.
+{
+  const w = Contra.compile(Contra.parseDance('A1\n(4) Form a wave of four (NR, WL)\n(4) Balance the wave\n(6) Trade the wave'), { lines: 1, sets: 1, passes: 1 });
+  const at = t => ['0.1L', '0.1R', '0.2L', '0.2R'].map(id => ({ id, ...Contra.poseAt(w, id, t) })).sort((a, b) => a.x - b.x);
+  const line = at(4), level = line.every(d => Math.abs(d.y - line[0].y) < 0.05), alt = line.every((d, i) => i === 0 || Math.cos(d.a - line[i - 1].a) < -0.9);
+  check(level && alt && line[1].id.endsWith('R') && line[2].id.endsWith('R'), `wave of four (NR, WL): a line across the set, facing alternately, robins in the center (${line.map(d => d.id).join(' ')})`);
+  const H = Contra.handsAt(w, 6);
+  check(line.every(d => H[d.id].L.held || H[d.id].R.held), 'balance the wave: everyone holds hands with the dancers beside them');
+  const after = at(14);
+  check(after[1].id.endsWith('L') && after[2].id.endsWith('L'), `trade the wave: ends become centers (${after.map(d => d.id).join(' ')})`);
+  const lw = Contra.compile(Contra.parseDance('A1\n(8) Neighbor do-si-do; form long waves (NR, women face in)\n(4) Circulate'), { lines: 1, sets: 1, passes: 1 });
+  const facesIn = id => { const p = Contra.poseAt(lw, id, 8); return Math.cos(p.a) * -p.x > 0; };
+  check(facesIn('0.1R') && facesIn('0.2R') && !facesIn('0.1L') && !facesIn('0.2L'), 'form long waves (women face in): robins face in, larks out');
+  const crossed = id => Math.sign(lw.final[id].x) !== Math.sign(Contra.poseAt(lw, id, 8).x);
+  check(crossed('0.1R') && crossed('0.2R') && !crossed('0.1L') && !crossed('0.2L'), 'circulate: those facing in cross the set, those facing out loop on their own side');
+  const po = Contra.compile(Contra.parseDance('A1\n(8) Neighbor swing\n(4) Pass the ocean'), { lines: 1, sets: 1, passes: 1 });
+  const ys = ['0.1L', '0.1R', '0.2L', '0.2R'].map(id => po.final[id].y);
+  check(Math.max(...ys) - Math.min(...ys) < 0.1, 'pass the ocean: from couples on the sides into a wave of four across the set');
+}
+
 // English: in a proper set the chevron progresses the couples, and a neighbour is the dancer beside you.
 {
   const ch = Contra.compile(Contra.parseDance('FormationBase: Duple Minor - Proper\nA1\n(8) First corners chevron'), { lines: 1, sets: 3, passes: 6 });

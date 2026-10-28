@@ -51,7 +51,7 @@ the move explorer.
 | Mad robin | CB, T, GIF | ✓ | Clockwise starts with the left-hand dancer in front (CB's rule; matches the GIF). Around the person beside you; in a proper set that's your English neighbour |
 | Turn single | CB, T, GIF | fixed | Clockwise ("right") by default (CB). Now walks forward round a small circle off to one side and ends where it started. "Up"/"down" read |
 | Turn single cloverleaf | T, CB, GIF | new | Everyone turns away from the middle (top couple up, bottom down) |
-| Balance the wave | CB | approx. | Shown as a step forward and back; real wave balances vary in direction |
+| Balance the wave | CB | fixed | Now done in a real wave (see Waves below) |
 | Balance the ring | CB | ✓ | |
 | Circle | CB | ✓ | In fixed (English) sets the ring opens back out to places at the end |
 | Star | CB | ✓ | Hands drawn into the middle (wrist grip and hands-across both exist) |
@@ -97,7 +97,21 @@ the move explorer.
 | Promenade across | CB | new | The usual contra promenade: straight across as couples, then courtesy turn |
 | Contra corners | CB | new / approx. | Four allemandes in CB's order and amounts; needs both corners in the group (triple minor or three-couple set). In a duple minor the second corner is in the next hands-four, which isn't supported yet |
 
-**Not built** (in CB, less common): do paso, arch and dive / dip and dive, circulate, pass the ocean, bend the line,
+### Waves (added after the review, from CB and the CALLERLAB definitions in Taminations)
+
+| Move | Source | Verdict | Notes |
+|---|---|---|---|
+| Form a wave of four / long waves | CB | new | Also as the end of any figure: "...; form wave of four (NR,WL)", "...; form long waves (NR, women face in)", "circle to a wave" |
+| Pass the ocean / pass the sea | CB, CALLERLAB | new | |
+| Balance the wave | CB | fixed | Now in a real wave, hands joined |
+| Trade the wave | CB, CALLERLAB | new | Same-facing dancers trade, passing right shoulders |
+| Slide right / left | CB | new | The optional spin isn't drawn |
+| Spin the top | CB, CALLERLAB | new | |
+| Circulate | CB, CALLERLAB | new | Long waves |
+| Walk and dodge | CB | new | |
+| Scoot back | CB, CALLERLAB | new | |
+
+**Not built** (in CB, less common): do paso, arch and dive / dip and dive, bend the line,
 hand cast, assisted cast off, hey for three across the set, the contra "open ladies chain", Allemande X, grand square,
 and the rest of CB's 276 entries that aren't in the pool. Each would be a new move.
 

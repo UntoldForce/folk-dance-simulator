@@ -74,6 +74,17 @@ for (const [form, lead, beats, text] of [
   ['Duple Minor - Improper', '(8) Partner swing', 8, 'Partner promenade across the set'],
   ['Duple Minor - Improper', '(8) Down the hall in a line of four', 4, 'Dixie twirl'],
   ['Duple Minor - Improper', '(8) Down the hall in a line of four', 2, 'Turn alone'],
+  ['Duple Minor - Improper', '(4) Form a wave of four (NR, WL)', 4, 'Balance the wave'],
+  ['Duple Minor - Improper', '(4) Form a wave of four (NR, WL)', 6, 'Trade the wave'],
+  ['Duple Minor - Improper', '(4) Form a wave of four (NR, WL)', 4, 'Slide right'],
+  ['Duple Minor - Improper', '(4) Form a wave of four (NR, WL)', 8, 'Spin the top'],
+  ['Duple Minor - Improper', '(4) Form long waves (NR, robins face in)', 4, 'Circulate'],
+  ['Duple Minor - Improper', '(4) Form long waves (NR, robins face in)', 4, 'Walk and dodge'],
+  ['Duple Minor - Improper', '(4) Form long waves (NR, robins face in)', 8, 'Scoot back'],
+  ['Duple Minor - Improper', '(8) Neighbor swing', 4, 'Pass the ocean'],
+  ['Duple Minor - Improper', '(8) Neighbor swing', 4, 'Pass the sea'],
+  ['Duple Minor - Improper', '(4) Long lines forward', 8, 'Circle left 3/4; form wave of four (NR, WL)'],
+  ['Duple Minor - Improper', '(4) Long lines forward', 8, 'Neighbor do-si-do 1 & 1/4; form long waves (NR, women face in)'],
 ]) {
   const dance = Contra.parseDance(`FormationBase: ${form}\nA1\n${lead}\n(${beats}) ${text}`);
   const call = dance.parts[0].calls[1], c = Contra.compile(dance, { lines: 1, sets: 3, passes: 1 }), t0 = c.calls[1].t0;

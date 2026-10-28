@@ -144,3 +144,12 @@ placed in a dance; dancers stand still during them and the checks show a caution
 | Crossover mirror hey (English) | Three-couple set | 16 | The first couple cross over, then each side heys for three, the two heys mirror images | First couple crossed; others home | built |
 | [Dixie twirl](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#dixie-twirl) | Line of four | 4 | As couples, a California twirl: the centers arch, the right-hand couple goes under, the left-hand couple walks forward round them | Line reversed, facing the other way | built |
 | [Promenade across the set](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#promenade-across-the-set) | Couples | 8 | Side by side in promenade hold, straight across the set, then courtesy turn | Across from where they started, facing in | built |
+| Form a wave of four / long waves | Hands-four | 4 (or the end of any figure: "...; form wave of four (NR,WL)") | Short wave: a line across the set, alternate dancers facing up and down, hands joined; (NR,WL) = ends hold right hands with neighbors, robins left hands in the center. Long waves: each side alternately facing in and out, e.g. (NR, women face in) | In the wave | built |
+| Pass the ocean / pass the sea | Couples on the sides | 4 | Pass through across; the right-hand dancers (left for the sea) hook in the middle as centers, the others go on across and take hands with the one they stood beside | Right-handed (left-handed) wave of four | built |
+| Balance the wave | A wave | 4 | Hands joined in the wave, balance forward and back | Same wave | built |
+| Trade the wave | Wave of four | 6 | Those facing the same way trade, curving round toward each other, passing right shoulders | Ends and centers swapped, facing the other way, other hand | built |
+| Slide right / left | A wave | 4 | Let go, sidestep to your right (left) in front of the dancer there into their place | Same facing | built |
+| Spin the top | Wave of four | 8 | Ends and adjacent centers turn ½; new centers turn ¾ while the ends walk a quarter round | Wave turned a quarter | built |
+| Circulate | Long waves | 4 | Facing in: walk across. Facing out: loop into the place beside you | Long waves again | built |
+| Walk and dodge | Long waves | 4 | Facing in: walk across. Facing out: sidestep into the place beside you | All facing out | built |
+| Scoot back | Long waves | 6–8 | Facing out: loop into the place beside you. Facing in: walk to the middle, allemande right ½, walk on out to the far side | Long waves again | built |
