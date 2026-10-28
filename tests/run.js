@@ -106,6 +106,7 @@ check(made.every(k => { const r = Contra.parseDance('A1\n(8) ' + Contra.callText
   check(m.passes[0].outs.length === 0 && m.passes[1].outs.map(o => o.couple + ' ' + o.end).join() === '0.2 top,0.5 bottom',
     `time 2: couple 2 out at the top, couple 5 out at the bottom (${m.passes[1].outs.map(o => o.couple + ' ' + o.end).join()})`);
   check(m.passes[2].outs.length === 0 && m.passes[2].groups.length === 3, 'time 3: everyone back in, three hands-fours');
+  check(m.passes.every((p, i) => p.groups.length === (i % 2 ? 2 : 3)), `hands-fours keep forming every time through (${m.passes.map(p => p.groups.length).join(', ')})`);
   const mt = (id, t) => Contra.poseAt(m, id, t);
   check(mt('0.2L', 64 + 8).x > 0.5 && mt('0.2R', 64 + 8).x < -0.5, 'couple 2 crosses over in the first 8 beats of waiting at the top');
   const facesInAt = (id, t) => { const p = mt(id, t); return Math.cos(p.a) * Math.sign(-p.x) > 0.95; };
@@ -135,6 +136,38 @@ check(made.every(k => { const r = Contra.parseDance('A1\n(8) ' + Contra.callText
   check(at4(32, { '0.1L': [-0.6, 0.5], '0.1R': [-0.6, -0.5], '0.2L': [0.6, -0.5], '0.2R': [0.6, 0.5] }), 'half hey: everyone ends diagonally across from where they started');
   const robinsMeet = Math.hypot(q('0.1R', 26).x - q('0.2R', 26).x, q('0.1R', 26).y - q('0.2R', 26).y);
   check(robinsMeet < 1.0, `half hey: the robins pass close in the middle first (${robinsMeet.toFixed(2)} m apart at beat 3 of the hey)`);
+}
+
+// ---------- Formations ----------
+{
+  const side = (c, id) => Math.sign(c.start[id].x);
+  const lay = name => Contra.compile(Contra.parseDance(`FormationBase: ${name}\nA1\n(8) In long lines, go forward and back`), { lines: 1, sets: 2, passes: 1 });
+  const expect = {
+    'Duple Minor - Improper': [1, -1, -1, 1], 'Duple Minor - Proper': [-1, 1, -1, 1], 'Duple Minor - Indecent': [-1, 1, 1, -1],
+    'Duple Minor - All Improper': [1, -1, 1, -1], 'Duple Minor - Progressed Improper': [1, -1, -1, 1], 'Duple Minor - Reverse Progression Improper': [-1, 1, 1, -1],
+  };
+  for (const [name, [l1, r1, l2, r2]] of Object.entries(expect)) {
+    const c = lay(name);
+    const ok = side(c, '0.1L') === l1 && side(c, '0.1R') === r1 && side(c, '0.2L') === l2 && side(c, '0.2R') === r2 && c.passes[0].groups.length === 2 && !c.warnings.some(w => /isn't supported/.test(w.text));
+    check(ok, `${name}: couples start on the right sides and form two hands-fours`);
+  }
+  const pi = lay('Duple Minor - Progressed Improper');
+  check(pi.start['0.1L'].y < pi.start['0.2L'].y, 'progressed improper: the ones start below the twos');
+  for (const [name, onesSide] of [['Duple Minor - Becket CW', 1], ['Duple Minor - Becket CCW', -1]]) {
+    const c = lay(name), same = id => side(c, id + 'L') === side(c, id + 'R');
+    check(same('0.1') && same('0.2') && side(c, '0.1L') === onesSide && side(c, '0.2L') === -onesSide && c.passes[0].groups.length === 2,
+      `${name}: partners side by side, ones on the ${onesSide > 0 ? '+x' : '-x'} side, two hands-fours`);
+  }
+  // A Becket dance that progresses by slicing: every time through, couples face a new couple across;
+  // couples out at the ends cross the set together and come back in.
+  const b = Contra.compile(Contra.parseDance('FormationBase: Duple Minor - Becket CW\nA1\n(8) Slice left'), { lines: 1, sets: 3, passes: 8 });
+  check(b.progression.firstBad === -1, `Becket slice left progresses every time through (${b.passes.map(p => p.check.good + '/' + p.check.total).join(', ')})`);
+  check(b.passes[1].outs.length === 2, 'Becket: the second time through, a couple waits out at each end');
+  check(b.passes.every((p, i) => p.groups.length === (i % 2 ? 2 : 3)), `Becket: couples come back in, so hands-fours keep forming (${b.passes.map(p => p.groups.length).join(', ')})`);
+  const pr = Contra.compile(Contra.parseDance('FormationBase: Duple Minor - Proper\nA1\n(8) In long lines, go forward and back'), { lines: 1, sets: 2, passes: 1 });
+  check(pr.warnings.every(w => !/isn't supported/.test(w.text)), 'proper is a supported formation');
+  const odd = Contra.parseDance('FormationBase: Triple Minor - Proper\nA1\n(8) In long lines, go forward and back');
+  check(odd.warnings.some(w => /isn't supported yet/.test(w.text)), 'a triple minor is flagged as not supported yet');
 }
 
 // Speeds per figure, at 120 beats per minute (2 beats per second). Not a pass/fail check yet.

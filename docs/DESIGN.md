@@ -144,6 +144,30 @@ Crossed arms and body twist need dancers modeled as bodies rather than dots; lef
 - **Waiting couples swing their partner when the line swings partners**, then open back out to their places facing each other. Otherwise they stand facing in.
 - **Times through is adjustable, 1 to 30, default 8.**
 
+## Formations
+
+Supported (duple minor), chosen with the Formation dropdown or the `FormationBase:` line:
+
+| Formation | Start |
+|---|---|
+| Improper | Ones crossed (lark on the +x side, the caller's left looking down), twos proper; ones above twos |
+| Proper | Every lark on the -x side |
+| Indecent | Twos crossed, ones proper |
+| All improper | Both couples crossed |
+| Progressed improper | Improper after trading with neighbors: ones below twos |
+| Reverse progression improper | Twos (top) crossed, ones (below) proper |
+| Becket clockwise / counter-clockwise | Partners side by side on one side, couples facing across; clockwise has the ones (progressing down) on the +x side |
+
+Hands-fours re-form each time through by where the formation puts the twos relative to the ones (one place below,
+one place above, or across for Becket). Waiting couples move at the start of their wait to where their new role
+stands: partners trade sides (improper-type), nobody moves (proper), or a Becket couple crosses the set together,
+diagonally one place. Open question for Ryan: how couples rejoin at the ends in progressed improper and reverse
+progression improper (the checks show a caution).
+
+Not supported yet (they change how groups form): triple minor, four facing four (and tempest), Sicilian circle,
+circle mixers, triplets and quadruplets, squares and their variants, grid contras and grid squares, zia, and other
+special formations. Dances in these are flagged and shown as improper.
+
 ## Dance editor (decisions)
 
 - The timeline is the editor: four rows (A1, A2, B1, B2), each 16 beats wide; each figure is a block as wide as its length.
