@@ -328,5 +328,25 @@ for (const k of c.calls) {
   }
   console.log(`  ${k.part} (${String(k.beats).padStart(2)}) ${k.text.padEnd(34)} ${peak.toFixed(2)} m/s`);
 }
+// Reading real dances (from testing against ContraDB): several figures on one line, other spellings, who.
+{
+  const read = l => Contra.parseDance('A1\n' + l).parts[0].calls.map(k => `${k.beats} ${k.fig} ${k.who || ''}`.trim()).join(' | ');
+  const bs = Contra.parseDance('A1\n(16) Neighbors balance & swing'), bsc = Contra.compile(bs, { lines: 1, sets: 2, passes: 1 });
+  check(bs.parts[0].calls.length === 1 && Contra.serialize(bs).includes('(16) Neighbors balance & swing'), 'a line with two figures stays one figure in the dance, written as it was');
+  check(bsc.calls.map(k => `${k.beats} ${k.fig} ${k.who} ${k.src}`).join(' | ') === '4 balance neighbors 0 | 12 swing neighbors 0', 'and is danced as its two steps, the second by the same people');
+  check(read('(8) Women allemande left 1 & 1/2') === '8 allemande robins' && read('(8) long lines forward & back') === '8 longLines all' && read('(8) In long lines, go forward and back') === '8 longLines all', '"1 & 1/2", "forward & back" and names with "and" stay whole');
+  check(/circle/.test(read('(8) circle left 3 places')) && Contra.parseDance('A1\n(8) circle left 3 places').parts[0].calls[0].turns === 0.75, '"circle left 3 places" is three quarters');
+  check(['(8) larks do si do 1½', '(8) robins gyre once', '(8) right left through', '(8) partners see saw', '(4) partners pass by right shoulders'].map(read).join() === '8 dosido larks,8 shoulderRound robins,8 rightLeftThrough all,8 seesaw partners,4 passThrough partners', 'ContraDB spellings: do si do, gyre, right left through, see saw, pass by');
+  check(read('(8) robins do si do 1½ or swing to partner') === '8 dosido robins', 'who is the first dancers named, and "or ..." alternatives are ignored');
+  check(read('(2) slide left along set') === '2 shift all' && read('(4) swing through') === '4 swingThrough all', '"slide left along the set" is a shift; "swing through" is the wave figure, not a swing');
+  check(['(8) twos arch ones dive', '(8) larks cross trails', '(8) partner right elbow', '(8) larks right-hand chain'].map(read).join() === '8 archDive all,8 crossTrails all,8 armTurn partners,8 chain larks', 'arch and dive, cross trails, elbow turns and the right-hand chain are read');
+  const box = Contra.compile(Contra.parseDance('A1\n(8) Neighbors swing\n(8) Balance & box circulate - robins cross while larks loop right'), { lines: 1, sets: 1, passes: 1 });
+  check(box.calls.map(k => k.fig).join() === 'swing,balance,boxCirculate' && box.calls[2].who === 'robins', '"balance & box circulate - robins cross" is a balance then a box circulate with the robins crossing');
+  check(Contra.parseDance('A1\n(8) Ones swing, end facing down').parts[0].calls[0].end === -Math.PI / 2, '"end facing down" is read');
+  // A dance that progresses partway through B2 (pass through to new neighbors after a circle) comes out right.
+  const mid = Contra.compile(Contra.parseDance('A1\n(4) Neighbors balance\n(12) Neighbors swing\nA2\n(8) Long lines forward & back\n(8) Robins chain\nB1\n(4) Partners balance\n(12) Partners swing\nB2\n(6) Circle left 3 places\n(2) Pass through\n(8) Next neighbors do si do'), { lines: 1, sets: 3, passes: 4 });
+  check(mid.progression.firstBad === -1, `circle left 3/4, pass through to the next neighbors, do-si-do with them: progresses (${mid.passes.map(p => p.check.good + '/' + p.check.total).join(', ')})`);
+}
+
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll checks passed');
 process.exit(failures ? 1 : 0);

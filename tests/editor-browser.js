@@ -121,6 +121,26 @@ const { chromium } = require('playwright');
   await p.click('#viewParts'); await p.waitForTimeout(100);
   check(await p.locator('#rows').isVisible(), 'Parts brings the rows back');
 
+  // "Balance & swing" on one line: one block, shown as the Balance and swing move, lit while either step plays.
+  await p.evaluate(() => { $('danceText').value = 'A1\n(16) Neighbors balance & swing\nA2\n(16) Partners balance and swing'; build(); seek(10); });
+  await p.waitForTimeout(100);
+  check(await p.evaluate(() => document.querySelectorAll('.fblk[data-part="0"]').length === 1 && moveOf(state.doc.parts[0].calls[0]).label === 'Balance and swing' && document.querySelector('.fblk[data-part="0"]').classList.contains('active')),
+    'a balance & swing line is one block (the Balance and swing move), lit during its swing');
+  await p.click('#reset2'); await p.waitForTimeout(100);
+
+  // Formation pictures: the common formations, one click each.
+  check(!(await p.locator('.fpick').first().isVisible()), 'the formation pictures start folded away');
+  await p.click('#formPicksBox summary'); await p.waitForTimeout(50);
+  check(await p.locator('.fpick').count() === 6 && await p.locator('.fpick svg rect').count() > 0, 'six common formations are shown as pictures (larks as squares, robins as circles)');
+  await p.click('.fpick[data-key="becketCW"]'); await p.waitForTimeout(100);
+  check(await p.evaluate(() => $('formation').value === 'becketCW' && /Becket/.test($('danceText').value) && document.querySelector('.fpick[aria-pressed="true"]').dataset.key === 'becketCW'), 'clicking the Becket picture sets the formation and marks it');
+  await p.click('.fpick[data-key="improper"]'); await p.waitForTimeout(100);
+  await p.click('#formPicksBox summary');
+
+  // Floor outlines: worked out once per time through; "out" labels stay put (they don't follow the couple about).
+  check(await p.evaluate(() => { const c = state.c, a = settingShapes(c, 1); return a.some(s => s.corners) && a.some(s => s.label === 'out') && settingShapes(c, 1) === a; }),
+    'hands-four outlines and "out" labels are fixed for each time through');
+
   // Workspace: nothing scrolls on a computer screen; the timeline sits right under the floor.
   await p.click('#reset2'); await p.waitForTimeout(200);
   for (const [w, h] of [[1440, 900], [1366, 768], [1920, 1080]]) {

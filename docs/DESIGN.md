@@ -177,6 +177,62 @@ Dancers are drawn 0.38 m across; `bodyGap` (0.4 m) is the closest two dancers' m
   `tests/editor-browser.js` runs every move in the list with each choice of who and side, as its preview plays it
   and with three hands-fours.
 
+## Testing against real dances (October 2026)
+
+`tools/fetch-contradb.js` downloads dances from ContraDB (contradb.com, whose robots.txt allows it), one request at a
+time, keeping only those their owner marked "shared everywhere", and writes each in The Caller's Box layout to
+`library/contradb/`. That folder isn't in the repository: the dances belong to their choreographers. (The Caller's Box
+itself can't be reached from the cloud session: its security certificate fails.) `tests/library.js` runs every dance
+there and writes `library/report.txt`: figures not read yet (most common first), dances whose progression goes wrong,
+bumps, hand problems, crashes. It's a to-do list, not a pass/fail test.
+
+What the first 402 dances taught the simulator:
+- **Several figures on one line** ("(16) Neighbors balance & swing", "circle left 3/4 and pass through") stay one
+  figure in the dance and one block in the editor, written as they were (Ryan: balance and swing is so common it
+  should be one move; "Balance and swing" is in the move list too). They're danced as steps: the line is split at
+  "&", "and", "then" or ";" when each part reads as a figure; later parts are danced by the same people unless they
+  name others; each part but the last gets its usual length, the last the rest. Compiled calls carry `src`, the
+  figure they came from. Names with "and" in them ("right and
+  left through", "forward and back", "give and take", "1 & 1/2") stay whole.
+- **Other spellings:** do si do, see saw, gyre (shoulder round), right left through, grand right left, pass by,
+  Rory O'More (slide), "slide left along the set" (a shift, not the wave figure), "swing through" (not a swing; not
+  built yet), "pass through to an ocean wave" (pass the ocean).
+- **Who** is the first dancers a line names ("robins do-si-do 1½ to meet partner" is the robins'); couple numbers
+  ("1s and 3s first corners") count only when nothing else is named; "… or …" alternatives are ignored.
+- **"N places"** round a circle or star is N quarters.
+- **"…swing, end facing down (up)"** ends the swing in the middle of the set facing that way; a pair swinging while the
+  others stand finishes in the middle if its side is taken.
+- **An unnamed pass through** goes along the set right after a circle or star (on to new neighbors), otherwise across.
+- **"Promenade"** in a contra is a promenade across; **"grand right and left"** in a hands-four is rights and lefts.
+- **Progressing partway through:** after a figure that takes dancers to new neighbors ("to new neighbors", "along the
+  set", ContraDB's ⁋ mark, outside A1), or before one danced with the "next neighbors", couples form new hands-fours
+  from where they stand. That moment is then the changeover: couples waiting out switch role there, and the
+  progression is checked from one changeover to the next.
+- **The progression check** looks only at where dancers stand (within 0.35 m), not which way they face: by the end of
+  a time through they're already turning toward the next figure.
+
+Later rounds (Ryan: keep "balance and swing" as one move; fix the Becket swing problem; add the missing figures):
+- A line with a part the simulator doesn't know ("balance & box circulate" before box circulate was built) is reported
+  as unknown rather than danced as just the part it knows. Words that say how a figure ends ("bend into a ring",
+  "face…", "look for…", "meet…", "straight back") aren't figures. "Once or once and a half": the first is danced.
+- Progressing partway through also happens in A1 after a move along the set (a slide, slice or pass through with
+  ContraDB's ⁋); a ⁋ on a figure that stays put ("long lines forward & back ⁋") marks the first figure with the new
+  neighbors and changes nothing. Regrouping partway through pairs couples standing side by side with the couple
+  level across from them. A time through in which no hands-fours form at all counts as the progression going wrong
+  (it had hidden failures).
+- Turn as a couple, courtesy turn and the like, unnamed, are danced with the one beside you ("down the hall and turn
+  as a couple" turns each pair walking side by side, not partners at opposite ends of the line).
+- New figures: swing through, box circulate, arch and dive, cross trails, a long wave in the middle, one role to the
+  middle and back, elbow turns, the right-hand chain.
+- Becket: the "swing side" turned out not to be the cause (both choices give the same results). The Becket failures
+  that remain come from where couples face after moves like the butterfly whirl and from end effects after
+  progressing partway through; the first time through is right in about half of them.
+
+After the first round: 75% of the dances had every figure read; 34% are read, progress correctly, and have no bumps or hand
+problems (from 3%). Still to do: Becket and proper dances often finish with couples on the wrong side after a partner
+swing (which side a swing ends on is a guess); figures not built yet (swing through, arch and dive, zig-zag, cross
+trails, rang tang); notes in the figure text ("larks take partners", "look for your partner").
+
 ## Startup decisions
 
 1. **Multiple lines:** always modeled by the engine; figures between lines are rare, so their controls and checks live under **Advanced settings**.
@@ -290,6 +346,13 @@ Like a video editor (Ryan's example: Adobe Premiere), nothing scrolls on a compu
   Shown for dances in lines (contra, English sets, Becket, triple minor, tempest, four facing four); squares and
   circles get a note instead.
 - Phones start with one line (until a choice is remembered).
+- **On the floor**, the dashed hands-four outlines cross-fade over the first two beats of a time through when the
+  groups change (an outline that stays the same just stays), and the "out" label sits still beside where a waiting
+  couple starts that time through instead of following them about.
+- **Formation pictures** above the Formation menu, folded away by default ("Common formations, as pictures") to leave room for the moves; opening them is remembered: the common formations, grouped Contra (improper, Becket), English
+  (proper, three-couple set) and Square & circle (square, circle mixer). Each picture is drawn from where the
+  simulator starts everyone (larks as squares, robins as circles, a tick for facing, the band as a dotted line at
+  the top), so it always matches the floor. The menu still holds every formation.
 - Narrow or short screens (under 1000 px wide or 560 px tall) fall back to a scrolling page: floor and timeline
   first, the editor below.
 
