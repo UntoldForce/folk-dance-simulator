@@ -989,6 +989,45 @@ const Contra = (() => {
       }
       return out;
     } },
+    // Dolphin hey (English, from the tutorial's animation): a hey for three across the set in which the active
+    // couple (the ones by default) travel together as one unit, robin leading toward the robins' side and lark
+    // leading back: at each end they turn around, so the lead changes. The other couple's robin and lark weave
+    // at the ends. Full (16 beats) brings the ends home; half trades them. The pair end in the middle of the line.
+    dolphinHey: { group: 'four', plan(ps, call, ctx) {
+      const keys = ctx.keys, act = call.who === 'twos' ? '2' : '1', idx = [0, 1, 2, 3];
+      const W = idx.find(i => keys[i][0] === 'R' && keys[i][1] !== act), M = idx.find(i => keys[i][0] === 'L' && keys[i][1] !== act);
+      const tw = idx.find(i => keys[i][0] === 'R' && keys[i][1] === act), tm = idx.find(i => keys[i][0] === 'L' && keys[i][1] === act);
+      const out = ps.map(d => () => d);
+      if ([W, M, tw, tm].some(i => i == null)) return out;
+      // The track: a figure eight along the line from the other robin's end (-) to the other lark's end (+).
+      const c = mid(ps[W], ps[M]), L = Math.max(0.6, dist(ps[W], ps[M]) / 2), e = { x: (ps[M].x - ps[W].x) / (2 * L), y: (ps[M].y - ps[W].y) / (2 * L) };
+      const A = L / Math.cos(Math.PI / 6), B = 0.35 * (call.side === 'L' ? -1 : 1), f = { x: -e.y, y: e.x };
+      const track = t => ({ x: c.x + e.x * A * Math.cos(t) + f.x * B * Math.sin(2 * t), y: c.y + e.y * A * Math.cos(t) + f.y * B * Math.sin(2 * t) });
+      const span = (call.turns || 1) * TAU, gap = 0.4;
+      // Who leads the pair: +1 the robin (heading toward the robins' end), -1 the lark; side by side as they turn.
+      const lead = t => Math.tanh(3 * Math.sin(t));
+      const place = (t0, i, k) => s => {
+        const t = t0 + span * s;
+        if (k == null) return track(t);
+        const sg = lead(t) * k, p = track(t + gap * sg), side = 0.22 * (1 - Math.abs(lead(t))) * k;
+        return { x: p.x + f.x * side, y: p.y + f.y * side };
+      };
+      const units = [[W, 7 * Math.PI / 6, null], [M, -Math.PI / 6, null], [tw, Math.PI / 2, 1], [tm, Math.PI / 2, -1]];
+      for (const [i, t0, k] of units) {
+        // The pair face the way the pair is travelling, which turns smoothly round each end.
+        // Everyone ends where the track does: the ends back at (or, after half, across from) their places, the pair
+        // in the middle of the line, as they started in the tutorial's animation.
+        const d = ps[i], path = place(t0, i, k), unit = place(t0, i, null), end = path(1);
+        out[i] = u => {
+          const s = trap(u, 0.1);
+          let p = path(s);
+          if (u < 0.12) { const q = mj(u / 0.12); p = { x: lerp(d.x, p.x, q), y: lerp(d.y, p.y, q) }; }
+          if (u > 0.88) { const q = mj((u - 0.88) / 0.12); p = { x: lerp(p.x, end.x, q), y: lerp(p.y, end.y, q) }; }
+          return { x: p.x, y: p.y, a: settle(d.a, heading(unit, s), u, 0.1) };
+        };
+      }
+      return out;
+    } },
     // Chevron (English, from the tutorial's animation): one pair of corners (first corners by default) cross
     // diagonally, passing by the named shoulder; the other pair cast round the outside of their own side into the
     // crossers' places, while the crossers back straight across the set into the casters' places. In a proper
@@ -1406,7 +1445,7 @@ const Contra = (() => {
 
   // Typical lengths in beats, for figures built so far: the ContraLab timing chart (contralab.org),
   // and Contrafusion for pull by (4 beats; 2 when done rapidly as a single change).
-  const TYPICAL_BEATS = { chevron: 8, openChain: 8, doubleFigureEight: 16, longLines: 8, allemande: 8, balance: 4, boxTheGnat: 4, swing: 4, circle: 8, pullBy: 4,
+  const TYPICAL_BEATS = { dolphinHey: 16, chevron: 8, openChain: 8, doubleFigureEight: 16, longLines: 8, allemande: 8, balance: 4, boxTheGnat: 4, swing: 4, circle: 8, pullBy: 4,
     shoulderRound: 8, dosido: 8, seesaw: 8, swatTheFlea: 4, californiaTwirl: 4, starThrough: 4, rollAway: 4, halfSashay: 4,
     passThrough: 4, star: 8, petronella: 4, courtesyTurn: 4, turnAsCouple: 4, chain: 8, rightLeftThrough: 8, flutterwheel: 8,
     hey: k => 16 * (k.turns || 1), figureEight: k => 16 * (k.turns || 1), forwardBack: 8, nextSquare: 8, grandRL: k => 16 * (k.turns || 0.5),
@@ -1501,6 +1540,7 @@ const Contra = (() => {
     if (/turn as (a )?couples?|wheel around/.test(t)) return { fig: 'turnAsCouple', who: who || 'partners' };
     if (/butterfly whirl/.test(t)) return { fig: 'butterflyWhirl', who: who || 'partners' };
     if (/\bgate\b/.test(t)) return { fig: 'gate', who: who || 'neighbors', side: rot('L'), turns: amount(0.5) };
+    if (/dolphin hey/.test(t)) return { fig: 'dolphinHey', who: who === 'twos' ? 'twos' : 'ones', side: /\bleft\b/.test(t) ? 'L' : 'R', turns: /half|1\/2/.test(t) ? 0.5 : 1 };
     if (/chevron/.test(t)) return { fig: 'chevron', who: who === 'secondCorners' ? 'secondCorners' : 'firstCorners', side: lr() };
     if ((m = t.match(/open (robins|ladies|women|larks|gents|men)'? chain/))) return { fig: 'openChain', who: /robins|ladies|women/.test(m[1]) ? 'robins' : 'larks' };
     if ((m = t.match(/(robins|ladies|women|larks|gents|men)'? chain/))) return { fig: 'chain', who: /robins|ladies|women/.test(m[1]) ? 'robins' : 'larks' };
@@ -2549,7 +2589,7 @@ const POOL = [
     say: m => `${m.amt === 0.5 ? 'Half hey' : 'Hey for four'}, ${WHO_LABEL[m.who].toLowerCase()} pass ${m.side === 'L' ? 'left' : 'right'} to start`, re: /\bhey\b(?! for (three|3))/ },
   { cat: 7, label: 'Hey for three', fig: 'heyThree', side: 'pass', amount: 'half', d: { side: 'R', amt: 1 }, beats: 8,
     say: m => `${m.amt === 0.5 ? 'Half hey for three' : 'Hey for three'} on the sides, ${m.side === 'L' ? 'left' : 'right'} shoulders to start`, re: /hey for (three|3)/, setup: 'triplet' },
-  { cat: 7, label: 'Dolphin hey', d: {}, beats: 16, say: 'Dolphin hey', re: /dolphin hey/, ecd: true },
+  { cat: 7, label: 'Dolphin hey', fig: 'dolphinHey', who: ['ones', 'twos'], d: { who: 'ones' }, beats: 16, say: '{who} dolphin hey across the set', re: /dolphin hey/, ecd: true },
   { cat: 7, label: 'Crossover mirror hey', d: {}, beats: 8, say: 'Crossover mirror hey', re: /crossover mirror hey/, ecd: true },
   { cat: 7, label: 'Double figure eight', fig: 'doubleFigureEight', d: {}, beats: 16, say: 'Double figure eight, 2s cross up as 1s cast down', re: /double (full )?figure.?(8|eight)/, ecd: true },
   { cat: 7, label: 'Figure eight', fig: 'figureEight', who: ['ones', 'twos'], amount: 'half', d: { who: 'ones', amt: 0.5 }, beats: 8,
@@ -2862,7 +2902,7 @@ const DESCRIPTIONS = {
   'Half draw poussette': 'Like a half poussette, but each couple also turns half round as they go, so whoever pushes keeps pushing and partners end on each other\'s side.',
   'Rights and lefts': 'A circular hey for four with hands: pull by your partner right, turn in, pull by your neighbor left, and so on. Four changes bring you home; two take you to your corner\'s place.',
   'Half open ladies chain': 'English: the robins meet in the middle and pull by right, going on to the far side. Each lark walks a small counter-clockwise loop along his side, away from his place and back, and halfway round takes the arriving robin by the left hand to turn her half. Larks end home; robins end diagonally across from where they started.',
-  'Dolphin hey': 'A hey for three in which two dancers travel together as one unit, changing who leads at each end. Not animated yet.',
+  'Dolphin hey': 'English: a hey for three across the set in which the active couple travel together as one unit, robin leading toward the robins\' side and lark leading back; at each end they turn around, so the lead changes. The other couple weave at the ends. Starts with the active couple in the middle of a line across.',
   'Crossover mirror hey': 'A mirror hey for three in which the first couple cross over at the very start. Not animated yet.',
   'Double figure eight': 'English: both couples dance a full figure eight at once, out of step: the twos cross up through the middle while the ones cast down around the outside (or the other way round), following the same track. Everyone ends at home.',
   'Contra corners': 'The active couple turn each other and each of their two contra corners in a series of allemandes. Not animated yet.',
@@ -2871,7 +2911,7 @@ const DESCRIPTIONS = {
 const APPROX = new Set(['Hey for four', 'Robins chain', 'Larks chain', 'Right and left through', 'Flutterwheel', 'Star promenade', 'Weathervane',
   'Give and take', 'Figure eight', 'Slice', 'Shift', 'Veer', 'Lead down', 'Down the hall', 'Up the hall', 'Cast off', 'Cast down', 'Petronella',
   'Poussette', 'Half draw poussette', 'California twirl', 'Hey for three', 'Siding', 'Sharp siding', 'Up a double', 'Fall back', 'Honour',
-  'Hole in the wall cross', 'Chevron', 'Hand turn', 'Bentley allemande', 'Half open ladies chain', 'Double figure eight', 'Star through', 'Roll away', 'Half sashay', 'Balance the wave', 'Cross', 'Turn as a couple', 'Butterfly whirl']);
+  'Hole in the wall cross', 'Chevron', 'Dolphin hey', 'Hand turn', 'Bentley allemande', 'Half open ladies chain', 'Double figure eight', 'Star through', 'Roll away', 'Half sashay', 'Balance the wave', 'Cross', 'Turn as a couple', 'Butterfly whirl']);
 // Some moves need the dancers set up first: side by side with the chosen person, or couples on the sides.
 const SETUP = {
   californiaTwirl: 'pair', rollAway: 'pair', halfSashay: 'pair', courtesyTurn: 'pair', turnAsCouple: 'pair', butterflyWhirl: 'pair', gate: 'pair',
