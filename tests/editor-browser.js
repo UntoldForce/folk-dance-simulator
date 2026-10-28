@@ -110,6 +110,27 @@ const { chromium } = require('playwright');
   check(await p.locator('#myList .dlist:has-text("Simple Square")').count() === 1, 'Save this dance adds it to My dances');
   await p.click('#dancesClose');
 
+  // Check many dances: load files (one holding two dances), list problems first, step through them with ‹ ›.
+  const tmp = require('os').tmpdir(), broken = 'Broken Reel\nA1\n(8) Frobnicate the robins\n(8) Neighbors swing';
+  fs.writeFileSync(path.join(tmp, 'two.txt'), `${files[0]}\n\n=====\n\n${broken}`);
+  fs.writeFileSync(path.join(tmp, 'one.txt'), fs.readFileSync(path.join(__dirname, '..', 'dances', '111.txt'), 'utf8').replace(/^.*/, 'Second Broken\nA1\n(8) Wibble\n\n=====\n\n$&'));
+  await p.click('#dancesOpen');
+  await p.setInputFiles('#bulkFile', [path.join(tmp, 'two.txt'), path.join(tmp, 'one.txt')]);
+  await p.waitForFunction(() => bulk.items.length === 4 && !bulk.queue.length);
+  check(await p.locator('#bulkList .dlist').count() === 2 && /Can't read: Frobnicate/.test(await p.locator('#bulkList .why').first().textContent()), 'loaded files are checked, and the list shows only the problem dances, saying what is wrong');
+  await p.selectOption('#bulkKind', 'all');
+  check(await p.locator('#bulkList .dlist').count() === 4 && /4 dances checked, 2 with no problems/.test(await p.textContent('#bulkNote')), 'All dances lists every one, with a count');
+  await p.selectOption('#bulkKind', 'problems');
+  await p.click('#bulkList .dlist >> nth=0'); await p.waitForTimeout(150);
+  check(await p.evaluate(() => !$('dances').open && /Frobnicate/.test($('danceText').value) && !$('bulkStep').hidden && $('bulkPos').textContent === '1 of 2'), 'clicking one opens it, with ‹ 1 of 2 › at the top');
+  await p.click('#bulkNext'); await p.waitForTimeout(150);
+  check(await p.evaluate(() => /Wibble/.test($('danceText').value) && $('bulkPos').textContent === '2 of 2' && $('bulkNext').disabled), '› goes to the next problem dance');
+  await p.click('#dancesOpen'); await p.click('#exampleList .dlist >> nth=0'); await p.waitForTimeout(100);
+  check(await p.evaluate(() => $('bulkStep').hidden), 'opening a dance from elsewhere hides ‹ ›');
+  await p.click('#dancesOpen'); await p.click('#bulkClear');
+  check(await p.locator('#bulkList .dlist').count() === 0 && await p.locator('#bulkBar').isHidden(), 'Clear empties the list');
+  await p.click('#dancesClose');
+
   // Journey chart: the timeline's second view; clicking a couple's line follows them and goes to that moment.
   await p.click('#reset2'); await p.waitForTimeout(150);
   await p.click('#viewJourney'); await p.waitForTimeout(150);

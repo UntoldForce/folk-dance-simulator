@@ -348,5 +348,15 @@ for (const k of c.calls) {
   check(mid.progression.firstBad === -1, `circle left 3/4, pass through to the next neighbors, do-si-do with them: progresses (${mid.passes.map(p => p.check.good + '/' + p.check.total).join(', ')})`);
 }
 
+// Checking many dances at once (the Dances panel): splitting a file of dances, and the quick review of each.
+{
+  const fine = fs.readFileSync(path.join(__dirname, '..', 'dances', fs.readdirSync(path.join(__dirname, '..', 'dances'))[0]), 'utf8');
+  const many = Contra.splitDances(`${fine}\n=====\nBroken\nA1\n(8) Frobnicate the robins\n\n  ======== \n\n${fine}`);
+  check(many.length === 3 && many[1].startsWith('Broken'), 'a file with dances separated by lines of ===== is split into each dance');
+  const ok = Contra.review(fine), bad = Contra.review(many[1]);
+  check(ok.ok && ok.title && ok.progression === -1 && !ok.unread.length, `a test dance reviews with no problems (${ok.title})`);
+  check(!bad.ok && bad.title === 'Broken' && bad.unread.join() === 'Frobnicate the robins', 'a dance with a move it can\'t read lists that move');
+}
+
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll checks passed');
 process.exit(failures ? 1 : 0);

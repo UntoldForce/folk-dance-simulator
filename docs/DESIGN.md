@@ -186,6 +186,14 @@ itself can't be reached from the cloud session: its security certificate fails.)
 there and writes `library/report.txt`: figures not read yet (most common first), dances whose progression goes wrong,
 bumps, hand problems, crashes. It's a to-do list, not a pass/fail test.
 
+**Looking at them in the page.** The Dances panel's "Check many dances" takes text files (picked or dropped) or pasted
+text, each holding one dance or several separated by a line of `=====`. Each dance goes through `Contra.review` (what
+it can't read, the time through its progression first goes wrong, its first bump and hand problem), one at a time so
+the page stays responsive (about 20 seconds for 400). The list shows problem dances first, with what's wrong, and can
+be narrowed by kind of problem and by formation; opening one puts ‹ 3 of 41 › at the top to step through the rest.
+The list lasts until the page closes. `tools/bundle-library.js` puts the whole library in one file
+(`library/all-dances.txt`) to load this way.
+
 What the first 402 dances taught the simulator:
 - **Several figures on one line** ("(16) Neighbors balance & swing", "circle left 3/4 and pass through") stay one
   figure in the dance and one block in the editor, written as they were (Ryan: balance and swing is so common it

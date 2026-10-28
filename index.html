@@ -312,6 +312,20 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
 
 .drawer h3 { font: 600 13px var(--font-display); margin: 14px 0 6px; color: var(--muted); }
 .dlist { display: block; width: 100%; text-align: left; margin-bottom: 4px; padding: 6px 10px; border-radius: 6px; }
+.bulkdrop { border: 1px dashed var(--rule); border-radius: 8px; padding: 8px 10px; display: grid; gap: 6px; }
+.bulkdrop.over { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.bulkdrop label.pill { cursor: pointer; }
+.bulkpaste summary { cursor: pointer; font-size: 13px; color: var(--muted); }
+.bulkpaste textarea { width: 100%; box-sizing: border-box; font: 12px var(--font-mono); margin: 6px 0; }
+.bulkbar { margin-top: 8px; } .bulkbar select { flex: 1 1 40%; min-width: 0; }
+#bulkNote { margin: 6px 0; }
+.blist { display: grid; grid-template-columns: 10px minmax(0, 1fr); gap: 2px 8px; align-items: baseline; }
+.blist .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); }
+.blist .dot.bad { background: var(--bad); } .blist .dot.warn { background: var(--warn); }
+.blist .why { grid-column: 2; font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.dlist.on { outline: 2px solid var(--accent); }
+.bulkstep { display: inline-flex; align-items: center; gap: 2px; font: 500 13px var(--font-body); white-space: nowrap; }
+.bulkstep button { padding: 2px 9px; border-radius: 999px; }
 .drow { display: flex; gap: 4px; } .drow .dlist { flex: 1; } .drow .dx { margin-bottom: 4px; padding: 0 9px; color: var(--muted); }
 #nextEnd { margin-left: auto; }
 
@@ -346,6 +360,7 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
   <h1>Contra Dance Simulator</h1>
   <span class="subtitle" id="danceTitle">Phase 1 preview</span>
   <span class="tbtools">
+    <span class="bulkstep" id="bulkStep" hidden><button type="button" id="bulkPrev" aria-label="Previous dance in the list">‹</button><span id="bulkPos"></span><button type="button" id="bulkNext" aria-label="Next dance in the list">›</button></span>
     <button type="button" id="dancesOpen" class="pill" aria-haspopup="dialog">♫ Dances</button>
     <button type="button" id="checksOpen" class="pill" aria-haspopup="dialog"><span>Checks</span><span class="lights" id="lights"></span></button>
     <button type="button" id="settingsOpen" class="pill" aria-haspopup="dialog">⚙ Settings</button>
@@ -476,7 +491,22 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
   <div class="row"><button type="button" id="saveDance" class="primary">Save this dance</button><span class="small" id="saveNote"></span></div>
   <h3>My dances</h3><div id="myList"></div>
   <h3>Examples</h3><div id="exampleList"></div>
-  <p class="hint">Saving keeps the dance under its title, on this device only. To share one, copy it from the Text tab.</p>
+  <h3>Check many dances</h3>
+  <div id="bulkDrop" class="bulkdrop">
+    <div class="row"><label class="pill" for="bulkFile">Load files…</label><input type="file" id="bulkFile" multiple accept=".txt,text/plain" hidden>
+      <span class="small">or drop text files here</span></div>
+    <details class="bulkpaste"><summary>Paste dances</summary>
+      <textarea id="bulkText" rows="6" spellcheck="false" placeholder="Paste one or more dances, each in The Caller's Box layout, with a line of ===== between them."></textarea>
+      <button type="button" id="bulkCheck">Check these</button></details>
+  </div>
+  <div id="bulkBar" class="row bulkbar" hidden>
+    <select id="bulkKind" aria-label="Which dances to show"></select><select id="bulkForm" aria-label="Formation"></select>
+    <button type="button" id="bulkClear">Clear</button>
+  </div>
+  <p class="small" id="bulkNote" aria-live="polite"></p>
+  <div id="bulkList"></div>
+  <p class="hint">Saving keeps the dance under its title, on this device only. To share one, copy it from the Text tab.
+  Checked dances are kept until you close the page; open one, then step through the list with ‹ › at the top.</p>
 </dialog>
 
 <dialog id="checksDialog" class="drawer" aria-labelledby="checksTitle">
@@ -3428,7 +3458,22 @@ const Contra = (() => {
     return seg.f((t - seg.t0) / (seg.t1 - seg.t0));
   }
 
-  return { DEFAULTS, FORMATIONS, FIGURE_INFO, TYPICAL_BEATS, SETUP, parseDance, serialize, callText, compile, poseAt, handsAt, callIndexAt, meetings };
+  // A quick health check of one dance, for looking through many at once: the lines it can't read, the time through
+  // its progression first goes wrong in, and its first bump and hand problem. ok is true when there are none.
+  function review(text) {
+    let dance, c;
+    try { dance = parseDance(text); c = compile(dance, { lines: 1, sets: 3, passes: 4 }); }
+    catch (e) { return { title: (text.trim().split('\n')[0] || 'Untitled dance').trim(), crash: e.message, unread: [], ok: false }; }
+    const unread = dance.parts.flatMap(p => p.calls.filter(k => !k.fig).map(k => k.unknownPart ? `${k.text} (“${k.unknownPart}”)` : k.text));
+    const bump = c.warnings.find(w => w.bump), hands = c.warnings.find(w => w.hands && w.level === 'warn');
+    const progression = unread.length ? -1 : c.progression.firstBad;
+    return { title: dance.title || 'Untitled dance', author: dance.author, formation: dance.formation, beats: c.perPass, unread, progression,
+      bump: bump && bump.text, hands: hands && hands.text, ok: !unread.length && progression < 0 && !bump && !hands };
+  }
+  // Several dances in one piece of text, one after another, separated by a line of ===== (or more).
+  const splitDances = text => text.split(/^\s*={5,}\s*$/m).map(t => t.trim()).filter(Boolean);
+
+  return { DEFAULTS, FORMATIONS, FIGURE_INFO, TYPICAL_BEATS, SETUP, parseDance, serialize, callText, compile, poseAt, handsAt, callIndexAt, meetings, review, splitDances };
 })();
 </script>
 
@@ -3867,7 +3912,98 @@ function renderDances() {
     row.append(b, x); mine.appendChild(row);
   }
 }
-function loadDance(text) { $('danceText').value = text; state.sel = null; state.t = 0; build(); commit(true); $('dances').close(); }
+function loadDance(text, fromList = false) {
+  if (!fromList) bulk.at = -1;
+  $('danceText').value = text; state.sel = null; state.t = 0; build(); commit(true); $('dances').close(); renderBulkStep();
+}
+
+// Checking many dances at once: load text files (or paste), each holding one dance or several separated by a line of
+// =====. Each is run through Contra.review, one at a time so the page stays responsive, and listed with what's wrong;
+// problems first. Kept only until the page closes.
+const bulk = { items: [], queue: [], at: -1, kind: 'problems', form: '' };
+const BULK_KINDS = [['problems', 'Problems', r => !r.ok], ['unread', 'Moves not read', r => r.crash || r.unread.length], ['progression', 'Progression goes wrong', r => r.progression >= 0],
+  ['bump', 'Dancers bump', r => r.bump], ['hands', 'Hand problems', r => r.hands], ['ok', 'No problems found', r => r.ok], ['all', 'All dances', () => true]];
+const formName = f => (Contra.FORMATIONS[f] && Contra.FORMATIONS[f].name) || f || 'Unknown formation';
+function bulkShown() {
+  const test = BULK_KINDS.find(k => k[0] === bulk.kind)[2];
+  return bulk.items.filter(it => test(it.r) && (!bulk.form || it.r.formation === bulk.form));
+}
+// The worst thing about a dance, in a few words, and how bad it is.
+function bulkWhy(r) {
+  if (r.crash) return ['bad', `The simulator stopped with an error: ${r.crash}`];
+  if (r.unread.length) return ['bad', `Can't read: ${r.unread.join('; ')}`];
+  const out = [];
+  if (r.progression >= 0) out.push(`Progression goes wrong in time ${r.progression + 1}.`);
+  if (r.bump) out.push(r.bump);
+  if (r.hands) out.push(r.hands);
+  if (r.beats !== 64) out.push(`${r.beats} beats each time through.`);
+  return [r.progression >= 0 ? 'bad' : r.ok ? 'ok' : 'warn', out.join(' ') || 'No problems found.'];
+}
+function addBulk(texts) {
+  for (const text of texts.flatMap(t => Contra.splitDances(t))) bulk.queue.push(text);
+  $('bulkText').value = '';
+  if (bulk.queue.length) setTimeout(bulkStepQueue, 0);
+  renderBulk();
+}
+function bulkStepQueue() {
+  const text = bulk.queue.shift();
+  if (text === undefined) return;
+  bulk.items.push({ text, r: Contra.review(text) });
+  renderBulk();
+  if (bulk.queue.length) setTimeout(bulkStepQueue, 0);
+}
+function renderBulk() {
+  const n = bulk.items.length, list = $('bulkList');
+  $('bulkBar').hidden = !n;
+  const good = bulk.items.filter(it => it.r.ok).length;
+  $('bulkNote').textContent = !n && !bulk.queue.length ? '' : `${bulk.queue.length ? `Checking… ${n} of ${n + bulk.queue.length}. ` : ''}${n} dance${n === 1 ? '' : 's'} checked, ${good} with no problems found.`;
+  // Filter: what's wrong, then formation (with counts).
+  const forms = [...new Set(bulk.items.map(it => it.r.formation))].sort();
+  if (bulk.form && !forms.includes(bulk.form)) bulk.form = '';
+  const kindN = k => bulk.items.filter(it => k[2](it.r) && (!bulk.form || it.r.formation === bulk.form)).length;
+  const formN = fm => bulk.items.filter(it => BULK_KINDS.find(k => k[0] === bulk.kind)[2](it.r) && (!fm || it.r.formation === fm)).length;
+  $('bulkKind').innerHTML = BULK_KINDS.map(k => `<option value="${k[0]}">${k[1]} (${kindN(k)})</option>`).join('');
+  $('bulkForm').innerHTML = ['', ...forms].map(fm => `<option value="${fm}">${fm ? formName(fm) : 'Every formation'} (${formN(fm)})</option>`).join('');
+  $('bulkKind').value = bulk.kind; $('bulkForm').value = bulk.form;
+  const shown = bulkShown(), cur = bulk.items[bulk.at];
+  list.innerHTML = ''; list.className = 'blist';
+  for (const it of shown.slice(0, 500)) {
+    const [level, why] = bulkWhy(it.r), dot = document.createElement('span'), b = document.createElement('button'), w = document.createElement('div');
+    dot.className = 'dot ' + level;
+    b.type = 'button'; b.className = 'dlist' + (it === cur ? ' on' : ''); b.textContent = it.r.title + (it.r.author ? ` (${it.r.author})` : '');
+    b.onclick = () => { bulk.at = bulk.items.indexOf(it); loadDance(it.text, true); };
+    w.className = 'why'; w.textContent = why;
+    list.append(dot, b, w);
+  }
+  if (shown.length > 500) list.insertAdjacentHTML('beforeend', `<p class="hint" style="grid-column: 2">And ${shown.length - 500} more: narrow the list to see them.</p>`);
+  if (n && !shown.length) list.innerHTML = '<p class="hint">None of the checked dances match.</p>';
+  renderBulkStep();
+}
+// ‹ 3 of 41 › at the top while a dance from the list is open: steps through the list as it's filtered.
+function renderBulkStep() {
+  const shown = bulkShown(), i = shown.indexOf(bulk.items[bulk.at]);
+  $('bulkStep').hidden = i < 0;
+  if (i < 0) return;
+  $('bulkPos').textContent = `${i + 1} of ${shown.length}`;
+  $('bulkPos').title = bulkWhy(shown[i].r)[1];
+  $('bulkPrev').disabled = i === 0; $('bulkNext').disabled = i === shown.length - 1;
+}
+function bulkGo(step) {
+  const shown = bulkShown(), it = shown[shown.indexOf(bulk.items[bulk.at]) + step];
+  if (it) { bulk.at = bulk.items.indexOf(it); loadDance(it.text, true); }
+}
+$('bulkPrev').onclick = () => bulkGo(-1);
+$('bulkNext').onclick = () => bulkGo(1);
+$('bulkKind').onchange = e => { bulk.kind = e.target.value; renderBulk(); };
+$('bulkForm').onchange = e => { bulk.form = e.target.value; renderBulk(); };
+$('bulkClear').onclick = () => { bulk.items = []; bulk.queue = []; bulk.at = -1; renderBulk(); };
+$('bulkCheck').onclick = () => addBulk([$('bulkText').value]);
+const readFiles = async files => addBulk(await Promise.all([...files].filter(f => !/\.(png|jpe?g|gif|pdf|zip)$/i.test(f.name)).map(f => f.text())));
+$('bulkFile').onchange = e => { readFiles(e.target.files); e.target.value = ''; };
+const drop = $('bulkDrop');
+drop.ondragover = e => { e.preventDefault(); drop.classList.add('over'); };
+drop.ondragleave = () => drop.classList.remove('over');
+drop.ondrop = e => { e.preventDefault(); drop.classList.remove('over'); readFiles(e.dataTransfer.files); };
 function saveDance() {
   const text = $('danceText').value, title = (state.doc && state.doc.title) || 'Untitled dance', all = savedDances();
   if (all[title] && all[title] !== text && !confirm(`Replace your saved “${title}”?`)) return;
