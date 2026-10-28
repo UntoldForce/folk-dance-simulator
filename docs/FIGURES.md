@@ -13,7 +13,15 @@ chain, right and left through, flutterwheel, star promenade and weathervane, giv
 shift, veer, lead down, down and up the hall, cast off, petronella, poussette, California twirl, star through,
 roll away, balance the wave (forward and back only), cross (treated as a pass through), turn as a couple and
 butterfly whirl (half a turn as a couple), and the square figures (promenade, grand right and left, forward and back,
-pass through to the next square). Not animated: hey for three, contra corners, Dixie twirl.
+pass through to the next square) and the English figures (siding, sharp siding, up a double, fall back, honour,
+hole in the wall cross, hand turn, Bentley allemande, half draw poussette, hey for three). Not animated: contra corners,
+Dixie twirl, chevron, dolphin hey, crossover mirror hey, double figure eight, half open ladies chain.
+
+English figures follow [English Country Dance Basics, a Tutorial](https://upadouble.info/ecdTutorial.php) by
+George W. Williams V (CC BY 4.0). Some English names are read as the matching contra figure: back to back is a
+do-si-do, arming is an arm turn, rights and lefts (a circular hey for four) is a square through by changes, foot it is
+a set, and kiss or salute is an honour. "Allemande" alone keeps its contra meaning; the English one is the Bentley
+allemande. 
 
 Typical beats come from the [ContraLab](https://contralab.org/) Contra Timing Chart where it lists the figure
 (Ryan supplied the chart). Pull by isn't in the chart; per Contrafusion it typically takes 4 beats, or 2 when done rapidly as a single change. The simulator notes any figure given fewer beats than the chart, and any 8- or 16-beat
@@ -102,3 +110,13 @@ placed in a dance; dancers stand still during them and the checks show a caution
 | [Grand right and left](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#grand-right-and-left) | Everyone in a square | 8 half, 16 all the way | Pull by partner right, next left, and so on; larks counter-clockwise, robins clockwise, weaving inside and outside | Half: meet partner on the far side; all the way: home | built |
 | Forward and back | Heads, sides or everyone | 8 | Four steps into the middle and four back | Where they started | built |
 | Pass through to the next square | Heads or sides in a grid square | 8 | Walk forward through the middle, passing right shoulders, into the same place in the next square | Next square, or (no square beyond) the opposite place after a courtesy turn | built |
+| Siding (English) | Pair | 8 | Walk toward each other and a little to your left so right shoulders come side by side (left siding: mirror), then fall back, facing each other | Home | built |
+| Sharp siding (English) | Pair | 8 | Cross to each other's places passing left shoulders while turning to keep facing, then back along the same track | Home | built |
+| Up a double and back (English) | Everyone | 8 | Face up the hall (or down), four steps forward, four back | Home | built |
+| Fall back (English) | Everyone | 4 | Facing the middle, walk backward away from it | Further out | built |
+| Honour (English) | Pair | 2 | Bow or curtsey to each other (a small dip toward them) | Home | built |
+| Hole in the wall cross (English) | Pair, usually corners | 4 | Approach, sidle around each other face to face (right shoulders), back away | Traded | built |
+| Hand turn (English) | Pair | 4 half, 8 full | A one-hand turn at arm's length (finger clasp) | By the amount | built |
+| Bentley allemande (English) | Lark and robin | 8 | The robin steps forward and turns in place with the named hand raised; the lark walks once around her by that shoulder | Home | built |
+| Half draw poussette (English) | Two couples | 8 | A half poussette in which each couple also turns half round, so they end on each other's side | Progressed, sides traded | built |
+| Hey for three | Three on each side (a hands-six or a three-couple set) | 8 (English), 12–16 (contra) | Figure eight along each side, top dancer starting toward the middle; half swaps the ends | Home (full), ends swapped (half) | built |

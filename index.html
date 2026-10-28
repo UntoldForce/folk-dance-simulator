@@ -237,6 +237,13 @@ ul.checks li.passed { color: var(--muted); }
 .light.bad { color: var(--bad); } .light.warn { color: var(--warn); } .light.ok { color: var(--ok); }
 .light.zero { color: var(--muted); opacity: 0.6; }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }
+.refs { margin-top: 28px; padding: 20px 24px; background: var(--panel); border: 1px solid var(--rule); border-radius: 12px; max-width: 980px; }
+.refs h2 { font-family: var(--font-display); font-size: 1.25rem; margin: 0 0 6px; }
+.refs > p { color: var(--muted); margin: 0 0 14px; }
+.refs dl { margin: 0; display: grid; gap: 12px; }
+.refs dt { font-weight: 600; }
+.refs dt a { color: var(--accent); }
+.refs dd { margin: -9px 0 4px; color: var(--ink); line-height: 1.45; }
 </style>
 </head><body><!--wrap-->
 
@@ -345,7 +352,12 @@ ul.checks li.passed { color: var(--muted); }
             <option value="becketCW">Becket (clockwise)</option><option value="becketCCW">Becket (counter-clockwise)</option>
             <option value="tripleProper">Triple minor (proper)</option><option value="tripleImproper">Triple minor (ones improper)</option>
             <option value="fourFacingFour">Four facing four</option><option value="sicilian">Sicilian circle</option>
-            <option value="square">Square</option><option value="gridSquare">Grid square</option>
+            <option value="tempest">Tempest</option><option value="gridContra">Grid contra (improper)</option>
+            <option value="square">Square</option><option value="gridSquare">Grid square</option><option value="circleMixer">Circle mixer</option>
+            <option value="set2Improper">Two-couple set (improper)</option><option value="set2Proper">Two-couple set (proper)</option>
+            <option value="set3Proper">Three-couple set / triplet (proper)</option><option value="set3Improper">Three-couple set / triplet (improper)</option>
+            <option value="set4Proper">Four-couple set (proper)</option><option value="set4Improper">Four-couple set (improper)</option>
+            <option value="set5Proper">Five-couple set (proper)</option><option value="set6Proper">Six-couple set (proper)</option>
           </select>
           <label for="progression">Progression</label>
           <select id="progression"><option value="1">Single</option><option value="2">Double</option><option value="3">Triple</option></select>
@@ -362,6 +374,30 @@ ul.checks li.passed { color: var(--muted); }
     </section>
   </aside>
 </div>
+
+<section class="refs" id="references" aria-labelledby="refsTitle">
+  <h2 id="refsTitle">References and thanks</h2>
+  <p>This simulator was built from the generous work of dancers, callers and choreographers who share what they know. Thank you.
+    The descriptions here are in our own words; the sites below are the real authorities.</p>
+  <dl>
+    <dt><a href="https://www.ibiblio.org/contradance/thecallersbox/" target="_blank" rel="noopener">The Caller's Box</a>, by Chris Page and Michael Dyck</dt>
+    <dd>The layout dances are written in, and the glossary every figure was checked against (formations too).
+      The sample dance, “111”, is by Chris Page and shared there with full permission.</dd>
+    <dt><a href="https://contralab.org/" target="_blank" rel="noopener">ContraLab</a></dt>
+    <dd>The Contra Timing Chart: how many beats each figure usually takes, used for the timing checks.</dd>
+    <dt><a href="https://contrafusion.co.uk/" target="_blank" rel="noopener">Contrafusion</a></dt>
+    <dd>How long a pull by takes, and its list of country and contra dance formations.</dd>
+    <dt><a href="https://upadouble.info/ecdTutorial.php" target="_blank" rel="noopener">English Country Dance Basics, a Tutorial</a>, by George W. Williams V</dt>
+    <dd>The English country dance figures (siding, arming, up a double, heys, the Bentley allemande and more) and the English
+      formations: two- to six-couple sets, triple minor and circles. Shared under a Creative Commons Attribution 4.0 license.</dd>
+    <dt><a href="https://www.cdss.org/elibrary/cracking-chestnuts/tempest.html" target="_blank" rel="noopener">Cracking Chestnuts: The Tempest</a>, Country Dance and Song Society</dt>
+    <dd>How the tempest formation is set up.</dd>
+    <dt><a href="https://github.com/contradb/contra" target="_blank" rel="noopener">contradb</a></dt>
+    <dd>Its list of figure types, used as a checklist for which moves to build.</dd>
+    <dt><a href="https://fonts.google.com/" target="_blank" rel="noopener">Google Fonts</a></dt>
+    <dd>Bricolage Grotesque, Instrument Sans and JetBrains Mono. The fiddle tune and the backing were written for the simulator.</dd>
+  </dl>
+</section>
 
 <dialog id="explorer" aria-labelledby="exTitle">
   <div class="exhead" id="exHead"><span id="exIcon"></span><h2 id="exTitle">Move</h2><span class="small" id="exCat"></span>
@@ -502,14 +538,15 @@ const Contra = (() => {
     });
   }
   // Four dancers in a ring around their center, spread evenly, turning by `sweep`; facing from `faceAt(angle)`.
-  function ringPlan(ps, sweep, rRing, faceAt) {
+  // With `open`, the ring opens back out to where everyone stood at the end (English circles end at home).
+  function ringPlan(ps, sweep, rRing, faceAt, open) {
     const c = centroid(ps), n = ps.length, a0s = ps.map(d => angleTo(c, d));
     const order = a0s.map((a, i) => i).sort((i, j) => a0s[i] - a0s[j]), even = {};
     const offset = Math.atan2(...['sin', 'cos'].map(fn => order.reduce((s, i, k) => s + Math[fn](a0s[i] - (TAU * k) / n), 0)));
     order.forEach((i, k) => (even[i] = a0s[i] + wrap(offset + (TAU * k) / n - a0s[i])));
     return ps.map((d, i) => {
       const r0 = dist(c, d);
-      return u => { const ang = lerp(a0s[i], even[i], mj(u / 0.2)) + sweep * trap(u, 0.2), r = lerp(r0, Math.min(r0, rRing), mj(u / 0.2));
+      return u => { const ang = lerp(a0s[i], even[i], mj(u / 0.2)) + sweep * trap(u, 0.2), r = lerp(r0, Math.min(r0, rRing), mj(u / 0.2) - (open ? mj((u - 0.8) / 0.2) : 0));
         return { x: c.x + r * Math.cos(ang), y: c.y + r * Math.sin(ang), a: settle(d.a, faceAt(ang), u) }; };
     });
   }
@@ -686,7 +723,7 @@ const Contra = (() => {
     circle: { group: 'four', any: true, plan(ps, call, ctx) {
       const dir = call.dir === 'R' ? 1 : -1;               // circle left travels clockwise seen from above
       // Take hands: the ring draws in until neighbors in it are ringGap apart; everyone faces the center.
-      return ringPlan(ps, dir * call.turns * TAU, ctx.p.ringGap / (2 * Math.sin(Math.PI / ps.length)), ang => ang + Math.PI);
+      return ringPlan(ps, dir * call.turns * TAU, ctx.p.ringGap / (2 * Math.sin(Math.PI / ps.length)), ang => ang + Math.PI, ctx.p.ringOpen);
     } },
     // ---------- Turns with one person ----------
     // Shoulder round (formerly "gypsy"): walk around each other without touching, looking at each other.
@@ -795,8 +832,10 @@ const Contra = (() => {
         const m = mid(ps[i], ps[j]), a0 = angleTo(c, m), r = dist(c, m);
         for (const k of [i, j]) {
           const d = ps[k], off = { x: d.x - m.x, y: d.y - m.y }, face = angleTo(d, ps[k === i ? j : i]);
-          out[k] = u => { const ang = a0 + sweep * trap(u, 0.25);
-            return { x: c.x + r * Math.cos(ang) + off.x, y: c.y + r * Math.sin(ang) + off.y, a: settle(d.a, face, u) }; };
+          // A draw poussette also turns each couple half round as they go, so they end on the other side.
+          out[k] = u => { const ang = a0 + sweep * trap(u, 0.25), spin = call.draw ? Math.sign(sweep) * Math.PI * mj(u) : 0;
+            const ox = off.x * Math.cos(spin) - off.y * Math.sin(spin), oy = off.x * Math.sin(spin) + off.y * Math.cos(spin);
+            return { x: c.x + r * Math.cos(ang) + ox, y: c.y + r * Math.sin(ang) + oy, a: settle(d.a, face, u) + spin }; };
         }
       }
       return out;
@@ -978,6 +1017,88 @@ const Contra = (() => {
       });
     } },
 
+    // ---------- English country dance ----------
+    // Siding: walk forward toward the other, a little to your left (right siding) so right shoulders come
+    // side by side in the middle, then fall back home, facing them throughout.
+    siding: { group: 'pair', plan([p, q], call, ctx) {
+      const c = mid(p, q), side = call.side === 'L' ? -1 : 1;
+      return [[p, q], [q, p]].map(([d, o]) => {
+        const f = angleTo(d, o), t = { x: c.x - Math.cos(f) * 0.1 - Math.sin(f) * side * 0.22, y: c.y - Math.sin(f) * 0.1 + Math.cos(f) * side * 0.22 };
+        return u => { const s = bump(u); return { x: lerp(d.x, t.x, s), y: lerp(d.y, t.y, s), a: settle(d.a, f, u, 0.15) }; };
+      });
+    } },
+    // Sharp (swirly) siding: cross to each other's places passing left shoulders while turning to keep facing
+    // each other, then come back along the same track.
+    sharpSiding: { group: 'pair', plan([p, q], call, ctx) {
+      const c = mid(p, q), r0 = dist(p, q) / 2;
+      return [p, q].map(d => { const a0 = angleTo(c, d);
+        return u => { const ang = a0 + Math.PI * bump(u), r = r0 * (1 - 0.3 * Math.sin(TAU * clamp01(u)) ** 2);
+          return { x: c.x + r * Math.cos(ang), y: c.y + r * Math.sin(ang), a: settle(d.a, ang + Math.PI, u, 0.15) }; }; });
+    } },
+    // Up a double and back: face up the hall (or down), four steps forward and four back.
+    upDouble: { group: 'four', any: true, plan(ps, call, ctx) {
+      const F = call.dir === 'down' ? -Math.PI / 2 : Math.PI / 2;
+      return ps.map(d => u => { const s = 0.8 * bump(u); return { x: d.x + s * Math.cos(F), y: d.y + s * Math.sin(F), a: settle(d.a, F, u, 0.15) }; });
+    } },
+    // Fall back: facing the middle of the group, walk backward away from it (and stay there).
+    fallBack: { group: 'four', any: true, plan(ps, call, ctx) {
+      const c = centroid(ps);
+      return ps.map(d => { const f = angleTo(d, c);
+        return u => { const s = 0.5 * mj(u); return { x: d.x - s * Math.cos(f), y: d.y - s * Math.sin(f), a: settle(d.a, f, u, 0.15) }; }; });
+    } },
+    // Honour (bow and curtsey; also kiss and salute): face each other with a small dip toward them.
+    honour: { group: 'pair', plan([p, q], call, ctx) {
+      return [[p, q], [q, p]].map(([d, o]) => { const f = angleTo(d, o);
+        return u => { const s = 0.06 * bump(u); return { x: d.x + s * Math.cos(f), y: d.y + s * Math.sin(f), a: settle(d.a, f, u, 0.3) }; }; });
+    } },
+    // Clap: everyone stays where they are.
+    clap: { group: 'four', any: true, plan: ps => ps.map(d => () => d) },
+    // Hole in the wall cross: walk toward each other, sidle around each other (right shoulders) face to face,
+    // and back away into the other's place.
+    holeInWall: { group: 'pair', plan([p, q], call, ctx) {
+      const c = mid(p, q), r0 = dist(p, q) / 2, rc = Math.min(r0, 0.3), dir = call.side === 'L' ? 1 : -1;
+      return [p, q].map(d => { const a0 = angleTo(c, d);
+        return u => { const ang = a0 + dir * Math.PI * mj((u - 0.3) / 0.4), r = u < 0.3 ? lerp(r0, rc, mj(u / 0.3)) : u > 0.7 ? lerp(rc, r0, mj((u - 0.7) / 0.3)) : rc;
+          return { x: c.x + r * Math.cos(ang), y: c.y + r * Math.sin(ang), a: settle(d.a, ang + Math.PI, u, 0.15) }; }; });
+    } },
+    // Right or left hand turn: take the hand at arm's length (a finger clasp) and walk around each other.
+    handTurn: { group: 'pair', plan: (ps, call, ctx) => turnPair(ps, (call.side === 'L' ? 1 : -1) * call.turns * TAU, ctx.p.handHold, 0.6) },
+    // Bentley allemande (English allemande): the robin steps forward and turns in place holding up the named hand;
+    // the lark walks once around her by that shoulder, and both step back.
+    bentleyAllemande: { group: 'pair', plan([lark, robin], call, ctx) {
+      const dir = call.side === 'L' ? 1 : -1, f = angleTo(robin, lark), c = { x: robin.x + 0.3 * Math.cos(f), y: robin.y + 0.3 * Math.sin(f) };
+      const a0 = angleTo(c, lark), r0 = dist(c, lark), rr = 0.6;
+      return [
+        u => { const ang = a0 + dir * TAU * trap(clamp01((u - 0.12) / 0.76), 0.2), r = u < 0.12 ? lerp(r0, rr, mj(u / 0.12)) : u > 0.88 ? lerp(rr, r0, mj((u - 0.88) / 0.12)) : rr;
+          return { x: c.x + r * Math.cos(ang), y: c.y + r * Math.sin(ang), a: settle(lark.a, ang + dir * Math.PI / 2, u, 0.12) }; },
+        u => { const s = u < 0.12 ? mj(u / 0.12) : u > 0.88 ? mj((1 - u) / 0.12) : 1, ang = a0 + dir * TAU * trap(clamp01((u - 0.12) / 0.76), 0.2);
+          return { x: lerp(robin.x, c.x, s), y: lerp(robin.y, c.y, s), a: settle(robin.a, ang, u, 0.12) }; },
+      ];
+    } },
+    // Hey for three: the three dancers on each side of the set weave a figure eight along it, passing alternate
+    // shoulders; the top dancer starts down toward the middle. A half hey swaps the ends.
+    heyThree: { group: 'four', any: true, plan(ps, call, ctx) {
+      const out = ps.map(d => () => d);
+      for (const sideSign of [-1, 1]) {
+        const idx = ps.map((d, i) => i).filter(i => Math.sign(ps[i].x - ctx.cx) === sideSign).sort((i, j) => ps[j].y - ps[i].y);
+        if (idx.length !== 3) continue;
+        const c = centroid(idx.map(i => ps[i])), A = Math.max(0.6, (ps[idx[0]].y - ps[idx[2]].y) / 2), B = 0.35 * (call.side === 'L' ? -1 : 1) * sideSign;
+        const track = t => ({ x: c.x + B * Math.sin(2 * t), y: c.y + A * Math.cos(t) }), span = (call.turns || 1) * TAU;
+        idx.forEach((i, k) => {
+          const d = ps[i], t0 = [0, 4 * Math.PI / 3, 2 * Math.PI / 3][k], path = s => track(t0 + span * s);
+          const end = call.turns === 0.5 ? { x: d.x, y: 2 * c.y - d.y } : { x: d.x, y: d.y };
+          out[i] = u => {
+            const s = trap(u, 0.1);
+            let p = path(s);
+            if (u < 0.15) { const k2 = mj(u / 0.15); p = { x: lerp(d.x, p.x, k2), y: lerp(d.y, p.y, k2) }; }
+            if (u > 0.85) { const k2 = mj((u - 0.85) / 0.15); p = { x: lerp(p.x, end.x, k2), y: lerp(p.y, end.y, k2) }; }
+            return { x: p.x, y: p.y, a: settle(d.a, heading(path, s), u, 0.1) };
+          };
+        });
+      }
+      return out;
+    } },
+
     // ---------- Squares ----------
     // Forward and back: everyone (or the named couples) walks toward the middle of the group and backs out.
     forwardBack: { group: 'four', any: true, plan(ps, call, ctx) {
@@ -991,7 +1112,7 @@ const Contra = (() => {
     // is the lark's place; an amount goes that far and ends at the nearest place. Each lark promenades with the
     // robin beside him (after a corner swing, the corner), or his partner when two robins are as close.
     promenade: { group: 'four', square: true, plan(ps, call, ctx) {
-      const R = ctx.sq.R, h = ctx.p.neighborGap / 2, out = [], q = Math.PI / 2, taken = new Set();
+      const R = ctx.sq.R, n = ctx.sq.n, h = ctx.p.neighborGap / 2, out = [], q = TAU / n, taken = new Set();
       ctx.keys.forEach((key, i) => {
         if (key[0] !== 'L') return;
         const j = ctx.keys.map((k, n) => n).filter(n => ctx.keys[n][0] === 'R' && !taken.has(n))
@@ -1000,11 +1121,11 @@ const Contra = (() => {
         taken.add(j);
         const L0 = ps[i], R0 = ps[j], m0 = mid(L0, R0), phi0 = Math.atan2(m0.y, m0.x), r0 = Math.hypot(m0.x, m0.y), psi0 = angleTo(L0, R0);
         let travel;
-        if (call.turns) travel = slotAngle(1) + Math.round((phi0 + call.turns * TAU - slotAngle(1)) / q) * q - phi0;
-        else { travel = ((slotAngle(+key.slice(1)) - phi0) % TAU + TAU) % TAU; if (travel < q / 2) travel += TAU; }
+        if (call.turns) travel = slotAngle(1, n) + Math.round((phi0 + call.turns * TAU - slotAngle(1, n)) / q) * q - phi0;
+        else { travel = ((slotAngle(+key.slice(1), n) - phi0) % TAU + TAU) % TAU; if (travel < q / 2) travel += TAU; }
         const place = u => {
           const phi = phi0 + travel * trap(u, 0.25), r = lerp(r0, R, mj(u / 0.25));
-          const psi = phi + wrap(psi0 - phi0) * (1 - mj(u / 0.2)) + q * mj((u - 0.8) / 0.2);
+          const psi = phi + wrap(psi0 - phi0) * (1 - mj(u / 0.2)) + (Math.PI / 2) * mj((u - 0.8) / 0.2);
           const m = { x: r * Math.cos(phi), y: r * Math.sin(phi) }, o = { x: h * Math.cos(psi), y: h * Math.sin(psi) };
           return { L: { x: m.x - o.x, y: m.y - o.y, a: psi + q }, R: { x: m.x + o.x, y: m.y + o.y, a: psi + q } };
         };
@@ -1021,11 +1142,12 @@ const Contra = (() => {
     // with partners by the right and weaving (inside, outside) past each one they meet. Half (the default)
     // meets partners on the far side; all the way brings them home.
     grandRL: { group: 'four', square: true, plan(ps, call, ctx) {
-      const R = ctx.sq.R, w = 0.3, step = Math.PI / 4, base = slotAngle(1) + Math.PI / 8, span = (call.turns || 0.5) * TAU;
+      // Larks and robins alternate around the ring, `step` apart; each meets the next one every `step` of travel.
+      const R = ctx.sq.R, n = ctx.sq.n, w = 0.3, step = Math.PI / n, base = slotAngle(1, n) + step / 2, span = (call.turns || 0.5) * TAU;
       return ps.map((d, i) => {
         const dir = ctx.keys[i][0] === 'L' ? 1 : -1, a0 = Math.atan2(d.y, d.x), spot = base + Math.round((a0 - base) / step) * step;
         // Larks pass the first person on the inside, robins on the outside.
-        const path = s => { const trav = span * s, ang = spot + dir * trav, r = R - dir * w * Math.sin(4 * trav); return { x: r * Math.cos(ang), y: r * Math.sin(ang) }; };
+        const path = s => { const trav = span * s, ang = spot + dir * trav, r = R - dir * w * Math.sin(n * trav); return { x: r * Math.cos(ang), y: r * Math.sin(ang) }; };
         return u => {
           const s = trap(u, 0.12), p = path(s), k = mj(u / 0.12);
           return { x: lerp(d.x, p.x, k), y: lerp(d.y, p.y, k), a: settle(d.a, heading(path, s), u, 0.12) };
@@ -1041,7 +1163,7 @@ const Contra = (() => {
         const j = ctx.keys.indexOf('R' + key.slice(1));
         if (key[0] !== 'L' || j < 0) return;
         // Walk from the couple's place (wherever they actually start) toward and past the center.
-        const home = slotPlaces({ cx: 0, cy: 0 }, +key.slice(1), { ...ctx.p, squareRadius: R }), m0 = home.mid;
+        const home = slotPlaces({ cx: 0, cy: 0, n: ctx.sq.n, R }, +key.slice(1), ctx.p), m0 = home.mid;
         const dir = { x: -m0.x / R, y: -m0.y / R }, F = Math.atan2(dir.y, dir.x);
         const far = { x: m0.x + dir.x * ctx.sq.spacing, y: m0.y + dir.y * ctx.sq.spacing }, through = ctx.sq.hasSlot(far);
         const len = through ? ctx.sq.spacing : 2 * R, walk = through ? 1 : 0.7, M = { x: m0.x + dir.x * len, y: m0.y + dir.y * len };
@@ -1065,17 +1187,23 @@ const Contra = (() => {
   const TYPICAL_BEATS = { longLines: 8, allemande: 8, balance: 4, boxTheGnat: 4, swing: 4, circle: 8, pullBy: 4,
     shoulderRound: 8, dosido: 8, seesaw: 8, swatTheFlea: 4, californiaTwirl: 4, starThrough: 4, rollAway: 4, halfSashay: 4,
     passThrough: 4, star: 8, petronella: 4, courtesyTurn: 4, turnAsCouple: 4, chain: 8, rightLeftThrough: 8, flutterwheel: 8,
-    hey: k => 16 * (k.turns || 1), figureEight: k => 16 * (k.turns || 1), forwardBack: 8, nextSquare: 8, grandRL: k => 16 * (k.turns || 0.5) };
+    hey: k => 16 * (k.turns || 1), figureEight: k => 16 * (k.turns || 1), forwardBack: 8, nextSquare: 8, grandRL: k => 16 * (k.turns || 0.5),
+    siding: 8, sharpSiding: 8, upDouble: 8, honour: 2, holeInWall: 4, bentleyAllemande: 8, handTurn: k => (k.turns <= 0.5 ? 4 : 8) };
   const SOURCE = { pullBy: 'Contrafusion' };
 
   // ---------- Reading a dance (The Caller's Box layout) ----------
+  const COUPLE_NUM = { '1s': 1, ones: 1, first: 1, '1st': 1, '2s': 2, twos: 2, second: 2, '2nd': 2, '3s': 3, threes: 3, third: 3, '3rd': 3,
+    '4s': 4, fours: 4, fourth: 4, '4th': 4, '5s': 5, fives: 5, fifth: 5, '5th': 5, '6s': 6, sixes: 6, sixth: 6, '6th': 6 };
+  // Figures that everyone in a fixed set dances at once.
+  const WHOLE_SET = new Set(['longLines', 'forwardBack', 'upDouble', 'fallBack', 'clap', 'turnSingle', 'balanceWave']);
   const WHO = [
     [/\b(partners?)\b/, 'partners'], [/\b(neighbou?rs?)\b/, 'neighbors'],
     [/\b(women|ladies|robins?)\b/, 'robins'], [/\b(men|gents|larks?)\b/, 'larks'],
-    [/\b(ones|1s)\b/, 'ones'], [/\b(twos|2s)\b/, 'twos'], [/\b(threes|3s)\b/, 'threes'],
+    [/\b(first|1st) corners?\b/, 'firstCorners'], [/\b(second|2nd) corners?\b/, 'secondCorners'],
+    [/\b(ones|1s)\b/, 'ones'], [/\b(twos|2s)\b/, 'twos'], [/\b(threes|3s)\b/, 'threes'], [/\b(fours|4s)\b/, 'fours'],
     [/\bcorners?\b/, 'corners'], [/\bheads\b|\bhead couples?\b/, 'heads'], [/\bsides\b|\bside couples?\b/, 'sides'],
   ];
-  const WHO_LABEL = { partners: 'partners', neighbors: 'neighbors', robins: 'robins', larks: 'larks', ones: 'ones', twos: 'twos', corners: 'corners', heads: 'heads', sides: 'sides', all: 'everyone' };
+  const WHO_LABEL = { partners: 'partners', neighbors: 'neighbors', robins: 'robins', larks: 'larks', ones: 'ones', twos: 'twos', corners: 'corners', firstCorners: 'first corners', secondCorners: 'second corners', fours: 'fours', heads: 'heads', sides: 'sides', all: 'everyone' };
 
   function parseTurns(s, fallback) {
     s = s.replace(/½/g, ' 1/2').replace(/¼/g, ' 1/4').replace(/¾/g, ' 3/4')
@@ -1096,15 +1224,29 @@ const Contra = (() => {
     for (const [re, name] of WHO) if (re.test(t)) { who = name; break; }
     const lr = (fallback = 'R') => (/\bleft\b/.test(t) ? 'L' : /\bright\b/.test(t) ? 'R' : fallback);
     const rot = (fallback = 'R') => (/counter-?clockwise|\bccw\b/.test(t) ? 'L' : /clockwise|\bcw\b/.test(t) ? 'R' : fallback);
-    const amount = fallback => parseTurns(t.replace(/two-hand/g, '').replace(/\(.*?\)/g, ''), fallback);
+    // (Couple numbers like "2s" or "1st" aren't amounts.)
+    const amount = fallback => parseTurns(t.replace(/two-hand/g, '').replace(/\(.*?\)/g, '').replace(/\b\d(s|st|nd|rd|th)\b/g, ''), fallback);
     let m;
     if (/long lines/.test(t)) return { fig: 'longLines', who: 'all' };
     if (/forward (and|&) back/.test(t)) return { fig: 'forwardBack', who: who === 'heads' || who === 'sides' ? who : 'all' };
     if (/grand right (and|&) left|grand chain/.test(t)) return { fig: 'grandRL', who: 'all', turns: /all the way|full|home/.test(t) ? 1 : amount(0.5) };
     if (/next square|pass (through|thru) to the next/.test(t)) return { fig: 'nextSquare', who: who === 'sides' ? 'sides' : 'heads' };
     if (/promenade/.test(t) && !/star promenade/.test(t)) return { fig: 'promenade', who: who === 'heads' || who === 'sides' ? who : 'partners', turns: /home/.test(t) ? null : amount(null) };
+    if (/bentley/.test(t)) return { fig: 'bentleyAllemande', who: who || 'partners', side: lr() };
     if ((m = t.match(/allemande\s+(left|right)(.*)/))) return { fig: 'allemande', who, hand: m[1][0].toUpperCase(), turns: parseTurns(m[2], 1) };
     if (/shoulder a?round|gyps(y|ie)/.test(t)) return { fig: 'shoulderRound', who, side: lr(), turns: amount(1) };
+    if (/sharp siding|swirly siding/.test(t)) return { fig: 'sharpSiding', who: who || 'partners' };
+    if (/\bsiding\b|^((partners?|neighbou?rs?|corners?) )?side (right|left)\b(?! and)/.test(t)) return { fig: 'siding', who: who || 'partners', side: lr() };
+    if ((m = t.match(/(up|down) a double/))) return { fig: 'upDouble', who: 'all', dir: m[1] };
+    if (/fall back/.test(t)) return { fig: 'fallBack', who: 'all' };
+    if (/\bhono(u)?r|\bbow\b|\bcurts(e)?y|\bkiss\b|\bsalute\b/.test(t)) return { fig: 'honour', who: who || 'partners' };
+    if (/\bclap/.test(t)) return { fig: 'clap', who: 'all' };
+    if (/hole in the wall/.test(t)) return { fig: 'holeInWall', who, side: lr() };
+    if (/back to back/.test(t)) return { fig: 'dosido', who, turns: amount(1) };
+    if (/rights and lefts|circular hey/.test(t)) return { fig: 'squareThrough', who: 'all', turns: amount(4) };
+    if (/\barming\b/.test(t)) return { fig: 'armTurn', who, side: lr(), turns: amount(1) };
+    if (/foot it/.test(t)) return { fig: 'set', who: who || 'partners' };
+    if (/change (places|sides)/.test(t)) return { fig: 'cross', who, side: lr() };
     if (/\barm (right|left)|arm turn/.test(t)) return { fig: 'armTurn', who, side: lr(), turns: amount(1) };
     if (/two-hand turn/.test(t)) return { fig: 'twoHandTurn', who, side: rot(), turns: amount(1) };
     if (/box the gnat/.test(t)) return { fig: 'boxTheGnat', who };
@@ -1122,6 +1264,7 @@ const Contra = (() => {
     if (/mad-rbn/.test(t)) return { fig: 'madRobin', who: /partner/.test(t) ? 'partners' : 'neighbors', side: rot() };
     if (/^set\b|\bset to\b/.test(t)) return { fig: 'set', who };
     if (/turn single/.test(t)) return { fig: 'turnSingle', who: 'all', side: lr() };
+    if (/\b(right|left)[- ]hands? turn|\bturn (by the )?(right|left)( hand)?\b|\bhand turn\b/.test(t)) return { fig: 'handTurn', who, side: lr(), turns: amount(1) };
     if (/balance (the )?wave|wavy line/.test(t)) return { fig: 'balanceWave', who: 'all' };
     if (/balance (the )?ring/.test(t)) return { fig: 'balanceRing', who: 'all' };
     if (/balance/.test(t)) return { fig: 'balance', who, hand: handTag ? handTag[0].toUpperCase() : null };
@@ -1129,7 +1272,7 @@ const Contra = (() => {
     if (/star promenade|weathervane/.test(t)) return { fig: 'starPromenade', who: 'all', turns: amount(0.5) };
     if (/(^|\s)star (right|left)|hands across/.test(t)) return { fig: 'star', who: who === 'larks' || who === 'robins' ? who : 'all', side: lr(), turns: amount(1) };
     if (/petronella/.test(t)) return { fig: 'petronella', who: 'all' };
-    if (/poussette/.test(t)) return { fig: 'poussette', who: who === 'neighbors' ? 'neighbors' : 'partners', side: rot(), turns: amount(0.5) };
+    if (/poussette/.test(t)) return { fig: 'poussette', who: who === 'neighbors' ? 'neighbors' : 'partners', side: rot(), turns: amount(0.5), draw: /draw/.test(t) };
     if ((m = t.match(/circle\s*(left|right)?(.*)/))) return { fig: 'circle', who: 'all', dir: m[1] === 'right' ? 'R' : 'L', turns: parseTurns(m[2], 1) };
     if (/courtesy turn/.test(t)) return { fig: 'courtesyTurn', who: who || 'partners' };
     if (/turn as (a )?couples?|wheel around/.test(t)) return { fig: 'turnAsCouple', who: who || 'partners' };
@@ -1140,7 +1283,7 @@ const Contra = (() => {
     if (/flutterwheel/.test(t)) return { fig: 'flutterwheel', who: 'all', reverse: /reverse/.test(t) };
     if (/square (through|thru)/.test(t)) return { fig: 'squareThrough', who: 'all', turns: amount(2) };
     if (/give.and.take/.test(t)) return { fig: 'giveAndTake', who: who === 'larks' ? 'larks' : 'robins' };
-    if (/hey for three/.test(t)) return { fig: null, who };
+    if (/hey for (three|3)|reel of three/.test(t)) return { fig: 'heyThree', who: 'all', side: /\bleft\b/.test(t) ? 'L' : 'R', turns: /half|1\/2/.test(t) ? 0.5 : 1 };
     if (/\bhey\b/.test(t)) {
       const st = t.match(/(robins|ladies|women|larks|gents|men|partners?|neighbou?rs?)\s+pass\s+(right|left)/);
       const starter = st ? (/robins|ladies|women/.test(st[1]) ? 'robins' : /larks|gents|men/.test(st[1]) ? 'larks' : /partner/.test(st[1]) ? 'partners' : 'neighbors') : 'robins';
@@ -1153,7 +1296,7 @@ const Contra = (() => {
     if ((m = t.match(/lead (down|up)/))) return { fig: 'leadDown', who: who === 'twos' ? 'twos' : 'ones', dir: m[1] };
     if (/down the (hall|center)/.test(t)) return { fig: 'downHall', who: 'all' };
     if (/up the (hall|center)|come back/.test(t)) return { fig: 'upHall', who: 'all' };
-    if (/cast (off|down)/.test(t)) return { fig: 'castOff', who: who === 'twos' ? 'twos' : 'ones' };
+    if (/cast (off|down|up)/.test(t)) return { fig: 'castOff', who: who === 'twos' ? 'twos' : 'ones' };
     return { fig: null, who };
   }
 
@@ -1195,7 +1338,7 @@ const Contra = (() => {
   }
 
   // ---------- Writing a dance back out (The Caller's Box layout) ----------
-  const WHO_TEXT = { partners: 'Partner', neighbors: 'Neighbor', larks: 'Larks', robins: 'Robins', ones: 'Ones', twos: 'Twos', corners: 'Corner', heads: 'Heads', sides: 'Sides' };
+  const WHO_TEXT = { partners: 'Partner', neighbors: 'Neighbor', larks: 'Larks', robins: 'Robins', ones: 'Ones', twos: 'Twos', corners: 'Corner', firstCorners: 'First corners', secondCorners: 'Second corners', fours: 'Fours', heads: 'Heads', sides: 'Sides' };
   function turnsText(n) {
     const whole = Math.floor(n + 1e-9), frac = Math.round((n - whole) * 4);
     const f = ['', '1/4', '1/2', '3/4'][frac];
@@ -1239,6 +1382,10 @@ const Contra = (() => {
   //   active couple and the others.
   // kind 'f4f' (four facing four): lines of four across the hall; ones' lines face down, twos' lines face up.
   // kind 'sicilian': couples facing couples around a circle; ones face counter-clockwise, twos clockwise.
+  // kind 'set': a longways set of a fixed number of couples (`couples`); `crossed(k)` says if couple k starts improper.
+  // kind 'tempest': each minor set is a line of four (two ones couples) facing down between two twos couples on the
+  //   sides facing across; each ones couple dances with the side couple nearest it.
+  // kind 'longways' with `grid`: several contra lines side by side; couples may travel from one line to the next.
   // kind 'square': four couples facing the center, numbered counter-clockwise from couple 1 (backs to the band).
   //   `grid` packs squares edge to edge so couples can travel from one square to the next.
   const FORMATIONS = {
@@ -1256,14 +1403,28 @@ const Contra = (() => {
     sicilian: { kind: 'sicilian', name: 'Sicilian Circle' },
     square: { kind: 'square', name: 'Square' },
     gridSquare: { kind: 'square', name: 'Grid Square', grid: true },
+    circleMixer: { kind: 'square', name: 'Circle Mixer', mixer: true },
+    tempest: { kind: 'tempest', name: 'Tempest' },
+    gridContra: { kind: 'longways', name: 'Grid Contra - Improper', ones: 1, twos: -1, twosAt: -1, grid: true },
   };
+  // Longways sets of a fixed size (two to six couples, often English): proper, or improper with the odd couples crossed.
+  for (const [n, word] of [[2, 'Two'], [3, 'Three'], [4, 'Four'], [5, 'Five'], [6, 'Six']]) {
+    FORMATIONS[`set${n}Proper`] = { kind: 'set', name: `${word} Couple Longways Set - Proper`, couples: n, crossed: () => false };
+    FORMATIONS[`set${n}Improper`] = { kind: 'set', name: `${word} Couple Longways Set - Improper`, couples: n, crossed: k => k % 2 === 1 };
+  }
   function formationOf(text) {
     const f = (text || '').toLowerCase();
-    if (/four.facing.four|4.fac(e|ing).4|four.face.four|mescolanza|double contra/.test(f)) return /tempest|sicilian/.test(f) ? null : 'fourFacingFour';
+    if (/tempest/.test(f)) return 'tempest';
+    if (/four.facing.four|4.fac(e|ing).4|four.face.four|mescolanza|double contra/.test(f)) return /sicilian/.test(f) ? null : 'fourFacingFour';
+    if (/grid contra|longways grid/.test(f)) return 'gridContra';
     if (/sicilian/.test(f)) return 'sicilian';
     if (/triple minor/.test(f)) return /improper|crossed/.test(f) ? 'tripleImproper' : 'tripleProper';
     if (/grid square/.test(f)) return 'gridSquare';
+    if (/circle mixer|big circle|single circle|^circle$/.test(f)) return 'circleMixer';
     if (/square/.test(f) && !/double|five|5|six|6|hexagon|quadrille/.test(f)) return 'square';
+    const size = /doublet|\btwo.couple|\b2.couple/.test(f) ? 2 : /triplet|three.couple|\b3.couple/.test(f) ? 3 : /quadruplet|four.couple|\b4.couple/.test(f) ? 4
+      : /quintuplet|five.couple|\b5.couple/.test(f) ? 5 : /sextuplet|six.couple|\b6.couple/.test(f) ? 6 : 0;
+    if (size && !/square|circle|horseshoe|triangle/.test(f)) return `set${size}${/improper|crossed/.test(f) || (size === 2 && !/proper/.test(f)) ? 'Improper' : 'Proper'}`;
     // Other formations change how groups form and progress; they aren't supported yet.
     if (/triple|triplet|quadruplet|facing|tempest|circle|mixer|square|quadrille|hexagon|grid|zia|longways set|scatter|doublet|singlet|solo|horseshoe|tri-contra/.test(f)) return null;
     if (/becket/.test(f)) return /ccw|counter/.test(f) ? 'becketCCW' : 'becketCW';
@@ -1286,6 +1447,15 @@ const Contra = (() => {
     const s = F[role];
     return { lark: { x: cx + s * half, y }, robin: { x: cx - s * half, y } };
   }
+  // Tempest: where a couple of either role stands on one side (-1 left, +1 right) of the minor set at height y.
+  // Ones face down (the robin on the -x side of the lark); twos stand on the sides facing across.
+  const TEMPEST_STEP = 2.4;
+  function tempestPlaces(role, side, cx, y, P) {
+    const g = P.neighborGap;
+    if (role === 'ones') { const a = -Math.PI / 2, x = cx + side * g; return { lark: { x: x + g / 2, y, a }, robin: { x: x - g / 2, y, a } }; }
+    const x = cx + side * (2 * g + 0.4), a = side < 0 ? 0 : Math.PI;
+    return { lark: { x, y: y - side * g / 2, a }, robin: { x, y: y + side * g / 2, a } };
+  }
   // Group frames: figures are planned in a frame where the ones couple stands on the +x side facing -x
   // toward the twos (like a Becket hands-four), then turned and moved back onto the floor.
   const toLocal = (fr, p) => { const dx = p.x - fr.ox, dy = p.y - fr.oy, c = Math.cos(fr.th), s = Math.sin(fr.th);
@@ -1296,9 +1466,10 @@ const Contra = (() => {
   const coupleFacing = (l, r) => Math.atan2(r.y - l.y, r.x - l.x) + Math.PI / 2;
   // Squares: couple k's place is at this angle from the square's center (couple 1 at the top, then
   // counter-clockwise). Facing in, the robin is on the lark's right, which is counter-clockwise around the square.
-  const slotAngle = k => Math.PI / 2 + (k - 1) * Math.PI / 2;
+  // A ring (a square, or a circle mixer) has `n` couples at radius `R`.
+  const slotAngle = (k, n = 4) => Math.PI / 2 + (k - 1) * TAU / n;
   function slotPlaces(sq, k, P) {
-    const ph = slotAngle(k), R = P.squareRadius, h = P.neighborGap / 2, a = ph + Math.PI;
+    const ph = slotAngle(k, sq.n), R = sq.R, h = P.neighborGap / 2, a = ph + Math.PI;
     const c = { x: sq.cx + R * Math.cos(ph), y: sq.cy + R * Math.sin(ph) }, t = { x: -Math.sin(ph), y: Math.cos(ph) };
     return { mid: c, lark: { x: c.x - t.x * h, y: c.y - t.y * h, a }, robin: { x: c.x + t.x * h, y: c.y + t.y * h, a } };
   }
@@ -1317,12 +1488,47 @@ const Contra = (() => {
     const faceIn = (p, cx) => ({ ...p, a: p.x > cx ? Math.PI : 0 });
     if (F.kind === 'square') {
       // A row of squares (one per line), or a grid of them (lines across, hands-fours down the hall).
+      // A circle mixer is one big ring per line: 4 + 2 x "hands-fours" couples, about 1.6 m of the circle each.
+      if (F.mixer) {
+        const n = 4 + 2 * sets, R = Math.max(1.6, (n * 1.6) / TAU), S = 2 * R + 3;
+        for (let k = 0; k < lines; k++) {
+          const sq = { cx: (k - (lines - 1) / 2) * S, cy: 0, spacing: S, n, R };
+          sq.top = R; sq.center = { x: sq.cx, y: 0 };
+          lineList.push(sq);
+          for (let m = 1; m <= n; m++) { const at = slotPlaces(sq, m, P); add(k, m, 'couples', at.lark, at.robin); }
+        }
+      } else {
       const rows = F.grid ? sets : 1, S = F.grid ? 2 * P.squareRadius + P.squareGap : 2 * P.squareRadius + 3;
       for (let row = 0; row < rows; row++) for (let k = 0; k < lines; k++) {
-        const sq = { cx: (k - (lines - 1) / 2) * S, cy: ((rows - 1) / 2 - row) * S, spacing: S };
+        const sq = { cx: (k - (lines - 1) / 2) * S, cy: ((rows - 1) / 2 - row) * S, spacing: S, n: 4, R: P.squareRadius };
         sq.top = sq.cy + P.squareRadius; sq.center = { x: sq.cx, y: sq.cy };
         const s = lineList.push(sq) - 1;
         for (let n = 1; n <= 4; n++) { const at = slotPlaces(sq, n, P); add(s, n, n % 2 ? 'heads' : 'sides', at.lark, at.robin); }
+      }
+      }
+    } else if (F.kind === 'set') {
+      // Each line is its own set of F.couples couples, one neighbor-gap apart, facing across.
+      for (let k = 0; k < lines; k++) {
+        const cx = (k - (lines - 1) / 2) * P.lineSpacing, n = F.couples, top = ((n - 1) / 2) * gap;
+        lineList.push({ cx, top, places: Array.from({ length: n }, (_, i) => top - i * gap) });
+        for (let i = 1; i <= n; i++) {
+          const y = top - (i - 1) * gap, s = F.crossed(i) ? 1 : -1;
+          add(k, i, 'set', faceIn({ x: cx + s * half, y }, cx), faceIn({ x: cx - s * half, y }, cx));
+        }
+      }
+    } else if (F.kind === 'tempest') {
+      // Minor sets 2.4 m apart down each line: the ones' line of four faces down between the side couples.
+      for (let k = 0; k < lines; k++) {
+        const cx = (k - (lines - 1) / 2) * 7, top = ((sets - 1) / 2) * TEMPEST_STEP;
+        lineList.push({ cx, top });
+        for (let j = 0; j < sets; j++) {
+          const y = top - j * TEMPEST_STEP;
+          for (const [b, side] of [[0, -1], [1, 1]]) {
+            const o = tempestPlaces('ones', side, cx, y, P), t = tempestPlaces('twos', side, cx, y, P);
+            add(k, 4 * j + b + 1, 'ones', o.lark, o.robin);
+            add(k, 4 * j + b + 3, 'twos', t.lark, t.robin);
+          }
+        }
       }
     } else if (F.kind === 'sicilian') {
       // Couples evenly around each circle, P.partnerGap apart; partners side by side across the ring.
@@ -1354,7 +1560,7 @@ const Contra = (() => {
       }
     } else {
       for (let k = 0; k < lines; k++) {
-        const cx = (k - (lines - 1) / 2) * P.lineSpacing, per = F.kind === 'triple' ? 3 : 2, top = ((sets * per - 1) / 2) * gap;
+        const cx = (k - (lines - 1) / 2) * (F.grid ? 2 * P.partnerGap : P.lineSpacing), per = F.kind === 'triple' ? 3 : 2, top = ((sets * per - 1) / 2) * gap;
         lineList.push({ cx, top });
         for (let j = 0; j < sets; j++) {
           const roles = F.kind === 'triple' ? ['ones', 'twos', 'twos'] : ['ones', 'twos'];
@@ -1384,7 +1590,39 @@ const Contra = (() => {
       const pts = Object.values(ids).map(id => pose[id]);
       groups.push({ line: lineK, cx: lines[lineK].cx, cy: pts.reduce((s, p) => s + p.y, 0) / pts.length, ids, members, ones: members[0], twos: members[1], frame });
     };
-    if (F.kind === 'square') {
+    // Grid contras: a couple belongs to whichever line they now stand in.
+    const lineOf = c => (!F.grid || F.kind !== 'longways' ? c.line : lines.reduce((b, L, i) => (Math.abs(L.cx - midOf(c).x) < Math.abs(lines[b].cx - midOf(c).x) ? i : b), 0));
+    if (F.kind === 'set') {
+      // Each dancer takes the nearest spot in their set (either side); keys follow the places from the top,
+      // so whoever stands in the top place this time through is the first couple.
+      lines.forEach((L, s) => {
+        const spots = L.places.flatMap((y, i) => [-1, 1].map(side => ({ place: i + 1, x: L.cx + side * P.partnerGap / 2, y })));
+        const ids = couples.filter(c => c.line === s).flatMap(c => [c.lark, c.robin]), at = {}, options = [];
+        for (const id of ids) spots.forEach((q, j) => options.push({ id, j, d: dist(pose[id], q) }));
+        const takenSpot = new Set();
+        for (const o of options.sort((a, b) => a.d - b.d)) if (!at[o.id] && !takenSpot.has(o.j)) { at[o.id] = spots[o.j]; takenSpot.add(o.j); }
+        const keyed = {}, coupleOf = Object.fromEntries(couples.flatMap(c => [[c.lark, c], [c.robin, c]]));
+        for (const id of ids) { const key = (id.endsWith('L') ? 'L' : 'R') + at[id].place; if (keyed[key]) return; keyed[key] = id; }
+        const n = L.places.length;
+        if (Object.keys(keyed).length !== 2 * n) return;
+        const members = L.places.map((y, i) => coupleOf[keyed['L' + (i + 1)]]);
+        members.forEach(c => used.add(c));
+        groups.push({ line: s, cx: L.cx, cy: 0, ids: keyed, members, ones: members[0], twos: members[1], frame: null, longSet: L });
+      });
+    } else if (F.kind === 'tempest') {
+      // Each ones couple takes hands with the side couple nearest it, on its own side of the set.
+      for (const c of couples) {
+        if (c.role !== 'ones') continue;
+        const m = midOf(c), cx = lines[c.line].cx, side = Math.sign(m.x - cx) || 1;
+        const t = couples.filter(q => q.role === 'twos' && q.line === c.line && !used.has(q) && Math.sign(midOf(q).x - cx) === side
+          && Math.abs(midOf(q).y - m.y) < 0.5 * TEMPEST_STEP).sort((a, b) => dist(midOf(a), m) - dist(midOf(b), m))[0];
+        if (!t) continue;
+        const mt = midOf(t), o = mid(m, mt);
+        group([c, t], { ox: o.x, oy: o.y, th: angleTo(mt, m) }, c.line);
+        const across = side < 0 ? 0 : Math.PI;
+        groups[groups.length - 1].faceIn = { [c.lark]: -Math.PI / 2, [c.robin]: -Math.PI / 2, [t.lark]: across, [t.robin]: across };
+      }
+    } else if (F.kind === 'square') {
       // Each dancer takes the lark's or robin's spot nearest to them; a square with all eight spots taken dances.
       // Keys follow the places (L1 is whoever stands in couple 1's lark spot), so partners can change.
       // The heads (places 1 and 3) and sides (2 and 4) can also dance as a hands-four: each `box` has the
@@ -1393,20 +1631,20 @@ const Contra = (() => {
       // goes to the nearest spot left over.
       const taken = lines.map(() => ({})), coupleOf = Object.fromEntries(couples.flatMap(c => [[c.lark, c], [c.robin, c]])), placed = new Set(), options = [];
       for (const c of couples) for (const role of ['lark', 'robin']) lines.forEach((sq, s) => {
-        for (let k = 1; k <= 4; k++) options.push({ id: c[role], s, key: (role === 'lark' ? 'L' : 'R') + k, d: dist(pose[c[role]], slotPlaces(sq, k, P)[role]) });
+        for (let k = 1; k <= sq.n; k++) options.push({ id: c[role], s, key: (role === 'lark' ? 'L' : 'R') + k, d: dist(pose[c[role]], slotPlaces(sq, k, P)[role]) });
       });
       for (const o of options.filter(o => o.d < 1.6).sort((a, b) => a.d - b.d)) {
         if (placed.has(o.id) || taken[o.s][o.key]) continue;
         taken[o.s][o.key] = o.id; placed.add(o.id);
       }
       lines.forEach((sq, s) => {
-        const ids = taken[s], keys = [1, 2, 3, 4].flatMap(k => ['L' + k, 'R' + k]);
+        const ns = Array.from({ length: sq.n }, (_, i) => i + 1), ids = taken[s], keys = ns.flatMap(k => ['L' + k, 'R' + k]);
         if (!keys.every(k => ids[k])) return;
-        const members = [1, 2, 3, 4].map(k => coupleOf[ids['L' + k]]);
+        const members = ns.map(k => coupleOf[ids['L' + k]]);
         for (const k of keys) used.add(coupleOf[ids[k]]);
         const box = (a, b) => ({ ids: { L1: ids['L' + a], R1: ids['R' + a], L2: ids['L' + b], R2: ids['R' + b] }, frame: { ox: sq.cx, oy: sq.cy, th: slotAngle(a) } });
         groups.push({ line: s, cx: sq.cx, cy: sq.cy, ids: Object.fromEntries(keys.map(k => [k, ids[k]])), members, ones: members[0], twos: members[1],
-          frame: { ox: sq.cx, oy: sq.cy, th: 0 }, center: sq.center, square: s, boxes: { heads: box(1, 3), sides: box(2, 4) } });
+          frame: { ox: sq.cx, oy: sq.cy, th: 0 }, center: sq.center, square: s, ring: sq, boxes: sq.n === 4 ? { heads: box(1, 3), sides: box(2, 4) } : null });
       });
     } else if (F.kind === 'triple') {
       // From the top of each line: each ones couple takes the next two couples below as twos and threes
@@ -1443,24 +1681,24 @@ const Contra = (() => {
       for (const c of couples) {
         if (c.role !== 'ones') continue;
         const m = midOf(c);
-        const t = couples.find(q => q.role === 'twos' && q.line === c.line && !used.has(q) && Math.abs(midOf(q).y - m.y - want) < 0.3 * gap
+        const t = couples.find(q => q.role === 'twos' && lineOf(q) === lineOf(c) && !used.has(q) && Math.abs(midOf(q).y - m.y - want) < 0.3 * gap
           && (F.kind !== 'becket' || Math.sign(midOf(q).x - lines[c.line].cx) !== Math.sign(m.x - lines[c.line].cx)));
-        if (t) group([c, t], null, c.line);
+        if (t) group([c, t], null, lineOf(c));
       }
     }
-    for (const c of couples) if (!used.has(c)) outs.push({ couple: c, cx: lines[c.line].cx, end: c.role === 'twos' ? 'top' : 'bottom' });
+    for (const c of couples) if (!used.has(c)) outs.push({ couple: c, cx: lines[lineOf(c)].cx, end: c.role === 'twos' ? 'top' : 'bottom' });
     return { groups, outs };
   }
 
   function whoSets(who, ids) {
     const { L1, R1, L2, R2, L3, R3 } = ids;
     if (ids.L4) {
-      // A whole square: your corner is the robin on your left (the couple before yours, counter-clockwise).
-      const L = k => ids['L' + k], R = k => ids['R' + k], ns = [1, 2, 3, 4];
+      // A whole square (or circle): your corner is the robin on your left (the couple before yours, counter-clockwise).
+      const n = Object.keys(ids).length / 2, L = k => ids['L' + k], R = k => ids['R' + k], ns = Array.from({ length: n }, (_, i) => i + 1);
       switch (who) {
-        case 'neighbors': case 'corners': return ns.map(k => [L(k), R(k === 1 ? 4 : k - 1)]);
-        case 'larks': return [[L(1), L(3)], [L(2), L(4)]];
-        case 'robins': return [[R(1), R(3)], [R(2), R(4)]];
+        case 'neighbors': case 'corners': return ns.map(k => [L(k), R(k === 1 ? n : k - 1)]);
+        case 'larks': return n === 4 ? [[L(1), L(3)], [L(2), L(4)]] : [];
+        case 'robins': return n === 4 ? [[R(1), R(3)], [R(2), R(4)]] : [];
         case 'four': case 'all': return [Object.values(ids)];
         default: return ns.map(k => [L(k), R(k)]);
       }
@@ -1471,6 +1709,8 @@ const Contra = (() => {
       case 'four': return [[L1, R1, L2, R2]];
       case 'all': return [L3 ? [L1, R1, L2, R2, L3, R3] : [L1, R1, L2, R2]];
       case 'neighbors': case 'corners': return [[L1, R2], [L2, R1]];
+      case 'firstCorners': return [[L1, R2]];
+      case 'secondCorners': return [[R1, L2]];
       case 'larks': return [[L1, L2]];
       case 'robins': return [[R1, R2]];
       case 'ones': return [[L1, R1]];
@@ -1503,7 +1743,7 @@ const Contra = (() => {
       // of a figure names the couples who dance it.
       const sq = F.kind === 'square';
       const fig = FIGURES[sq && call.fig === 'longLines' ? 'forwardBack' : call.fig];
-      const crew = !sq ? null : /^\s*(the )?(heads|head couples?)\b/i.test(call.text) || call.who === 'heads' ? 'heads'
+      const crew = !sq || F.mixer ? null : /^\s*(the )?(heads|head couples?)\b/i.test(call.text) || call.who === 'heads' ? 'heads'
         : /^\s*(the )?(sides|side couples?)\b/i.test(call.text) || call.who === 'sides' ? 'sides' : null;
       let who = call.who;
       if (crew && fig && fig.group === 'pair' && (!who || who === crew)) who = 'partners';
@@ -1511,7 +1751,10 @@ const Contra = (() => {
         who = 'partners';
         warnings.push({ level: 'warn', text: `${part.name}: “${call.text}” doesn't say who dances it; assuming partners.` });
       }
-      return { part, call, fig, who, crew, partnerSwing: call.fig === 'swing' && who === 'partners' };
+      // Couples named by number ("1s and 3s circle left"), for sets of a fixed size.
+      const nums = [...new Set([...call.text.toLowerCase().matchAll(/\b(1s|2s|3s|4s|5s|6s|ones|twos|threes|fours|fives|sixes|first|second|third|fourth|fifth|sixth|1st|2nd|3rd|4th|5th|6th)\b(?! corner)/g)]
+        .map(m => COUPLE_NUM[m[1]]))];
+      return { part, call, fig, who, crew, nums, partnerSwing: call.fig === 'swing' && who === 'partners' };
     }));
     const perPass = flat.reduce((s, k) => s + k.call.beats, 0);
     const crossBeats = Math.min(8, perPass);
@@ -1528,8 +1771,11 @@ const Contra = (() => {
     const startPass = (from, t0) => {
       const { groups, outs } = formGroups(couples, lines, from, P, F);
       const cross = {}, inFn = {};
-      for (const g of groups) if (g.frame) for (const id of Object.values(g.ids)) {
-        inFn[id] = g.center ? q => angleTo(q, g.center) : q => (toLocal(g.frame, q).x > 0 ? Math.PI : 0) + g.frame.th;
+      for (const g of groups) for (const id of Object.values(g.ids)) {
+        if (g.faceIn) inFn[id] = () => g.faceIn[id];
+        else if (g.center) inFn[id] = q => angleTo(q, g.center);
+        else if (g.frame) inFn[id] = q => (toLocal(g.frame, q).x > 0 ? Math.PI : 0) + g.frame.th;
+        else if (F.grid) inFn[id] = q => faceInFrom(q, g.cx);
       }
       for (const o of outs) {
         const c = o.couple, { lark, robin } = c, ctx = { p: P, cx: o.cx };
@@ -1542,6 +1788,11 @@ const Contra = (() => {
           const sq = lines.reduce((b, q) => (dist(q.center, from[lark]) < dist(b.center, from[lark]) ? q : b));
           to = { lark: { ...from[lark], a: angleTo(from[lark], sq.center) }, robin: { ...from[robin], a: angleTo(from[robin], sq.center) } };
           for (const id of [lark, robin]) inFn[id] = q => angleTo(q, sq.center);
+        } else if (F.kind === 'tempest') {
+          // At the bottom the ones' line splits into side couples (twos); at the top side couples join into a line (ones).
+          const side = Math.sign((from[lark].x + from[robin].x) / 2 - o.cx) || 1;
+          to = tempestPlaces(next, side, o.cx, y0, P);
+          for (const id of [lark, robin]) inFn[id] = () => to.lark.a;
         } else if (F.kind === 'f4f') {
           // Ones' lines face down and twos' up; the line turns around to face back into the set.
           const facing = c.role === 'ones' ? -Math.PI / 2 : Math.PI / 2;
@@ -1574,7 +1825,8 @@ const Contra = (() => {
             const f = u => { const s = mj(u), th = turn * s, m = { x: lerp(m0.x, m1.x, s), y: lerp(m0.y, m1.y, s) };
               const vx = sign * (v0.x * Math.cos(th) - v0.y * Math.sin(th)), vy = sign * (v0.x * Math.sin(th) + v0.y * Math.cos(th));
               return { x: m.x + vx, y: m.y + vy, a: f0 + th }; };
-            cross[id] = F.kind === 'f4f' ? f : turnAtEnd(f, faceInFrom(to[id === lark ? 'lark' : 'robin'], o.cx), crossBeats);
+            const e = to[id === lark ? 'lark' : 'robin'];
+            cross[id] = F.kind === 'f4f' ? f : turnAtEnd(f, e.a != null ? e.a : faceInFrom(e, o.cx), crossBeats);
           }
         }
       }
@@ -1582,8 +1834,33 @@ const Contra = (() => {
     };
 
     // Plan one call: a path for every dancer. `notes` collects anything odd about where dancers start.
+    // A set of a fixed size: figures for four go to the named pair of couples, or to each hands-four from the top
+    // (1s with 2s, 3s with 4s, ...); circles and the like likewise, unless the whole set is meant.
+    const setPlans = (g, k) => {
+      const { call, fig, who, nums } = flat[k], n = Object.keys(g.ids).length / 2, L = c => g.ids['L' + c], R = c => g.ids['R' + c];
+      const ok = c => c >= 1 && c <= n, pairs = (nums.length === 2 && nums.every(ok) ? [nums] : [[1, 2], [3, 4], [5, 6]]).filter(q => q.every(ok));
+      const plan = (ids, idmap = g.ids) => ({ ids, frame: null, idmap, p: { ...P, ringOpen: true } });
+      if (fig.group === 'four') {
+        const whole = WHOLE_SET.has(call.fig) || n <= 2 || /\b(six|eight|ten|twelve|everyone|all)\b/i.test(call.text);
+        if (call.fig === 'heyThree' || (fig.any && (whole || nums.length > 2))) {
+          const cs = call.fig === 'heyThree' ? (nums.length >= 3 ? nums.slice(0, 3) : [1, 2, 3]).filter(ok) : whole ? [...Array(n).keys()].map(i => i + 1) : nums.filter(ok);
+          return [plan(cs.flatMap(c => [L(c), R(c)]))];
+        }
+        return pairs.map(([a, b]) => plan([L(a), R(a), L(b), R(b)], { L1: L(a), R1: R(a), L2: L(b), R2: R(b) }));
+      }
+      const all = [...Array(n).keys()].map(i => i + 1);
+      switch (who) {
+        case 'ones': case 'twos': case 'threes': case 'fours': return ok(COUPLE_NUM[who]) ? [plan([L(COUPLE_NUM[who]), R(COUPLE_NUM[who])])] : [];
+        case 'neighbors': case 'corners': return pairs.flatMap(([a, b]) => [plan([L(a), R(b)]), plan([L(b), R(a)])]);
+        case 'firstCorners': return pairs.map(([a, b]) => plan([L(a), R(b)]));
+        case 'secondCorners': return pairs.map(([a, b]) => plan([R(a), L(b)]));
+        case 'larks': return pairs.map(([a, b]) => plan([L(a), L(b)]));
+        case 'robins': return pairs.map(([a, b]) => plan([R(a), R(b)]));
+        default: return (nums.length && nums.every(ok) ? nums : all).map(c => plan([L(c), R(c)]));
+      }
+    };
     // In a square, "across the set" is across the square, and a place is a couple's spot around it.
-    const sqP = { ...P, partnerGap: 2 * P.squareRadius };
+    const ringP = sq => ({ ...P, partnerGap: 2 * sq.R });
     const hasSlot = p => F.grid && lines.some(sq => [1, 2, 3, 4].some(n => dist(slotPlaces(sq, n, P).mid, p) < 0.3));
     const planCall = (k, from, pass, t0) => {
       const { call, fig, who, crew, partnerSwing } = flat[k], fns = {}, notes = new Set();
@@ -1593,26 +1870,29 @@ const Contra = (() => {
         const groupWho = fig.group === 'four' ? (size > 4 && !fig.any ? 'four' : 'all') : who;
         // Each entry: who dances together, the frame it's planned in, and the keys naming them.
         let plans = whoSets(groupWho, g.ids).map(ids => ({ ids, frame: g.frame, idmap: g.ids }));
-        if (g.center) {
+        if (g.longSet) plans = fig.square ? [] : setPlans(g, k);
+        else if (g.center) {
           // Squares: a figure for four (a chain, a right and left through) is danced by the heads, or the sides
           // when named; circles, stars and the like by the whole square unless heads or sides are named;
           // couple figures pair up within the square, each pair turned so they face in from the +x side.
-          const crewIds = crew ? Object.values(g.boxes[crew].ids) : null, inCrew = id => !crewIds || crewIds.includes(id);
-          if (fig.square) plans = [{ ids: Object.values(g.ids).filter(inCrew), frame: g.frame, idmap: g.ids }];
+          const crewIds = crew && g.boxes ? Object.values(g.boxes[crew].ids) : null, inCrew = id => !crewIds || crewIds.includes(id);
+          if (!g.boxes && fig.group === 'four' && !fig.any && !fig.square) { notes.add('a figure for two couples has no hands-four in a circle mixer; dancers stand still'); plans = []; }
+          else if (fig.square) plans = [{ ids: Object.values(g.ids).filter(inCrew), frame: g.frame, idmap: g.ids }];
           else if (fig.group === 'four' && (!fig.any || crew)) { const box = g.boxes[crew || 'heads']; plans = [{ ids: Object.values(box.ids), frame: box.frame, idmap: box.ids }]; }
           else if (fig.group === 'four') plans = [{ ids: Object.values(g.ids).filter((id, i) => who !== 'larks' && who !== 'robins' || Object.keys(g.ids)[i][0] === who[0].toUpperCase()), frame: g.frame, idmap: g.ids }];
           else plans = whoSets(who, g.ids).filter(ids => ids.every(inCrew)).map(ids => {
-            const p = toLocal(g.frame, from[ids[0]]), n = Math.round(wrap(Math.atan2(p.y, p.x) - slotAngle(1)) / (Math.PI / 2));
-            return { ids, frame: { ...g.frame, th: slotAngle(1) + n * Math.PI / 2 }, idmap: g.ids, slot: { x: P.squareRadius, y: 0 } };
+            const p = toLocal(g.frame, from[ids[0]]), step = TAU / g.ring.n, n = Math.round(wrap(Math.atan2(p.y, p.x) - slotAngle(1)) / step);
+            return { ids, frame: { ...g.frame, th: slotAngle(1) + n * step }, idmap: g.ids, slot: { x: g.ring.R, y: 0 } };
           });
         }
-        for (const { ids, frame, idmap, slot } of plans) {
+        for (const { ids, frame, idmap, slot, p: planP } of plans) {
           let ps = ids.map(id => from[id]);
           if (fig.group === 'pair' && dist(ps[0], ps[1]) > 2.0) notes.add(`${WHO_LABEL[who] || who} start ${dist(ps[0], ps[1]).toFixed(1)} m apart`);
           const keyOf = id => Object.keys(idmap).find(key => idmap[key] === id);
           if (frame) ps = ps.map(p => toLocal(frame, p));
-          const ctx = { p: g.center ? sqP : P, cx: frame ? 0 : g.cx, keys: ids.map(keyOf), slot };
-          if (g.center) ctx.sq = { R: P.squareRadius, spacing: lines[g.square].spacing, hasSlot: q => hasSlot(toWorld(frame, q)) };
+          const ctx = { p: planP || (g.center ? ringP(g.ring) : P), cx: frame ? 0 : g.cx, keys: ids.map(keyOf), slot };
+          if (g.center) ctx.sq = { R: g.ring.R, n: g.ring.n, spacing: g.ring.spacing, hasSlot: q => hasSlot(toWorld(frame, q)) };
+          if (call.fig === 'heyThree' && ids.length < 6) notes.add('a hey for three needs three dancers on each side (a hands-six or a three-couple set); dancers stand still');
           fig.plan(ps, call, ctx).forEach((f, i) => (fns[ids[i]] = frame ? u => toWorld(frame, f(u)) : f));
         }
       }
@@ -1637,7 +1917,7 @@ const Contra = (() => {
     const expectAfter = (pass, from) => {
       const want = {}, n = dance.progression;
       for (const g of pass.groups) {
-        if (g.center) continue;   // squares are checked at the end of each time through (squareWant)
+        if (g.center || g.longSet) continue;   // squares and fixed sets are checked at the end of each time through (squareWant)
         g.members.forEach((c, i) => {
           for (const id of [c.lark, c.robin]) {
             const p = from[id];
@@ -1645,7 +1925,7 @@ const Contra = (() => {
               const L = lines[c.line], th = (c.role === 'ones' ? 1 : -1) * n * L.dphi, dx = p.x - L.center.x, dy = p.y - L.center.y;
               want[id] = { x: L.center.x + dx * Math.cos(th) - dy * Math.sin(th), y: L.center.y + dx * Math.sin(th) + dy * Math.cos(th), a: p.a + th };
             } else {
-              const step = F.kind === 'f4f' ? P.partnerGap : P.neighborGap;
+              const step = F.kind === 'f4f' ? P.partnerGap : F.kind === 'tempest' ? TEMPEST_STEP : P.neighborGap;
               const dy = F.kind === 'triple' ? (i === 0 ? -n : i === 1 ? n : 0) : c.role === 'ones' ? -n : n;
               want[id] = { x: p.x, y: p.y + dy * step, a: p.a };
             }
@@ -1664,8 +1944,11 @@ const Contra = (() => {
     // Squares don't progress along a line: after each time through, everyone should stand in a place in a
     // square (a lark's or a robin's spot), facing roughly toward its center: they may already be turning toward
     // the next figure (a corner swing). Partners may have changed.
+    // Fixed sets are checked the same way: everyone in a place in their set (either side), facing across.
     const squareWant = after => {
-      const spots = lines.flatMap(sq => [1, 2, 3, 4].map(n => slotPlaces(sq, n, P))), want = {};
+      const spots = F.kind === 'set'
+        ? lines.flatMap(L => L.places.flatMap(y => [-1, 1].map(side => { const q = { x: L.cx + side * P.partnerGap / 2, y, a: side > 0 ? Math.PI : 0 }; return { lark: q, robin: q }; })))
+        : lines.flatMap(sq => Array.from({ length: sq.n }, (_, i) => slotPlaces(sq, i + 1, P))), want = {};
       for (const d of dancers) {
         const e = after[d.id], q = spots.map(s => s[d.role]).reduce((b, q) => (dist(q, e) < dist(b, e) ? q : b));
         want[d.id] = { ...q, a: Math.abs(wrap(e.a - q.a)) < Math.PI / 2 ? e.a : q.a };
@@ -1731,7 +2014,7 @@ const Contra = (() => {
           if (t - pt0 !== 16) warnings.push({ level: 'warn', text: `${part.name} is ${t - pt0} beats long; a part is usually 16.` });
         }
       }
-      if (F.kind === 'square') passInfo[p].want = squareWant(pose);
+      if (F.kind === 'square' || F.kind === 'set') passInfo[p].want = squareWant(pose);
       passInfo[p].check = checkPass(passInfo[p].want, pose);
     }
     if (perPass !== 64) warnings.push({ level: 'warn', text: `The dance is ${perPass} beats long; a contra is usually 64.` });
@@ -1836,11 +2119,12 @@ function build() {
   $('progression').value = String(Math.min(3, dance.progression));
   const passes = Math.max(1, Math.min(30, Math.round(+$('passes').value) || 8));
   state.c = Contra.compile(dance, { lines: +$('lines').value, sets: +$('sets').value, passes, params: { swingBeatsPerTurn: +$('swingRate').value } });
-  // For squares, the floor settings count squares instead: across the hall, and rows of a grid.
-  const sq = state.c.kind === 'square';
-  document.querySelector('label[for="lines"]').textContent = sq ? 'Squares across' : 'Lines';
-  document.querySelector('label[for="sets"]').textContent = sq ? 'Rows of squares' : 'Hands-fours';
-  $('sets').disabled = dance.formation === 'square';
+  // The floor settings mean different things per formation: squares across and rows of a grid, circles and
+  // their size, sets side by side (a fixed set has its own size), or minor sets down a tempest.
+  const kind = state.c.kind, mixer = dance.formation === 'circleMixer';
+  document.querySelector('label[for="lines"]').textContent = mixer ? 'Circles' : kind === 'square' ? 'Squares across' : kind === 'set' ? 'Sets' : 'Lines';
+  document.querySelector('label[for="sets"]').textContent = mixer ? 'Circle size' : kind === 'square' ? 'Rows of squares' : kind === 'tempest' ? 'Minor sets' : 'Hands-fours';
+  $('sets').disabled = dance.formation === 'square' || kind === 'set';
   state.t = Math.min(state.t, state.c.total);
   $('danceTitle').textContent = dance.title ? `${dance.title}${dance.author ? ' by ' + dance.author : ''}` : 'Untitled dance';
   $('scrub').max = state.c.perPass;
@@ -1905,9 +2189,9 @@ const icon = cat => `<svg class="cicon" viewBox="0 0 16 16" aria-hidden="true" f
 // ----- Moves and their modifiers -----
 // Each move has a base and up to three modifiers: who dances it, which side (hand, shoulder or direction),
 // and how far. `say` writes the move as a line of dance text; modifiers fill in {who}, {side} and {amt}.
-const PAIR = ['partners', 'neighbors', 'corners', 'larks', 'robins', 'ones', 'twos', 'threes'];
-const WHO_WORD = { partners: 'Partner', neighbors: 'Neighbor', corners: 'Corner', larks: 'Larks', robins: 'Robins', ones: 'Ones', twos: 'Twos', threes: 'Threes', heads: 'Heads', sides: 'Sides' };
-const WHO_LABEL = { partners: 'Partners', neighbors: 'Neighbors', corners: 'Corners', larks: 'Larks', robins: 'Robins', ones: 'Ones', twos: 'Twos', threes: 'Threes', heads: 'Heads', sides: 'Sides' };
+const PAIR = ['partners', 'neighbors', 'corners', 'firstCorners', 'secondCorners', 'larks', 'robins', 'ones', 'twos', 'threes'];
+const WHO_WORD = { partners: 'Partner', neighbors: 'Neighbor', corners: 'Corner', firstCorners: 'First corners', secondCorners: 'Second corners', larks: 'Larks', robins: 'Robins', ones: 'Ones', twos: 'Twos', threes: 'Threes', heads: 'Heads', sides: 'Sides' };
+const WHO_LABEL = { partners: 'Partners', neighbors: 'Neighbors', corners: 'Corners', firstCorners: 'First corners', secondCorners: 'Second corners', larks: 'Larks', robins: 'Robins', ones: 'Ones', twos: 'Twos', threes: 'Threes', heads: 'Heads', sides: 'Sides' };
 // Sides are stored as 'L' or 'R'. `spin` is the way the move turns seen from above: 1 counter-clockwise, -1 clockwise.
 const SIDES = {
   hand: { words: ['left', 'right'], labels: ['Left hand', 'Right hand'], spin: [1, -1] },
@@ -1930,6 +2214,8 @@ const POOL = [
   { cat: 1, label: 'Shoulder round', fig: 'shoulderRound', who: PAIR, side: 'shoulder', amount: 'turns', d: { who: 'partners', side: 'R', amt: 1 }, beats: 8, say: '{who} {side} shoulder round {amt}', re: /shoulder a?round|gyps/ },
   { cat: 1, label: 'Arm turn', fig: 'armTurn', who: PAIR, side: 'hand', amount: 'turns', d: { who: 'neighbors', side: 'R', amt: 1 }, beats: 8, say: '{who} arm {side} {amt}', re: /\barm (right|left)|arm turn/ },
   { cat: 1, label: 'Two-hand turn', fig: 'twoHandTurn', who: PAIR, side: 'rot', amount: 'turns', d: { who: 'partners', side: 'R', amt: 1 }, beats: 8, say: '{who} two-hand turn {side} {amt}', re: /two-hand turn/ },
+  { cat: 1, label: 'Hand turn', fig: 'handTurn', who: PAIR, side: 'hand', amount: 'turns', d: { who: 'partners', side: 'R', amt: 1 }, beats: 8, say: '{who} turn by the {side} hand {amt}', re: /hand turn|turn (by the )?(right|left)/, ecd: true },
+  { cat: 1, label: 'Bentley allemande', fig: 'bentleyAllemande', who: PAIR, side: 'hand', d: { who: 'partners', side: 'R' }, beats: 8, say: '{who} Bentley allemande {side}', re: /bentley/, ecd: true },
   { cat: 2, label: 'Pull by', fig: 'pullBy', who: PAIR, side: 'pass', d: { who: 'partners', side: 'R' }, say: '{who} pull by {side}' },
   { cat: 2, label: 'Box the gnat', fig: 'boxTheGnat', who: PAIR, d: { who: 'neighbors' }, say: '{who} box the gnat' },
   { cat: 2, label: 'Pass through', fig: 'passThrough', who: PAIR, side: 'pass', d: { who: 'partners', side: 'R' }, beats: 4, say: '{who} pass through by the {side}', re: /pass (through|thru)/ },
@@ -1940,8 +2226,17 @@ const POOL = [
   { cat: 2, label: 'Half sashay', fig: 'halfSashay', who: PAIR, d: { who: 'partners' }, beats: 4, say: '{who} half sashay', re: /half sashay/ },
   { cat: 2, label: 'Trade', fig: 'trade', who: ['robins', 'larks'], side: 'pass', d: { who: 'robins', side: 'R' }, beats: 4, say: '{who} trade by {side}', re: /\btrade\b/ },
   { cat: 2, label: 'Cross', fig: 'cross', who: ['robins', 'larks', 'ones', 'twos'], side: 'pass', d: { who: 'robins', side: 'R' }, beats: 4, say: '{who} cross by {side}', re: /\bcross\b/ },
+  { cat: 2, label: 'Hole in the wall cross', fig: 'holeInWall', who: PAIR, d: { who: 'firstCorners' }, beats: 4, say: '{who} hole in the wall cross', re: /hole in the wall/, ecd: true },
+  { cat: 2, label: 'Chevron', d: {}, beats: 8, say: 'First corners chevron', re: /chevron/, ecd: true },
   { cat: 3, label: 'Balance', fig: 'balance', who: PAIR, side: 'hands', d: { who: 'neighbors', side: 'R' }, say: '{who} balance {side}' },
   { cat: 3, label: 'Long lines', fig: 'longLines', d: {}, say: 'In long lines, go forward and back' },
+  { cat: 3, label: 'Back to back', fig: 'dosido', who: PAIR, d: { who: 'partners' }, beats: 8, say: '{who} back to back', re: /back to back/, ecd: true },
+  { cat: 3, label: 'Siding', fig: 'siding', who: PAIR, side: 'shoulder', d: { who: 'partners', side: 'R' }, beats: 8, say: '{who} side {side}', re: /\bsid(e|ing)\b/, ecd: true },
+  { cat: 3, label: 'Sharp siding', fig: 'sharpSiding', who: PAIR, d: { who: 'partners' }, beats: 8, say: '{who} sharp siding', re: /sharp siding|swirly/, ecd: true },
+  { cat: 3, label: 'Up a double', fig: 'upDouble', d: {}, beats: 8, say: 'Up a double and back', re: /(up|down) a double/, ecd: true },
+  { cat: 3, label: 'Fall back', fig: 'fallBack', d: {}, beats: 4, say: 'Fall back', re: /fall back/, ecd: true },
+  { cat: 3, label: 'Honour', fig: 'honour', who: PAIR, d: { who: 'partners' }, beats: 2, say: 'Honour {who_l}', re: /hono(u)?r|bow|curts/, ecd: true },
+  { cat: 3, label: 'Clap', fig: 'clap', d: {}, beats: 2, say: 'Clap', re: /\bclap/, ecd: true },
   { cat: 3, label: 'Forward and back', fig: 'forwardBack', who: ['heads', 'sides'], d: { who: 'heads' }, beats: 8, say: '{who} forward and back', re: /forward (and|&) back/, square: 'Square' },
   { cat: 3, label: 'Do-si-do', fig: 'dosido', who: PAIR, amount: 'turns', d: { who: 'neighbors', amt: 1 }, beats: 8, say: '{who} do-si-do {amt}', re: /do-?s[ia]-?do|dosido|dosado/ },
   { cat: 3, label: 'Seesaw', fig: 'seesaw', who: PAIR, amount: 'turns', d: { who: 'partners', amt: 1 }, beats: 8, say: '{who} seesaw {amt}', re: /see-?saw/ },
@@ -1954,6 +2249,7 @@ const POOL = [
   { cat: 4, label: 'Star', fig: 'star', side: 'hand', amount: 'places', d: { side: 'R', amt: 1 }, beats: 8, say: 'Star {side} {amt}', re: /^star (right|left)|hands across/ },
   { cat: 4, label: 'Petronella', fig: 'petronella', d: {}, beats: 4, say: 'Petronella turn', re: /petronella/ },
   { cat: 4, label: 'Poussette', fig: 'poussette', who: ['partners', 'neighbors'], side: 'rot', amount: 'half', d: { who: 'partners', side: 'R', amt: 0.5 }, beats: 8, say: '{who} poussette {side} {amt}', re: /poussette/ },
+  { cat: 4, label: 'Half draw poussette', fig: 'poussette', who: ['partners', 'neighbors'], side: 'rot', d: { who: 'partners', side: 'R', amt: 0.5 }, beats: 8, say: '{who} half draw poussette {side}', re: /draw poussette/, ecd: true },
   { cat: 4, label: 'Broken circle', fig: 'circle', side: 'ring', amount: 'places', d: { side: 'L', amt: 0.25 }, beats: 4, say: 'Broken circle {side} {amt}', re: /broken circle/ },
   { cat: 4, label: 'Star promenade', fig: 'starPromenade', amount: 'half', d: { amt: 0.5 }, beats: 4, say: 'Star promenade {amt}', re: /star promenade/ },
   { cat: 4, label: 'Weathervane', fig: 'starPromenade', amount: 'half', d: { amt: 0.5 }, beats: 8, say: 'Weathervane {amt}', re: /weathervane/ },
@@ -1967,10 +2263,16 @@ const POOL = [
   { cat: 6, label: 'Right and left through', fig: 'rightLeftThrough', d: {}, beats: 8, say: 'Right and left through', re: /right and left (through|thru)/ },
   { cat: 6, label: 'Flutterwheel', fig: 'flutterwheel', d: {}, beats: 8, say: 'Flutterwheel', re: /flutterwheel/ },
   { cat: 6, label: 'Square through', fig: 'squareThrough', amount: 'hands', d: { amt: 2 }, beats: 8, say: 'Square through {amt}', re: /square (through|thru)/ },
+  { cat: 6, label: 'Rights and lefts', fig: 'squareThrough', amount: 'hands', d: { amt: 4 }, beats: 16, say: 'Rights and lefts, {amt} changes', re: /rights and lefts|circular hey/, ecd: true },
+  { cat: 6, label: 'Half open ladies chain', d: {}, beats: 8, say: 'Half open ladies chain', re: /open ladies chain/, ecd: true },
   { cat: 6, label: 'Give and take', fig: 'giveAndTake', who: ['robins', 'larks'], d: { who: 'robins' }, beats: 4, say: '{who} give and take', re: /give.and.take/ },
   { cat: 7, label: 'Hey for four', fig: 'hey', who: ['robins', 'larks', 'partners', 'neighbors'], side: 'pass', amount: 'half', d: { who: 'robins', side: 'R', amt: 0.5 }, beats: 8,
-    say: m => `${m.amt === 0.5 ? 'Half hey' : 'Hey for four'}, ${WHO_LABEL[m.who].toLowerCase()} pass ${m.side === 'L' ? 'left' : 'right'} to start`, re: /\bhey\b(?! for three)/ },
-  { cat: 7, label: 'Hey for three', d: {}, beats: 12, say: 'Hey for three', re: /hey for three/ },
+    say: m => `${m.amt === 0.5 ? 'Half hey' : 'Hey for four'}, ${WHO_LABEL[m.who].toLowerCase()} pass ${m.side === 'L' ? 'left' : 'right'} to start`, re: /\bhey\b(?! for (three|3))/ },
+  { cat: 7, label: 'Hey for three', fig: 'heyThree', side: 'pass', amount: 'half', d: { side: 'R', amt: 1 }, beats: 8,
+    say: m => `${m.amt === 0.5 ? 'Half hey for three' : 'Hey for three'} on the sides, ${m.side === 'L' ? 'left' : 'right'} shoulders to start`, re: /hey for (three|3)/, setup: 'triplet' },
+  { cat: 7, label: 'Dolphin hey', d: {}, beats: 16, say: 'Dolphin hey', re: /dolphin hey/, ecd: true },
+  { cat: 7, label: 'Crossover mirror hey', d: {}, beats: 8, say: 'Crossover mirror hey', re: /crossover mirror hey/, ecd: true },
+  { cat: 7, label: 'Double figure eight', d: {}, beats: 16, say: 'Double figure eight', re: /double (full )?figure (8|eight)/, ecd: true },
   { cat: 7, label: 'Figure eight', fig: 'figureEight', who: ['ones', 'twos'], amount: 'half', d: { who: 'ones', amt: 0.5 }, beats: 8,
     say: m => `${WHO_WORD[m.who]} ${m.amt === 0.5 ? 'half figure eight' : 'figure eight'}`, re: /figure (8|eight)/ },
   { cat: 8, label: 'Slice', fig: 'slice', side: 'way', d: { side: 'L' }, beats: 8, say: 'Slice {side}', re: /\bslice\b/ },
@@ -2253,7 +2555,7 @@ const DESCRIPTIONS = {
   'Square through': 'Pull by right across, turn a quarter to face along and pull by left, and so on for the number of hands.',
   'Give and take': 'Everyone takes two steps in; the named dancers take two hands with the person across and draw them back to their own side, usually into a swing.',
   'Hey for four': 'Four dancers weave along one track, a figure eight with an extra loop, passing alternate shoulders. The named pair pass first, in the middle. A half hey ends with everyone across the set.',
-  'Hey for three': 'Three dancers weave a figure-eight path. Not animated yet.',
+  'Hey for three': 'Three dancers on a side weave a figure-eight path, passing alternate shoulders. Shown in a three-couple set, with both sides heying at once; it needs three dancers on a side.',
   'Figure eight': 'The active couple cross diagonally through the other couple and cast around them. A half figure eight ends on the other side of the set.',
   'Slice': 'As couples, four steps forward on the named diagonal, then fall straight back, one place along.',
   'Lead down': 'The active couple step into the middle, take inside hands, and walk down the hall.',
@@ -2267,12 +2569,30 @@ const DESCRIPTIONS = {
   'Promenade': 'In a square, partners side by side, lark on the inside, walk counter-clockwise around the square to the lark\'s home place, then wheel to face in.',
   'Grand right and left': 'In a square, face your partner and pull by right, then the next by left, and so on, larks going counter-clockwise and robins clockwise. Half way you meet your partner on the far side; all the way brings you home.',
   'Next square': 'In a grid square, the named couples pass through the middle of their square and carry on into the same place in the next square. A couple with no square beyond them turns as a couple to face back in.',
+  'Hand turn': 'Step in, take the named hand at arm\'s length (a light finger clasp in English dances) and walk around each other, then step back out. Right turns clockwise.',
+  'Bentley allemande': 'An English allemande: the robin steps forward and holds up the named hand while the lark walks once around her by that shoulder, holding her hand; then both step back.',
+  'Hole in the wall cross': 'Walk toward each other; just before you would bump, sidle around each other face to face in a half circle, then back away into each other\'s place.',
+  'Chevron': 'One pair of corners crosses the set while the other pair casts into their places and the first pair falls back. Not animated yet.',
+  'Back to back': 'The English name for a do-si-do: pass right shoulders, slide behind each other, and back up home, always facing the same way.',
+  'Siding': 'Walk toward the other dancer and a little to your left so your right shoulders come side by side in the middle (left siding is the mirror image), then fall back home. Often done right, then left.',
+  'Sharp siding': 'Cecil Sharp\'s version: cross to each other\'s places passing left shoulders, turning to keep facing each other, then come back along the same track.',
+  'Up a double': 'Holding hands with your partner, face up the hall, take four steps up (or three and a close), then four back to place.',
+  'Fall back': 'Facing the middle of the set, walk backward away from it, often holding your neighbor\'s hand.',
+  'Honour': 'Bow or curtsey to the named dancer. Shown as facing them with a small dip toward them.',
+  'Clap': 'Clap in time to the music. Dancers stay where they are.',
+  'Half draw poussette': 'Like a half poussette, but each couple also turns half round as they go, so whoever pushes keeps pushing and partners end on each other\'s side.',
+  'Rights and lefts': 'A circular hey for four with hands: pull by your partner right, turn in, pull by your neighbor left, and so on. Four changes bring you home; two take you to your corner\'s place.',
+  'Half open ladies chain': 'An English chain in which the larks start facing out and the robins cross with a pull by, turning half with the lark there. Not animated yet.',
+  'Dolphin hey': 'A hey for three in which two dancers travel together as one unit, changing who leads at each end. Not animated yet.',
+  'Crossover mirror hey': 'A mirror hey for three in which the first couple cross over at the very start. Not animated yet.',
+  'Double figure eight': 'Both couples dance a figure eight at once, out of step with each other: one couple casts while the other crosses. Not animated yet.',
   'Contra corners': 'The active couple turn each other and each of their two contra corners in a series of allemandes. Not animated yet.',
 };
 // Moves animated from a description with some guesswork: worth checking by eye.
 const APPROX = new Set(['Hey for four', 'Robins chain', 'Larks chain', 'Right and left through', 'Flutterwheel', 'Star promenade', 'Weathervane',
   'Give and take', 'Figure eight', 'Slice', 'Shift', 'Veer', 'Lead down', 'Down the hall', 'Up the hall', 'Cast off', 'Cast down', 'Petronella',
-  'Poussette', 'California twirl', 'Star through', 'Roll away', 'Half sashay', 'Balance the wave', 'Cross', 'Turn as a couple', 'Butterfly whirl']);
+  'Poussette', 'Half draw poussette', 'California twirl', 'Hey for three', 'Siding', 'Sharp siding', 'Up a double', 'Fall back', 'Honour',
+  'Hole in the wall cross', 'Hand turn', 'Bentley allemande', 'Star through', 'Roll away', 'Half sashay', 'Balance the wave', 'Cross', 'Turn as a couple', 'Butterfly whirl']);
 // Some moves need the dancers set up first: side by side with the chosen person, or couples on the sides.
 const SETUP = {
   californiaTwirl: 'pair', rollAway: 'pair', halfSashay: 'pair', courtesyTurn: 'pair', turnAsCouple: 'pair', butterflyWhirl: 'pair', gate: 'pair',
@@ -2282,12 +2602,13 @@ const SETUP = {
 const previews = new Map();
 function previewOf(def, m, beats) {
   if (!def || !def.fig) return null;
-  let setup = def.setup || SETUP[def.fig] || '';
+  let setup = def.setup === 'triplet' ? '' : def.setup || SETUP[def.fig] || '';
   if (setup === 'pair') setup = `(8) ${WHO_WORD[m.who] || 'Partner'} swing`;
   const line = sayMove(def, m), key = [setup, line, beats, $('swingRate').value].join('|');
   if (previews.has(key)) return previews.get(key);
   // Square moves are shown in a square (passing to the next square needs two squares of a grid).
-  const dance = Contra.parseDance([def.square ? `FormationBase: ${def.square}` : '', 'A1', setup, `(${beats}) ${line}`].filter(Boolean).join('\n'));
+  const base = def.square || (def.setup === 'triplet' ? 'Triplet - Proper' : '');
+  const dance = Contra.parseDance([base ? `FormationBase: ${base}` : '', 'A1', setup, `(${beats}) ${line}`].filter(Boolean).join('\n'));
   const c = Contra.compile(dance, { lines: 1, sets: def.square === 'Grid Square' ? 2 : 1, passes: 1, loop: false, params: { swingBeatsPerTurn: +$('swingRate').value } });
   const t0 = c.calls[c.calls.length - 1].t0, t1 = c.total, b = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity };
   for (const d of c.dancers) for (let t = t0; t <= t1; t += 0.25) {
@@ -2316,6 +2637,7 @@ function openExplorer(def, m, beats) {
   $('exDesc').textContent = roleWords(DESCRIPTIONS[def.label] || '');
   const facts = [['Line', `(${beats}) ${sayMove(def, m)}`]];
   if (def.who && m.who) facts.push(['Who', m.who === 'larks' ? roleSet()[0] : m.who === 'robins' ? roleSet()[1] : WHO_LABEL[m.who]]);
+  if (def.ecd) facts.push(['Style', 'English country dance']);
   if (def.side && m.side) {
     const S = SIDES[def.side], i = m.side === 'L' ? 0 : 1, spin = S.spin[i];
     facts.push(['Side', `${S.labels[i]}${spin ? `, turning ${spin < 0 ? 'clockwise' : 'counter-clockwise'} (seen from above)` : ''}`]);
@@ -2438,9 +2760,11 @@ function showChecks() {
   const c = state.c, ul = $('checks'), items = [];
   const pr = c.progression, word = pr.expected === 1 ? 'one place' : `${pr.expected} places`;
   const times = pr.passes === 1 ? 'after one time through' : `every time through (${pr.passes} times)`;
-  if (c.kind === 'square') {
-    if (pr.firstBad < 0) items.push(['ok', `Everyone ends ${times} in a place in a square, facing in.`]);
-    else items.push(['bad', `In time ${pr.firstBad + 1}, ${pr.total - pr.good} of ${pr.total} dancers don't end in a place in a square facing in. Watch the end of that time through to see where they go.`]);
+  if (c.kind === 'square' || c.kind === 'set') {
+    // Squares, circles and fixed sets: everyone should end in a place (who is where depends on the dance).
+    const place = c.kind === 'set' ? 'a place in the set, facing across' : 'a place in the ring, facing in';
+    if (pr.firstBad < 0) items.push(['ok', `Everyone ends ${times} in ${place}.`]);
+    else items.push(['bad', `In time ${pr.firstBad + 1}, ${pr.total - pr.good} of ${pr.total} dancers don't end in ${place}. Watch the end of that time through to see where they go.`]);
   } else if (pr.firstBad < 0) items.push(['ok', `Progression works ${times}: dancing couples move ${word} along and face their new neighbors; couples out at the ends come back in with their new role.`]);
   else items.push(['bad', `Progression breaks in time ${pr.firstBad + 1}: ${pr.total - pr.good} of ${pr.total} dancers don't end ${word} along, on their own side, facing across. Watch the end of that time through to see where they go.`]);
   // A move from the pool that isn't animated yet is a caution; text the simulator can't recognise is a problem.

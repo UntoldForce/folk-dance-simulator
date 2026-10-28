@@ -174,6 +174,10 @@ Chosen with the Formation dropdown or the `FormationBase:` line.
 | Four facing four | Lines of four across the hall, ones' lines facing down, twos' up; each couple meets the couple it faces as a hands-four | A line at the end turns around (each couple turning as a couple) and switches role |
 | Sicilian circle | Couples facing couples around a circle; ones face counter-clockwise, twos clockwise; robins on the larks' right | None: the circle has no ends |
 | Square | Four couples facing the center, 1.6 m from it; couple 1 at the top with backs to the band, then 2, 3, 4 counter-clockwise; robins on the larks' right | None. One square per "Squares across" |
+| Grid contra (improper) | Duple improper lines packed side by side (the sides of neighboring lines 1.2 m apart); a couple belongs to whichever line it now stands in, so it can travel between lines | As improper, at the ends of each line. The figures that move couples between lines depend on the dance and haven't been checked against a real grid contra yet |
+| Tempest | Each minor set is four couples: the ones' line of four faces down between two twos couples standing on the sides facing across; each ones couple dances with the side couple nearest it (2.4 m between minor sets) | At the bottom the ones' line splits into two side couples (twos); at the top two side couples join into a line (ones). Not yet checked against a real tempest dance |
+| Two- to six-couple sets (proper, or improper with the odd couples crossed) | One fixed set per line, couples 1 m apart; "triplet", "quadruplet", "doublet" and "N couple longways set" are read | None. Couples are numbered by place each time through, so whoever is at the top is the first couple. Figures for four go to the named couples ("1s and 3s") or to each hands-four from the top (1s with 2s, 3s with 4s); long lines, up a double and the like use the whole set; circles open back out to places at the end |
+| Circle mixer | One big ring of couples facing in (4 + 2 x "Circle size" couples), robins on the larks' right | None. Like a square: everyone takes the nearest place, so partners change; "corner" and "neighbor" mean the robin on the lark's left. Figures for two couples aren't defined here |
 | Grid square | Squares packed edge to edge (couples of neighboring squares back to back, 1 m apart), "Squares across" by "Rows of squares" | Passing to the next square: a couple with no square beyond them stops in the opposite place of their own square and courtesy turns to face back in |
 
 Each group re-forms every time through from where couples stand. In four facing four and Sicilian circles every
@@ -193,10 +197,12 @@ robin's spot, so partners can change (after a corner swing, the corner is the ne
   the way goes home), forward and back, and pass through to the next square.
 - The check: after each time through, everyone stands in a place in a square, facing roughly in (within 90°, since
   they may already be turning toward the next figure).
+- Circle mixers use the same machinery with any number of couples (promenade, grand right and left and corners work
+  the same way); fixed sets use the same check, with places on either side of the set, facing across.
 
-Not supported yet: triplets and quadruplets, tempest and other four-facing-four variants, circle mixers, double and
-five-couple squares, hexagons, grid contras, zia, and other special formations. Dances in these are flagged and
-shown as improper.
+Not supported yet: zia (a square with contra lines radiating from its sides), tri-contra (three facing three),
+scatter mixers, solo dances, double and five-couple squares, hexagons, horseshoes and triangles. Dances in these are
+flagged and shown as improper. Grid contra and tempest need a real dance to check their progression against.
 
 ## Dance editor (decisions)
 

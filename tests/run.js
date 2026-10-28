@@ -166,8 +166,8 @@ check(made.every(k => { const r = Contra.parseDance('A1\n(8) ' + Contra.callText
   check(b.passes.every((p, i) => p.groups.length === (i % 2 ? 2 : 3)), `Becket: couples come back in, so hands-fours keep forming (${b.passes.map(p => p.groups.length).join(', ')})`);
   const pr = Contra.compile(Contra.parseDance('FormationBase: Duple Minor - Proper\nA1\n(8) In long lines, go forward and back'), { lines: 1, sets: 2, passes: 1 });
   check(pr.warnings.every(w => !/isn't supported/.test(w.text)), 'proper is a supported formation');
-  const odd = Contra.parseDance('FormationBase: Triplet 1-2-3\nA1\n(8) In long lines, go forward and back');
-  check(odd.warnings.some(w => /isn't supported yet/.test(w.text)), 'a triplet is flagged as not supported yet');
+  const odd = Contra.parseDance('FormationBase: Zia\nA1\n(8) In long lines, go forward and back');
+  check(odd.warnings.some(w => /isn't supported yet/.test(w.text)), 'a zia is flagged as not supported yet');
 }
 
 // Triple minor, four facing four and Sicilian circle: groups keep forming and everyone progresses.
@@ -206,6 +206,29 @@ check(made.every(k => { const r = Contra.parseDance('A1\n(8) ' + Contra.callText
   const visits = Contra.meetings(grid, '0.1').map(m => m.square);
   check(grid.warnings.length === 0 && grid.progression.firstBad === -1 && grid.passes.every(p => p.groups.length === 4), `grid square: couples pass to the next square and every square keeps dancing (couple 0.1 in squares ${visits.join(',')})`);
   check(new Set(visits).size > 1, 'grid square: a couple travels to other squares');
+}
+
+// Other formations: fixed sets, circle mixers, tempest, grid contras.
+{
+  const read = f => Contra.parseDance(`FormationBase: ${f}\nA1\n(8) Circle left`).formation;
+  check(['Triplet - Proper', 'Triplet - Improper', 'Two couple longways set', 'Quadruplet', '5 couple longways set', 'Circle Mixer', 'Tempest', 'Grid Contra - Improper', 'Hexagon'].map(read).join()
+    === 'set3Proper,set3Improper,set2Improper,set4Proper,set5Proper,circleMixer,tempest,gridContra,improper', 'formations read: sets of 2-6 couples, circle mixer, tempest, grid contra; hexagon flagged');
+  const file = f => Contra.parseDance(fs.readFileSync(path.join(__dirname, '..', 'dances', f), 'utf8'));
+  const tri = Contra.compile(file('triplet-test.txt'), { lines: 1, sets: 1, passes: 6 });
+  const tops = tri.passes.map(p => p.groups[0].members[0]);
+  check(tri.warnings.length === 0 && tri.progression.firstBad === -1 && tops.join() === '0.1,0.2,0.3,0.1,0.2,0.3',
+    `triplet: everyone ends in a place every time, and each couple takes a turn at the top (${tops.join(', ')})`);
+  const mix = Contra.compile(file('circle-mixer-test.txt'), { lines: 1, sets: 3, passes: 4 });
+  const robinNear = c => c.dancers.filter(d => d.role === 'robin').sort((a, b) => Math.hypot(c.final[a.id].x - c.final['0.1L'].x, c.final[a.id].y - c.final['0.1L'].y) - Math.hypot(c.final[b.id].x - c.final['0.1L'].x, c.final[b.id].y - c.final['0.1L'].y))[0].id;
+  check(mix.warnings.length === 0 && mix.progression.firstBad === -1 && mix.couples.length === 10 && robinNear(mix) !== '0.1R',
+    `circle mixer: 10 couples, everyone ends in a place, and lark 1 has a new partner (${robinNear(mix)})`);
+  const tp = Contra.compile(file('tempest-test.txt'), { lines: 1, sets: 2, passes: 1 });
+  check(tp.passes[0].groups.length === 4 && tp.passes[0].outs.length === 0 && tp.dancers.length === 16, 'tempest: two minor sets of four couples, each ones couple with its side couple');
+  const g111 = Contra.compile(Contra.parseDance(text.replace('Duple Minor - Improper', 'Grid Contra - Improper')), { lines: 3, sets: 3, passes: 4 });
+  check(g111.progression.firstBad === -1 && Math.abs(g111.bounds.maxX - g111.bounds.minX - 6) < 0.01, 'grid contra: "111" progresses in three lines packed side by side');
+  const ecd = Contra.parseDance('A1\n(8) Partner side right\n(8) Sharp siding\n(8) Up a double and back\n(4) 1st corners hole in the wall cross\n(8) Partner Bentley allemande right\n(8) Hey for three\n(8) Rights and lefts\n(8) 2s and 3s first corners do-si-do');
+  check(ecd.parts[0].calls.map(k => k.fig).join() === 'siding,sharpSiding,upDouble,holeInWall,bentleyAllemande,heyThree,squareThrough,dosido'
+    && ecd.parts[0].calls[7].turns === 1 && ecd.parts[0].calls[7].who === 'firstCorners', 'English figures read (and couple numbers are not read as amounts)');
 }
 
 // Speeds per figure, at 120 beats per minute (2 beats per second). Not a pass/fail check yet.

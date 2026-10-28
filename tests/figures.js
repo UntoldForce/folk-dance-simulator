@@ -20,6 +20,11 @@ const FIGS = [
   [16, 'Hey for four, larks pass left to start'], [8, 'Ones half figure eight'], [16, 'Ones figure eight'], [8, 'Slice left'], [4, 'Shift left'],
   [2, 'Veer right'], [8, 'Ones lead down the center'], [8, 'Down the hall in a line of four'], [8, 'Up the hall in a line of four'],
   [4, 'Ones cast off'], [4, 'Ones cast down'],
+  // English country dance figures
+  [8, 'Partner side right'], [8, 'Neighbor siding left'], [8, 'Partner sharp siding'], [8, 'Up a double and back'], [4, 'Fall back'],
+  [2, 'Honour your partner'], [2, 'Clap'], [4, 'Neighbor hole in the wall cross'], [8, 'Partner turn by the right hand 1'],
+  [4, 'Neighbor left hand turn 1/2'], [8, 'Partner Bentley allemande right'], [8, 'Neighbor back to back'],
+  [8, 'Partner half draw poussette clockwise'], [16, 'Rights and lefts, 4 changes'], [8, 'First corners do-si-do'],
 ];
 const wrap = a => ((a + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI;
 let failures = 0;
@@ -44,6 +49,25 @@ for (const [beats, text] of FIGS) {
   if (!ok) failures++;
   rows.push(`${ok ? 'PASS' : 'FAIL'}  ${text.padEnd(42)} ${String(call.fig).padEnd(17)} peak ${peak.toFixed(2)} m/s, turning up to ${Math.round(spin)}°/s${nan ? ', NaN' : ''}${off ? ', leaves the floor' : ''}`);
 }
+// Hey for three, in a three-couple set.
+for (const [beats, text] of [[8, 'Hey for three on the sides, right shoulders to start'], [8, 'Half hey for three on the sides']]) {
+  const dance = Contra.parseDance(`FormationBase: Triplet - Proper\nA1\n(8) In long lines, go forward and back\n(${beats}) ${text}`);
+  const call = dance.parts[0].calls[1], c = Contra.compile(dance, { lines: 1, sets: 1, passes: 1 });
+  let peak = 0, nan = false, moved = 0;
+  for (const d of c.dancers) {
+    let prev = Contra.poseAt(c, d.id, 8);
+    for (let t = 8.02; t <= 8 + beats + 1e-9; t += 0.02) {
+      const p = Contra.poseAt(c, d.id, t);
+      if ([p.x, p.y, p.a].some(v => Number.isNaN(v))) nan = true;
+      peak = Math.max(peak, Math.hypot(p.x - prev.x, p.y - prev.y) / 0.01); moved = Math.max(moved, Math.hypot(p.x - c.start[d.id].x, p.y - c.start[d.id].y)); prev = p;
+    }
+  }
+  const ok = call.fig === 'heyThree' && !nan && peak < 5 && moved > 0.5;
+  if (!ok) failures++;
+  FIGS.push([beats, text]);
+  rows.push(`${ok ? 'PASS' : 'FAIL'}  ${('[triplet] ' + text).padEnd(42)} ${String(call.fig).padEnd(17)} peak ${peak.toFixed(2)} m/s`);
+}
+
 // Square figures, in a square, after the heads go forward and back.
 const SQUARE = [[16, 'Promenade home'], [8, 'Grand right and left'], [16, 'Grand right and left all the way'], [8, 'Heads pass through to the next square'],
   [8, 'Corner allemande left 1'], [8, 'Partner swing'], [8, 'Heads ladies chain'], [8, 'Sides right and left through'], [8, 'Circle left 1/2'],

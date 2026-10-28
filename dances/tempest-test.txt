@@ -1,0 +1,23 @@
+Tempest (test dance)
+by the simulator
+
+Permission: test dance written for the simulator
+
+FormationBase:	Tempest
+Progression:	Single
+Figures:
+A1
+(8) Circle left
+(8) Circle right
+
+A2
+(8) Robins chain
+(8) Robins chain
+
+B1
+(8) Neighbor do-si-do
+(8) Neighbor swing
+
+B2
+(8) Partner balance
+(8) Partner swing
