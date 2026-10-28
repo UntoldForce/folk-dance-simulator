@@ -149,14 +149,19 @@ const { chromium } = require('playwright');
     'a balance & swing line is one block (the Balance and swing move), lit during its swing');
   await p.click('#reset2'); await p.waitForTimeout(100);
 
-  // Formation pictures: the common formations, one click each.
-  check(!(await p.locator('.fpick').first().isVisible()), 'the formation pictures start folded away');
-  await p.click('#formPicksBox summary'); await p.waitForTimeout(50);
+  // Formation and progression, with pictures of the common formations: folded under one line saying what they are.
+  check(!(await p.locator('.fpick').first().isVisible()) && !(await p.locator('#formation').isVisible()) && await p.textContent('#setupSum') === 'Improper · single progression',
+    'formation, progression and the pictures start folded away under "Formation Improper · single progression"');
+  await p.click('#setupBox summary'); await p.waitForTimeout(50);
   check(await p.locator('.fpick').count() === 6 && await p.locator('.fpick svg rect').count() > 0, 'six common formations are shown as pictures (larks as squares, robins as circles)');
   await p.click('.fpick[data-key="becketCW"]'); await p.waitForTimeout(100);
   check(await p.evaluate(() => $('formation').value === 'becketCW' && /Becket/.test($('danceText').value) && document.querySelector('.fpick[aria-pressed="true"]').dataset.key === 'becketCW'), 'clicking the Becket picture sets the formation and marks it');
+  check(await p.textContent('#setupSum') === 'Becket (clockwise) · single progression', 'and the folded line says so');
+  await p.selectOption('#progression', '2'); await p.waitForTimeout(100);
+  check(/double progression/.test(await p.textContent('#setupSum')) && /Progression:\s*Double/.test(await p.evaluate(() => $('danceText').value)), 'changing the progression updates the dance and the line');
+  await p.selectOption('#progression', '1');
   await p.click('.fpick[data-key="improper"]'); await p.waitForTimeout(100);
-  await p.click('#formPicksBox summary');
+  await p.click('#setupBox summary');
 
   // Floor outlines: worked out once per time through; "out" labels stay put (they don't follow the couple about).
   check(await p.evaluate(() => { const c = state.c, a = settingShapes(c, 1); return a.some(s => s.corners) && a.some(s => s.label === 'out') && settingShapes(c, 1) === a; }),

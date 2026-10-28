@@ -353,6 +353,8 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
 .fpbox summary::-webkit-details-marker { display: none; }
 .fpbox summary::before { content: "▸ "; } .fpbox[open] summary::before { content: "▾ "; }
 .fpbox[open] summary { margin-bottom: 8px; }
+.fpbox summary .sumlabel { color: var(--muted); } .fpbox summary #setupSum { color: var(--ink); font-weight: 600; }
+.fpbox .dsettings { margin-bottom: 10px; }
 </style>
 </head><body><!--wrap-->
 
@@ -424,9 +426,7 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
       </div>
       <div id="panelEditor" class="tabpanel" role="tabpanel" aria-labelledby="tabEditor">
         <div class="row"><button id="newDance" class="primary">＋ New dance</button><button id="reset2">Load “111”</button></div>
-        <details class="fpbox" id="formPicksBox"><summary>Common formations, as pictures</summary>
-          <div class="formpicks" id="formPicks" role="group" aria-label="Common formations"></div>
-        </details>
+        <details class="fpbox" id="setupBox"><summary><span class="sumlabel">Formation</span> <span id="setupSum"></span></summary>
         <div class="dsettings">
           <label for="formation">Formation</label>
           <select id="formation">
@@ -447,6 +447,8 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
           <label for="progression">Progression</label>
           <select id="progression"><option value="1">Single</option><option value="2">Double</option><option value="3">Triple</option></select>
         </div>
+        <div class="formpicks" id="formPicks" role="group" aria-label="Common formations, as pictures"></div>
+        </details>
         <p class="hint">Click a move to set it up (who, side, how far), then add it to a part or drag it into the rows under the floor. Click a figure in the rows to change it.</p>
         <div class="builder" id="builder" hidden></div>
         <input id="poolSearch" type="search" placeholder="Search moves: chain, hey, gypsy…" aria-label="Search moves" autocomplete="off">
@@ -3521,6 +3523,7 @@ function build() {
   $('formation').value = dance.formation;
   if ($('formPicks').children.length) markFormPick();
   $('progression').value = String(Math.min(3, dance.progression));
+  setupSummary();
   const passes = Math.max(1, Math.min(30, Math.round(+$('passes').value) || 8));
   state.c = Contra.compile(dance, { lines: +$('lines').value, sets: +$('sets').value, passes, params: { swingBeatsPerTurn: +$('swingRate').value } });
   // The floor settings mean different things per formation: squares across and rows of a grid, circles and
@@ -5040,8 +5043,13 @@ function renderFormPicks() {
 function markFormPick() { for (const b of $('formPicks').querySelectorAll('.fpick')) b.setAttribute('aria-pressed', String(b.dataset.key === $('formation').value)); }
 renderFormPicks();
 // The pictures start folded away, to leave room for the moves; opening them is remembered.
-$('formPicksBox').open = recall('contra.formPicks') === 'open';
-$('formPicksBox').addEventListener('toggle', () => store('contra.formPicks', $('formPicksBox').open ? 'open' : 'closed'));
+// Formation and progression fold away under one line saying what they are (closed unless opened last time).
+function setupSummary() {
+  const f = $('formation'), prog = $('progression');
+  $('setupSum').textContent = `${f.options[f.selectedIndex] ? f.options[f.selectedIndex].text : 'Unknown'} · ${prog.options[prog.selectedIndex].text.toLowerCase()} progression`;
+}
+$('setupBox').open = recall('contra.setupBox') === 'open';
+$('setupBox').addEventListener('toggle', () => store('contra.setupBox', $('setupBox').open ? 'open' : 'closed'));
 $('formation').onchange = e => { setMeta('FormationBase', Contra.FORMATIONS[e.target.value].name); state.sel = null; commit(true); };
 $('progression').onchange = e => { setMeta('Progression', ['Single', 'Double', 'Triple'][+e.target.value - 1]); commit(true); };
 $('newDance').onclick = () => { state.doc = { title: 'New dance', author: '', meta: {}, metaLines: [['FormationBase', 'Duple Minor - Improper'], ['Progression', 'Single']], parts: [], warnings: [] }; ensureParts(state.doc); state.sel = null; state.t = 0; commit(true); };
