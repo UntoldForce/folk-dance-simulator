@@ -101,6 +101,15 @@ const { chromium } = require('playwright');
   await p.fill('#poolSearch', ''); await p.waitForTimeout(50);
   check(/problems?/.test(await p.locator('#checksOpen').textContent()) && /passed/.test(await p.locator('#checksOpen').textContent()), 'the Checks counts are labelled');
 
+  // Dances panel: the examples are the test dances in dances/; save and load your own; next end effect.
+  const fs = require('fs'), files = ['square', 'grid-square', 'circle-mixer', 'triplet', 'tempest'].map(n => fs.readFileSync(path.join(__dirname, '..', 'dances', `${n}-test.txt`), 'utf8').trimEnd());
+  check(await p.evaluate(f => EXAMPLES.slice(1).every((t, i) => t === f[i]), files), 'the example dances match the test dances in dances/');
+  await p.click('#dancesOpen'); await p.click('#exampleList .dlist:has-text("Simple Square")'); await p.waitForTimeout(150);
+  check(await p.evaluate(() => state.c.kind === 'square' && !$('dances').open), 'an example loads from the Dances panel');
+  await p.click('#dancesOpen'); await p.click('#saveDance'); await p.waitForTimeout(50);
+  check(await p.locator('#myList .dlist:has-text("Simple Square")').count() === 1, 'Save this dance adds it to My dances');
+  await p.click('#dancesClose');
+
   // Workspace: nothing scrolls on a computer screen; the timeline sits right under the floor.
   await p.click('#reset2'); await p.waitForTimeout(200);
   for (const [w, h] of [[1440, 900], [1366, 768], [1920, 1080]]) {
@@ -125,6 +134,8 @@ const { chromium } = require('playwright');
   await p.mouse.move(rb.x + rb.width * 0.5, rb.y + 8); await p.mouse.down(); await p.mouse.move(rb.x + rb.width * 0.75, rb.y + 8, { steps: 4 }); await p.mouse.up();
   const local = await p.evaluate(() => state.t - passAt(state.t) * state.c.perPass);
   check(Math.abs(local % 16 - 12) < 0.3, `dragging along the beat ruler moves through the part (now beat ${(local % 16 + 1).toFixed(1)})`);
+  await p.evaluate(() => seek(0)); await p.click('#nextEnd');
+  check(await p.evaluate(() => { const p = passAt(state.t), k = q => state.c.passes[q].outs.map(o => o.couple).sort().join(); return p > 0 && state.t === p * state.c.perPass && k(p) !== k(p - 1); }), 'Next end effect jumps to a time through where who waits out changes');
   await p.evaluate(() => { seek(3 * state.c.perPass); });
   await p.evaluate(() => { $('loop').value = 'figure'; seek(3 * state.c.perPass + 9); setPlaying(true); });
   await p.waitForTimeout(3500);

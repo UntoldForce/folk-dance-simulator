@@ -309,6 +309,11 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
 .pgroup .ghead { display: flex; align-items: center; gap: 6px; font: 600 13px var(--font-display); color: var(--accent); padding: 2px 0; }
 .pgroup.common .chip { border-left: 3px solid var(--cat); }
 .light small { font: 500 11px var(--font-body); margin-left: 3px; opacity: 0.9; }
+
+.drawer h3 { font: 600 13px var(--font-display); margin: 14px 0 6px; color: var(--muted); }
+.dlist { display: block; width: 100%; text-align: left; margin-bottom: 4px; padding: 6px 10px; border-radius: 6px; }
+.drow { display: flex; gap: 4px; } .drow .dlist { flex: 1; } .drow .dx { margin-bottom: 4px; padding: 0 9px; color: var(--muted); }
+#nextEnd { margin-left: auto; }
 </style>
 </head><body><!--wrap-->
 
@@ -316,6 +321,7 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
   <h1>Contra Dance Simulator</h1>
   <span class="subtitle" id="danceTitle">Phase 1 preview</span>
   <span class="tbtools">
+    <button type="button" id="dancesOpen" class="pill" aria-haspopup="dialog">♫ Dances</button>
     <button type="button" id="checksOpen" class="pill" aria-haspopup="dialog"><span>Checks</span><span class="lights" id="lights"></span></button>
     <button type="button" id="settingsOpen" class="pill" aria-haspopup="dialog">⚙ Settings</button>
     <button type="button" id="refsOpen" class="pill">References</button>
@@ -356,6 +362,7 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
           <select id="loop"><option value="all">Whole dance</option><option value="pass">This time through</option><option value="part">This part</option><option value="figure">This figure</option></select>
         </div>
         <label class="small"><input id="hands" type="checkbox" checked> Hands</label>
+        <button type="button" id="nextEnd" title="Go to the next time a couple goes out at an end or comes back in">Next end effect ⏭</button>
       </div>
       <div class="passes" id="passStrip" role="group" aria-label="Times through"></div>
       <div class="prow rulerrow"><div class="plabel small">Beat</div><div class="ruler" id="ruler" title="Drag along here to move through this part"></div></div>
@@ -429,6 +436,14 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
     <label for="swingRate">Swings turn once every</label><select id="swingRate"><option value="2">2 beats</option><option value="3">3 beats</option><option value="4" selected>4 beats</option><option value="5">5 beats</option><option value="6">6 beats</option></select>
   </fieldset>
   <p class="hint">Settings are remembered on this device.</p>
+</dialog>
+
+<dialog id="dances" class="drawer" aria-labelledby="dancesTitle">
+  <div class="refshead"><h2 id="dancesTitle">Dances</h2><button type="button" id="dancesClose" aria-label="Close">✕</button></div>
+  <div class="row"><button type="button" id="saveDance" class="primary">Save this dance</button><span class="small" id="saveNote"></span></div>
+  <h3>My dances</h3><div id="myList"></div>
+  <h3>Examples</h3><div id="exampleList"></div>
+  <p class="hint">Saving keeps the dance under its title, on this device only. To share one, copy it from the Text tab.</p>
 </dialog>
 
 <dialog id="checksDialog" class="drawer" aria-labelledby="checksTitle">
@@ -3433,6 +3448,149 @@ function newCall(def, m = def.d, beats) {
 }
 const history = { list: [], at: -1 };
 
+// Example dances in the Dances panel: "111", then one test dance for each other kind of formation (the same text as
+// the files in dances/, which the tests check).
+const EXAMPLES = [SAMPLE,
+`Simple Square (test dance)
+by the simulator
+
+Permission: test dance written for the simulator
+
+FormationBase:	Square
+Progression:	Single
+Figures:
+A1
+(8) Heads forward and back
+(8) Sides forward and back
+
+A2
+(8) Heads ladies chain
+(8) Heads ladies chain
+
+B1
+(8) Sides right and left through
+(8) Sides right and left through
+
+B2
+(8) Grand right and left
+(8) Promenade home`,
+`Grid Square (test dance)
+by the simulator
+
+Permission: test dance written for the simulator
+
+FormationBase:	Grid Square
+Progression:	Single
+Figures:
+A1
+(8) Circle left
+(8) Corner allemande left
+
+A2
+(8) Partner swing
+(8) Heads star right
+
+B1
+(8) Heads pass through to the next square
+(8) Sides pass through to the next square
+
+B2
+(16) Partner swing`,
+`Circle Mixer (test dance)
+by the simulator
+
+Permission: test dance written for the simulator
+
+FormationBase:	Circle Mixer
+Progression:	Single
+Figures:
+A1
+(8) Everyone forward and back
+(8) Circle left 1/4
+
+A2
+(8) Partner do-si-do
+(8) Corner allemande left 1
+
+B1
+(16) Corner swing
+
+B2
+(16) Promenade 1/4`,
+`Triplet (test dance)
+by the simulator
+
+Permission: test dance written for the simulator
+
+FormationBase:	Triplet - Proper
+Progression:	Single
+Figures:
+A1
+(8) In long lines, go forward and back
+(4) 1s cast off
+(4) 1s cast off with the 3s
+
+A2
+(8) 2s and 3s circle left
+(8) 2s and 3s circle right
+
+B1
+(8) 2s and 3s first corners do-si-do
+(8) 3s and 1s right and left through
+
+B2
+(8) 3s and 1s right and left through
+(8) Turn single right`,
+`Tempest (test dance)
+by the simulator
+
+Permission: test dance written for the simulator
+
+FormationBase:	Tempest
+Progression:	Single
+Figures:
+A1
+(8) Circle left
+(8) Circle right
+
+A2
+(8) Robins chain
+(8) Robins chain
+
+B1
+(8) Neighbor do-si-do
+(8) Neighbor swing
+
+B2
+(8) Partner balance
+(8) Partner swing`];
+// Your own dances, saved on this device by title.
+const savedDances = () => { try { return JSON.parse(recall('contra.saved') || '{}'); } catch (e) { return {}; } };
+function renderDances() {
+  const ex = $('exampleList'), mine = $('myList'), saved = savedDances(), titleOf = t => t.split('\n')[0].trim();
+  ex.innerHTML = ''; mine.innerHTML = '';
+  for (const text of EXAMPLES) {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'dlist'; b.textContent = titleOf(text).replace(/ \(test dance\)$/, '');
+    b.onclick = () => loadDance(text); ex.appendChild(b);
+  }
+  const names = Object.keys(saved).sort();
+  if (!names.length) mine.innerHTML = '<p class="hint">None yet. Saved dances stay on this device.</p>';
+  for (const name of names) {
+    const row = document.createElement('div'); row.className = 'drow';
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'dlist'; b.textContent = name; b.onclick = () => loadDance(saved[name]);
+    const x = document.createElement('button'); x.type = 'button'; x.className = 'dx'; x.textContent = '✕'; x.title = `Remove “${name}”`; x.setAttribute('aria-label', x.title);
+    x.onclick = () => { if (!confirm(`Remove “${name}” from your dances?`)) return; const all = savedDances(); delete all[name]; store('contra.saved', JSON.stringify(all)); renderDances(); };
+    row.append(b, x); mine.appendChild(row);
+  }
+}
+function loadDance(text) { $('danceText').value = text; state.sel = null; state.t = 0; build(); commit(true); $('dances').close(); }
+function saveDance() {
+  const text = $('danceText').value, title = (state.doc && state.doc.title) || 'Untitled dance', all = savedDances();
+  if (all[title] && all[title] !== text && !confirm(`Replace your saved “${title}”?`)) return;
+  all[title] = text; store('contra.saved', JSON.stringify(all)); renderDances();
+  $('saveNote').textContent = `Saved “${title}”.`;
+}
+
 // Every edit goes through here: write the dance out as text, remember it for undo, and re-run it.
 function commit(record = true) {
   const text = Contra.serialize(state.doc);
@@ -4279,12 +4437,22 @@ $('exClose').onclick = () => $('explorer').close();
 $('refsOpen').onclick = () => $('refsDialog').showModal();
 $('poolSearch').addEventListener('input', renderPool);
 // Settings and checks open as side panels without covering the floor; a second click on their button closes them.
-for (const [open, dlg, close] of [['settingsOpen', 'settings', 'settingsClose'], ['checksOpen', 'checksDialog', 'checksClose']]) {
-  $(open).onclick = () => { if ($(dlg).open) { $(dlg).close(); return; } for (const d of ['settings', 'checksDialog']) if ($(d).open) $(d).close(); $(dlg).show(); };
+const DRAWERS = ['settings', 'checksDialog', 'dances'];
+for (const [open, dlg, close] of [['settingsOpen', 'settings', 'settingsClose'], ['checksOpen', 'checksDialog', 'checksClose'], ['dancesOpen', 'dances', 'dancesClose']]) {
+  $(open).onclick = () => { if ($(dlg).open) { $(dlg).close(); return; } for (const d of DRAWERS) if ($(d).open) $(d).close(); if (dlg === 'dances') { renderDances(); $('saveNote').textContent = ''; } $(dlg).show(); };
   $(close).onclick = () => $(dlg).close();
 }
-document.addEventListener('keydown', e => { if (e.key === 'Escape') for (const d of ['settings', 'checksDialog']) if ($(d).open) $(d).close(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') for (const d of DRAWERS) if ($(d).open) $(d).close(); });
+$('saveDance').onclick = saveDance;
+// Jump to the start of the next time through where a couple goes out at an end or comes back in.
+$('nextEnd').onclick = () => {
+  const c = state.c, p = passAt(state.t), key = q => c.passes[q].outs.map(o => o.couple).sort().join();
+  for (let q = p + 1; q < c.passes.length; q++) if (key(q) !== key(q - 1)) { seek(q * c.perPass); return; }
+  for (let q = 1; q <= p; q++) if (key(q) !== key(q - 1)) { seek(q * c.perPass); return; }   // round to the first one
+};
 $('ruler').addEventListener('pointerdown', e => scrubFrom(e, null));
+// On a phone, start with one line so the dancers aren't tiny (until a choice is remembered).
+if (window.innerWidth < 640 && recall('contra.set.lines') == null) $('lines').value = '1';
 // Remember the settings on this device.
 for (const id of ['lines', 'sets', 'passes', 'tempo', 'swingRate', 'trailLen', 'speed', 'loop', 'music', 'melody']) {
   const el = $(id), v = recall('contra.set.' + id), box = el.type === 'checkbox';
