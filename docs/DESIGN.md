@@ -262,6 +262,23 @@ calls. It is GPL-3 licensed, so its code and animation data must not be copied i
 definitions (which CALLERLAB allows to be reproduced with its notice) and its animations are used as references only.
 One idea worth borrowing later: it works out hand holds from where dancers stand rather than listing them per figure.
 
+## Workspace layout (October 2026, Ryan's request)
+
+Like a video editor (Ryan's example: Adobe Premiere), nothing scrolls on a computer screen:
+- **Top bar:** title, dance name, and three buttons: **Checks** (with its counts), **⚙ Settings**, **References**.
+  Checks and Settings open as panels at the right edge, over the editor, so the floor stays in view.
+- **The floor** fills whatever space is left. **The timeline is docked right under it:** play and step buttons,
+  speed, a **Loop** menu (whole dance, this time through, this part, this figure) and the Hands switch; a
+  **times-through strip** (one box per time through; click to go there; a mark above or below a box means a couple
+  waits out at the top or bottom that time; a red edge means the progression went wrong); a **beat ruler** with the
+  playhead (drag along it to move through the part); and the A1–B2 rows, where clicking an empty stretch jumps there.
+  These replace the two old sliders.
+- **Settings panel:** the floor (lines, hands-fours, times through), music (tempo, music, melody), how it looks (trail,
+  role names), how it's danced (swing rate). Settings are remembered on the device.
+- **The editor** (moves, builder, text) sits at the right and scrolls on its own.
+- Narrow or short screens (under 1000 px wide or 560 px tall) fall back to a scrolling page: floor and timeline
+  first, the editor below.
+
 ## Dance editor (decisions)
 
 - The timeline is the editor: four rows (A1, A2, B1, B2), each 16 beats wide; each figure is a block as wide as its length.

@@ -8,7 +8,7 @@ const { chromium } = require('playwright');
   const errs = []; p.on('pageerror', e => errs.push(e.message));
   await p.goto('file://' + path.join(__dirname, '..', 'index.html'));
   await p.evaluate(() => localStorage.clear()); await p.reload(); await p.waitForTimeout(300);
-  await p.locator('.editor').scrollIntoViewIfNeeded();
+  await p.locator('#rows').scrollIntoViewIfNeeded();
   const lines = re => p.evaluate(r => $('danceText').value.split('\n').filter(l => new RegExp(r, 'i').test(l)), re);
 
   // Resize: A1's long lines one bar shorter.
@@ -89,6 +89,37 @@ const { chromium } = require('playwright');
     return { out, n };
   });
   check(bumps.out.length === 0, `no move has dancers bumping into each other (${bumps.n} versions checked)${bumps.out.length ? '\n      ' + bumps.out.join('\n      ') : ''}`);
+
+  // Workspace: nothing scrolls on a computer screen; the timeline sits right under the floor.
+  await p.click('#reset2'); await p.waitForTimeout(200);
+  for (const [w, h] of [[1440, 900], [1366, 768], [1920, 1080]]) {
+    await p.setViewportSize({ width: w, height: h }); await p.waitForTimeout(150);
+    const lay = await p.evaluate(() => ({ sh: document.documentElement.scrollHeight, sw: document.documentElement.scrollWidth, fl: $('floor').getBoundingClientRect(), tl: document.querySelector('.timeline').getBoundingClientRect() }));
+    check(lay.sh <= h && lay.sw <= w && lay.tl.bottom <= h && lay.tl.top >= lay.fl.bottom && lay.tl.top - lay.fl.bottom < 20 && lay.fl.height > 250,
+      `${w}×${h}: no scrolling, timeline right under the floor (floor ${Math.round(lay.fl.height)} px tall)`);
+  }
+  await p.setViewportSize({ width: 1440, height: 1100 });
+  await p.click('#settingsOpen'); await p.waitForTimeout(100);
+  check(await p.locator('#settings').isVisible() && await p.locator('#lines').isVisible(), 'Settings opens a side panel with the floor settings');
+  await p.keyboard.press('Escape');
+  check(!(await p.locator('#settings').isVisible()), 'and Escape closes it');
+  await p.click('#checksOpen'); await p.waitForTimeout(100);
+  check(await p.locator('#checks li').count() > 0, 'Checks opens the list of checks');
+  await p.click('#checksClose');
+  const nPass = await p.locator('#passStrip .pbox').count();
+  await p.locator('#passStrip .pbox').nth(3).click(); await p.waitForTimeout(100);
+  check(nPass === 8 && await p.evaluate(() => passAt(state.t) === 3), 'the times-through strip has a box per time through, and clicking one goes there');
+  check(await p.locator('#passStrip .pbox .m').count() > 0, 'times when a couple waits out at an end are marked');
+  const rb = await p.locator('#ruler').boundingBox();
+  await p.mouse.move(rb.x + rb.width * 0.5, rb.y + 8); await p.mouse.down(); await p.mouse.move(rb.x + rb.width * 0.75, rb.y + 8, { steps: 4 }); await p.mouse.up();
+  const local = await p.evaluate(() => state.t - passAt(state.t) * state.c.perPass);
+  check(Math.abs(local % 16 - 12) < 0.3, `dragging along the beat ruler moves through the part (now beat ${(local % 16 + 1).toFixed(1)})`);
+  await p.evaluate(() => { seek(3 * state.c.perPass); });
+  await p.evaluate(() => { $('loop').value = 'figure'; seek(3 * state.c.perPass + 9); setPlaying(true); });
+  await p.waitForTimeout(3500);
+  const inFig = await p.evaluate(() => { setPlaying(false); const k = state.c.calls[Contra.callIndexAt(state.c, state.t)]; return k.text; });
+  check(/allemande/i.test(inFig), `Loop: this figure keeps playing the same figure (${inFig})`);
+  await p.evaluate(() => { $('loop').value = 'all'; });
 
   // Settings: music starts off; hands toggle; references open in a pop-up.
   check(await p.evaluate(() => !$('music').checked && !$('melody').checked), 'music and melody start off');
