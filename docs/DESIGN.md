@@ -290,6 +290,10 @@ Like a video editor (Ryan's example: Adobe Premiere), nothing scrolls on a compu
   Shown for dances in lines (contra, English sets, Becket, triple minor, tempest, four facing four); squares and
   circles get a note instead.
 - Phones start with one line (until a choice is remembered).
+- **Formation pictures** above the Formation menu: the common formations, grouped Contra (improper, Becket), English
+  (proper, three-couple set) and Square & circle (square, circle mixer). Each picture is drawn from where the
+  simulator starts everyone (larks as squares, robins as circles, a tick for facing, the band as a dotted line at
+  the top), so it always matches the floor. The menu still holds every formation.
 - Narrow or short screens (under 1000 px wide or 560 px tall) fall back to a scrolling page: floor and timeline
   first, the editor below.
 

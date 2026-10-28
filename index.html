@@ -322,6 +322,18 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
 .journey { display: flex; flex-direction: column; gap: 2px; }
 #journeyCanvas { width: 100%; height: 178px; display: block; cursor: crosshair; touch-action: none; background: var(--bg); border-radius: 6px; }
 .journey .hint { font-size: 12px; }
+
+.formpicks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.fpgroup { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.fplabel { font: 600 11px var(--font-display); color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.fpbtns { display: flex; gap: 4px; }
+.fpick { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px 2px 3px; border-radius: 8px; font-size: 11px; line-height: 1.15; background: var(--panel); }
+.fpick span { text-align: center; }
+.fpick svg { width: 40px; height: 40px; }
+.fpick svg .lk { fill: var(--lark); } .fpick svg .rb { fill: var(--robin); }
+.fpick svg .lks { stroke: var(--lark); } .fpick svg .rbs { stroke: var(--robin); }
+.fpick svg .band { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 2 2; }
+.fpick[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1.5px var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--panel)); }
 </style>
 </head><body><!--wrap-->
 
@@ -392,6 +404,7 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
       </div>
       <div id="panelEditor" class="tabpanel" role="tabpanel" aria-labelledby="tabEditor">
         <div class="row"><button id="newDance" class="primary">＋ New dance</button><button id="reset2">Load “111”</button></div>
+        <div class="formpicks" id="formPicks" role="group" aria-label="Common formations"></div>
         <div class="dsettings">
           <label for="formation">Formation</label>
           <select id="formation">
@@ -3211,6 +3224,7 @@ function build() {
   ensureParts(dance);
   state.doc = dance;
   $('formation').value = dance.formation;
+  if ($('formPicks').children.length) markFormPick();
   $('progression').value = String(Math.min(3, dance.progression));
   const passes = Math.max(1, Math.min(30, Math.round(+$('passes').value) || 8));
   state.c = Contra.compile(dance, { lines: +$('lines').value, sets: +$('sets').value, passes, params: { swingBeatsPerTurn: +$('swingRate').value } });
@@ -4583,6 +4597,34 @@ function setMeta(key, value) {
   const at = state.doc.metaLines.findIndex(([k]) => k.toLowerCase() === key.toLowerCase());
   if (at >= 0) state.doc.metaLines[at][1] = value; else state.doc.metaLines.push([key, value]);
 }
+// Common formations as picture buttons, grouped by kind of dance. Each picture is drawn from where the simulator
+// actually starts everyone: larks as squares, robins as circles, a tick for the way each faces, the band at the top.
+const FORM_PICKS = [
+  ['Contra', [['improper', 'Improper'], ['becketCW', 'Becket']]],
+  ['English', [['proper', 'Proper'], ['set3Proper', 'Three-couple set']]],
+  ['Square & circle', [['square', 'Square'], ['circleMixer', 'Circle mixer']]],
+];
+function formationIcon(key) {
+  const name = Contra.FORMATIONS[key].name, c = Contra.compile(Contra.parseDance(`FormationBase: ${name}\nA1`), { lines: 1, sets: 1, passes: 1 });
+  const ps = c.dancers.map(d => ({ ...c.start[d.id], lark: d.role === 'lark' })), xs = ps.map(p => p.x), ys = ps.map(p => p.y);
+  const x0 = Math.min(...xs) - 0.5, x1 = Math.max(...xs) + 0.5, y0 = Math.min(...ys) - 0.5, y1 = Math.max(...ys) + 0.5, span = Math.max(x1 - x0, y1 - y0);
+  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, X = x => 24 + ((x - cx) / span) * 44, Y = y => 24 - ((y - cy) / span) * 44, r = Math.max(2.6, Math.min(5.2, 10 / span));
+  const body = ps.map(p => {
+    const x = X(p.x), y = Y(p.y), a = p.a || 0, tx = x + Math.cos(a) * r * 1.9, ty = y - Math.sin(a) * r * 1.9;
+    const tick = `<line x1="${x.toFixed(1)}" y1="${y.toFixed(1)}" x2="${tx.toFixed(1)}" y2="${ty.toFixed(1)}" stroke-width="1.4" stroke-linecap="round" class="${p.lark ? 'lk' : 'rb'}s"/>`;
+    const shape = p.lark ? `<rect x="${(x - r).toFixed(1)}" y="${(y - r).toFixed(1)}" width="${(2 * r).toFixed(1)}" height="${(2 * r).toFixed(1)}" rx="1" class="lk"/>` : `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}" class="rb"/>`;
+    return tick + shape;
+  }).join('');
+  return `<svg viewBox="0 0 48 48" aria-hidden="true"><line x1="14" y1="2" x2="34" y2="2" class="band"/>${body}</svg>`;
+}
+function renderFormPicks() {
+  const box = $('formPicks');
+  box.innerHTML = FORM_PICKS.map(([group, list]) => `<div class="fpgroup"><span class="fplabel">${group}</span><div class="fpbtns">${list.map(([key, label]) =>
+    `<button type="button" class="fpick" data-key="${key}" title="${label}: ${Contra.FORMATIONS[key].name}" aria-pressed="false">${formationIcon(key)}<span>${label}</span></button>`).join('')}</div></div>`).join('');
+  for (const b of box.querySelectorAll('.fpick')) b.onclick = () => { $('formation').value = b.dataset.key; $('formation').onchange({ target: $('formation') }); };
+}
+function markFormPick() { for (const b of $('formPicks').querySelectorAll('.fpick')) b.setAttribute('aria-pressed', String(b.dataset.key === $('formation').value)); }
+renderFormPicks();
 $('formation').onchange = e => { setMeta('FormationBase', Contra.FORMATIONS[e.target.value].name); state.sel = null; commit(true); };
 $('progression').onchange = e => { setMeta('Progression', ['Single', 'Double', 'Triple'][+e.target.value - 1]); commit(true); };
 $('newDance').onclick = () => { state.doc = { title: 'New dance', author: '', meta: {}, metaLines: [['FormationBase', 'Duple Minor - Improper'], ['Progression', 'Single']], parts: [], warnings: [] }; ensureParts(state.doc); state.sel = null; state.t = 0; commit(true); };

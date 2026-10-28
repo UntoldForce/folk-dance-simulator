@@ -121,6 +121,12 @@ const { chromium } = require('playwright');
   await p.click('#viewParts'); await p.waitForTimeout(100);
   check(await p.locator('#rows').isVisible(), 'Parts brings the rows back');
 
+  // Formation pictures: the common formations, one click each.
+  check(await p.locator('.fpick').count() === 6 && await p.locator('.fpick svg rect').count() > 0, 'six common formations are shown as pictures (larks as squares, robins as circles)');
+  await p.click('.fpick[data-key="becketCW"]'); await p.waitForTimeout(100);
+  check(await p.evaluate(() => $('formation').value === 'becketCW' && /Becket/.test($('danceText').value) && document.querySelector('.fpick[aria-pressed="true"]').dataset.key === 'becketCW'), 'clicking the Becket picture sets the formation and marks it');
+  await p.click('.fpick[data-key="improper"]'); await p.waitForTimeout(100);
+
   // Workspace: nothing scrolls on a computer screen; the timeline sits right under the floor.
   await p.click('#reset2'); await p.waitForTimeout(200);
   for (const [w, h] of [[1440, 900], [1366, 768], [1920, 1080]]) {
