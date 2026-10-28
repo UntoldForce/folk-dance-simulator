@@ -189,6 +189,25 @@ check(made.every(k => { const r = Contra.parseDance('A1\n(8) ' + Contra.callText
   }
 }
 
+// Squares and grid squares.
+{
+  check(['Square', 'Grid Square', 'Double Square', 'Hexagon'].map(f => Contra.parseDance(`FormationBase: ${f}\nA1\n(8) Circle left`).formation).join() === 'square,gridSquare,improper,improper',
+    'square and grid square read; double squares and hexagons flagged as not supported yet');
+  const sq = Contra.parseDance(fs.readFileSync(path.join(__dirname, '..', 'dances', 'square-test.txt'), 'utf8'));
+  check(sq.parts.flatMap(p => p.calls).every(k => k.fig), 'square test dance: every figure recognised');
+  const c = Contra.compile(sq, { lines: 1, sets: 1, passes: 3 });
+  const home = c.dancers.every(d => Math.hypot(c.final[d.id].x - c.start[d.id].x, c.final[d.id].y - c.start[d.id].y) < 0.05);
+  check(c.warnings.length === 0 && c.progression.firstBad === -1 && home, 'square: forward and back, chains, right and left throughs, grand right and left and promenade home bring everyone home');
+  check(c.passes.every(p => p.groups.length === 1 && p.groups[0].members.length === 4 && p.outs.length === 0), 'square: one square of four couples, nobody out');
+  const swap = Contra.compile(Contra.parseDance('FormationBase: Square\nA1\n(8) Corner swing\n(8) Promenade 1/2'), { lines: 1, sets: 1, passes: 1 });
+  const near = (a, b) => Math.hypot(swap.final[a].x - swap.final[b].x, swap.final[a].y - swap.final[b].y) < 1.1;
+  check(near('0.1L', '0.4R') && near('0.3L', '0.2R') && swap.progression.firstBad === -1, 'square: after a corner swing, each lark promenades with his corner');
+  const grid = Contra.compile(Contra.parseDance(fs.readFileSync(path.join(__dirname, '..', 'dances', 'grid-square-test.txt'), 'utf8')), { lines: 2, sets: 2, passes: 6 });
+  const visits = Contra.meetings(grid, '0.1').map(m => m.square);
+  check(grid.warnings.length === 0 && grid.progression.firstBad === -1 && grid.passes.every(p => p.groups.length === 4), `grid square: couples pass to the next square and every square keeps dancing (couple 0.1 in squares ${visits.join(',')})`);
+  check(new Set(visits).size > 1, 'grid square: a couple travels to other squares');
+}
+
 // Speeds per figure, at 120 beats per minute (2 beats per second). Not a pass/fail check yet.
 console.log('\nPeak speed per figure at 120 bpm:');
 for (const k of c.calls) {

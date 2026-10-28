@@ -120,13 +120,26 @@ One HTML file, plain JavaScript, Canvas 2D for the floor, ordinary HTML for cont
 
 ## Hands (Phase 6)
 
-Each figure already declares which hand holds whom and for how long, so the simple version is cheap:
+Evaluated October 2026: feasible, about +350 lines, best done as its own phase. Nothing in the engine records hands
+yet; figures only produce paths. The plan:
 
-- **Same hand needed twice** — overlapping hand use is flagged.
-- **No time to let go** — a hand released and retaken within ~½ beat is flagged.
-- **Collisions** — dancers closer than ~0.45 m are flagged, checking each pair every ⅒ beat.
+1. **Each figure lists its holds** next to its paths: who holds whom, with which hand (right, left, both, or a swing
+   or promenade hold), from when to when in the figure. For example an allemande right is right-to-right from about
+   a sixth of the way in until near the end; a circle is everyone's left in the next dancer's right for the whole
+   figure; a star is right hands to the middle. Most figures need one to three lines.
+2. **Drawing:** each dancer gets two short arms from the shoulders, worked out from where they face. Free arms hang
+   by the sides; held arms reach to the point between the two hands, so you see the connection.
+3. **Checks** that come almost for free:
+   - **Reach:** the two hands would need to be more than about 1.4 m apart (the animation pulls them apart, or the
+     dancers really couldn't hold on).
+   - **Same hand twice:** a hand held by two people at once.
+   - **No time to let go:** a hand released and taken again within about half a beat.
+   - **Twisting:** a hand reaching across the body (right hand to someone on your left), which feels awkward.
+4. **Order:** start with the common figures (allemande, swing, balance, box the gnat, pull by, circle, star, long
+   lines, courtesy turn, promenade), then the rest.
 
-Crossed arms and body twist need dancers modeled as bodies rather than dots; left out.
+Left out: dancers are dots that face a direction, not bodies, so elbows, crossed arms and body twist beyond the
+facing aren't modeled.
 
 ## Startup decisions
 
@@ -160,13 +173,29 @@ Chosen with the Formation dropdown or the `FormationBase:` line.
 | Triple minor (proper / ones improper) | Hands-six: ones, then two couples below them | At the top a couple waits out twice and comes back in as ones; ones reaching the bottom wait once and come back in as twos; at the very bottom the ones dance a hands-four with the one couple left |
 | Four facing four | Lines of four across the hall, ones' lines facing down, twos' up; each couple meets the couple it faces as a hands-four | A line at the end turns around (each couple turning as a couple) and switches role |
 | Sicilian circle | Couples facing couples around a circle; ones face counter-clockwise, twos clockwise; robins on the larks' right | None: the circle has no ends |
+| Square | Four couples facing the center, 1.6 m from it; couple 1 at the top with backs to the band, then 2, 3, 4 counter-clockwise; robins on the larks' right | None. One square per "Squares across" |
+| Grid square | Squares packed edge to edge (couples of neighboring squares back to back, 1 m apart), "Squares across" by "Rows of squares" | Passing to the next square: a couple with no square beyond them stops in the opposite place of their own square and courtesy turns to face back in |
 
 Each group re-forms every time through from where couples stand. In four facing four and Sicilian circles every
 hands-four is planned in its own turned frame (ones couple on one side facing the twos), so figures work the same
 way as in a Becket hands-four. In a hands-six, figures for four use the ones and twos; circles and lines use all six.
 
-Not supported yet: triplets and quadruplets, tempest and other four-facing-four variants, circle mixers, squares and
-their variants, grid contras and grid squares, zia, and other special formations. Dances in these are flagged and
+**Squares.** Each time through (and after couples pass to the next square), every dancer takes the nearest lark's or
+robin's spot, so partners can change (after a corner swing, the corner is the new partner). In a square:
+
+- "Heads ..." or "Sides ..." at the start of a figure names who dances it. Figures for four (chains, right and left
+  through, hey) are danced by the heads unless the sides are named, planned like a Becket hands-four across the square.
+- Circles, stars, balances and forward and back use the whole square unless heads or sides (or larks/robins for a
+  star) are named. Long lines in a square become everyone forward and back.
+- Couple figures pair up within the square: partners, corners (the robin on the lark's left; "neighbor" means corner
+  here), heads or sides. A swing ends in the lark's place.
+- New figures: promenade (home, or by an amount), grand right and left (half meets partners on the far side; all
+  the way goes home), forward and back, and pass through to the next square.
+- The check: after each time through, everyone stands in a place in a square, facing roughly in (within 90°, since
+  they may already be turning toward the next figure).
+
+Not supported yet: triplets and quadruplets, tempest and other four-facing-four variants, circle mixers, double and
+five-couple squares, hexagons, grid contras, zia, and other special formations. Dances in these are flagged and
 shown as improper.
 
 ## Dance editor (decisions)

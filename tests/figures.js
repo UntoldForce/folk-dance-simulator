@@ -44,6 +44,30 @@ for (const [beats, text] of FIGS) {
   if (!ok) failures++;
   rows.push(`${ok ? 'PASS' : 'FAIL'}  ${text.padEnd(42)} ${String(call.fig).padEnd(17)} peak ${peak.toFixed(2)} m/s, turning up to ${Math.round(spin)}°/s${nan ? ', NaN' : ''}${off ? ', leaves the floor' : ''}`);
 }
+// Square figures, in a square, after the heads go forward and back.
+const SQUARE = [[16, 'Promenade home'], [8, 'Grand right and left'], [16, 'Grand right and left all the way'], [8, 'Heads pass through to the next square'],
+  [8, 'Corner allemande left 1'], [8, 'Partner swing'], [8, 'Heads ladies chain'], [8, 'Sides right and left through'], [8, 'Circle left 1/2'],
+  [8, 'Larks star right 1'], [8, 'Sides forward and back']];
+for (const [beats, text] of SQUARE) {
+  const dance = Contra.parseDance(`FormationBase: Square\nA1\n(8) Heads forward and back\n(${beats}) ${text}`);
+  const call = dance.parts[0].calls[1];
+  const c = Contra.compile(dance, { lines: 1, sets: 1, passes: 1 });
+  let peak = 0, spin = 0, nan = false, off = false;
+  for (const d of c.dancers) {
+    let prev = Contra.poseAt(c, d.id, 8);
+    for (let t = 8.02; t <= 8 + beats + 1e-9; t += 0.02) {
+      const p = Contra.poseAt(c, d.id, t);
+      if ([p.x, p.y, p.a].some(v => Number.isNaN(v) || v === undefined)) nan = true;
+      if (Math.abs(p.x) > 3 || Math.abs(p.y) > 3) off = true;
+      peak = Math.max(peak, Math.hypot(p.x - prev.x, p.y - prev.y) / 0.01);
+      spin = Math.max(spin, Math.abs(wrap(p.a - prev.a)) / 0.01 * 180 / Math.PI);
+      prev = p;
+    }
+  }
+  const ok = call.fig && !nan && !off && peak < 5 && spin < 1500;
+  if (!ok) failures++;
+  rows.push(`${ok ? 'PASS' : 'FAIL'}  ${('[square] ' + text).padEnd(42)} ${String(call.fig).padEnd(17)} peak ${peak.toFixed(2)} m/s, turning up to ${Math.round(spin)}°/s${nan ? ', NaN' : ''}${off ? ', leaves the floor' : ''}`);
+}
 console.log(rows.join('\n'));
-console.log(failures ? `\n${failures} figure(s) failed` : `\nAll ${FIGS.length} figures run`);
+console.log(failures ? `\n${failures} figure(s) failed` : `\nAll ${FIGS.length + SQUARE.length} figures run`);
 process.exit(failures ? 1 : 0);

@@ -12,7 +12,8 @@ approximations Ryan should check by eye: hey for four (start positions other tha
 chain, right and left through, flutterwheel, star promenade and weathervane, give and take, figure eight, slice,
 shift, veer, lead down, down and up the hall, cast off, petronella, poussette, California twirl, star through,
 roll away, balance the wave (forward and back only), cross (treated as a pass through), turn as a couple and
-butterfly whirl (half a turn as a couple). Not animated: hey for three, contra corners, Dixie twirl.
+butterfly whirl (half a turn as a couple), and the square figures (promenade, grand right and left, forward and back,
+pass through to the next square). Not animated: hey for three, contra corners, Dixie twirl.
 
 Typical beats come from the [ContraLab](https://contralab.org/) Contra Timing Chart where it lists the figure
 (Ryan supplied the chart). Pull by isn't in the chart; per Contrafusion it typically takes 4 beats, or 2 when done rapidly as a single change. The simulator notes any figure given fewer beats than the chart, and any 8- or 16-beat
@@ -97,3 +98,7 @@ placed in a dance; dancers stand still during them and the checks show a caution
 | [Line of four down / up the hall](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#line-of-four-go-down-up-the-hall) | Hands-four in a line | 8 + 8 | Walk down the hall in a line, turn (alone or as couples), come back | Back in the set | built |
 | [Turn alone](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#turn-alone) | Individuals | 1–2 | Face the other way; direction depends on the figures around it | Same place, turned 180° | built |
 | [Contra corners](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#contra-corners) | Ones (actives) | 16 | Allemandes: across right ⅝, first corner left 1, across right ¾, second corner left 1 | Unusual position; usually into a center swing | planned |
+| [Promenade](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#promenade) | Couples in a square | 8 from across the square | Side by side, lark on the inside, walk counter-clockwise around the square; wheel a quarter turn into it and back out to face in | Home (the lark's place) or by the amount | built |
+| [Grand right and left](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#grand-right-and-left) | Everyone in a square | 8 half, 16 all the way | Pull by partner right, next left, and so on; larks counter-clockwise, robins clockwise, weaving inside and outside | Half: meet partner on the far side; all the way: home | built |
+| Forward and back | Heads, sides or everyone | 8 | Four steps into the middle and four back | Where they started | built |
+| Pass through to the next square | Heads or sides in a grid square | 8 | Walk forward through the middle, passing right shoulders, into the same place in the next square | Next square, or (no square beyond) the opposite place after a courtesy turn | built |
