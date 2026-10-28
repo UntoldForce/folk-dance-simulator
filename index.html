@@ -842,12 +842,20 @@ const Contra = (() => {
       });
     } },
     // Turn single: each dancer loops around a small circle in place, turning all the way round.
+    // Turn single: walk forward round a small circle (about 0.4 m across) off to one side, turning all the way
+    // round: right turns clockwise, left counter-clockwise (the tutorial's animation). "Up" or "down" starts the
+    // turn toward that end of the hall; cloverleaf has everyone turn away from the middle of the set (the top
+    // couple up, the bottom couple down), tracing a four-leaf clover.
     turnSingle: { group: 'four', any: true, plan(ps, call, ctx) {
-      const spin = call.side === 'L' ? 1 : -1;
+      const c = centroid(ps);
       return ps.map(d => {
-        const f = d.a == null ? 0 : d.a, r = 0.15, cx = d.x + r * Math.cos(f), cy = d.y + r * Math.sin(f);
-        return u => { const th = spin * TAU * mj(u), ang = f + Math.PI + th;
-          return { x: cx + r * Math.cos(ang), y: cy + r * Math.sin(ang), a: d.a == null ? 0 : d.a + th }; };
+        const f = d.a == null ? (d.x > ctx.cx ? Math.PI : 0) : d.a, r = 0.2;
+        const toward = call.cloverleaf ? Math.sign(d.y - c.y) || 1 : call.toward === 'up' ? 1 : call.toward === 'down' ? -1 : 0;
+        // The circle lies on the side the dancer turns toward (left for counter-clockwise).
+        const spin = toward ? (Math.sin(f + Math.PI / 2) * toward > 0 ? 1 : -1) : call.side === 'L' ? 1 : -1;
+        const cx = d.x + r * Math.cos(f + spin * Math.PI / 2), cy = d.y + r * Math.sin(f + spin * Math.PI / 2), a0 = f - spin * Math.PI / 2;
+        return u => { const th = spin * TAU * mj(u), ang = a0 + th;
+          return { x: cx + r * Math.cos(ang), y: cy + r * Math.sin(ang), a: f + th }; };
       });
     } },
     // Balance the wave: each steps forward and back the way they face (direction of a wave balance varies).
@@ -1271,16 +1279,22 @@ const Contra = (() => {
     } },
     // Sharp (swirly) siding: cross to each other's places passing left shoulders while turning to keep facing
     // each other, then come back along the same track.
+    // (As in the tutorial's animation: two narrow lanes, each dancer stepping to their right of the straight line.)
     sharpSiding: { group: 'pair', plan([p, q], call, ctx) {
-      const c = mid(p, q), r0 = dist(p, q) / 2;
-      return [p, q].map(d => { const a0 = angleTo(c, d);
-        return u => { const ang = a0 + Math.PI * bump(u), r = r0 * (1 - 0.3 * Math.sin(TAU * clamp01(u)) ** 2);
-          return { x: c.x + r * Math.cos(ang), y: c.y + r * Math.sin(ang), a: settle(d.a, ang + Math.PI, u, 0.15) }; }; });
+      const lane = (d, o) => { const h = angleTo(d, o), w = 0.22; return s => { const k = Math.sqrt(Math.max(0, Math.sin(Math.PI * s)));
+        return { x: lerp(d.x, o.x, s) + Math.sin(h) * w * k, y: lerp(d.y, o.y, s) - Math.cos(h) * w * k }; }; };
+      const lp = lane(p, q), lq = lane(q, p);
+      return [[lp, lq, p], [lq, lp, q]].map(([mine, theirs, d]) => u => {
+        const s = mj(bump(u)), me = mine(s), them = theirs(s);
+        return { ...me, a: settle(d.a, angleTo(me, them), u, 0.15) };
+      });
     } },
     // Up a double and back: face up the hall (or down), four steps forward and four back.
     upDouble: { group: 'four', any: true, plan(ps, call, ctx) {
       const F = call.dir === 'down' ? -Math.PI / 2 : Math.PI / 2;
-      return ps.map(d => u => { const s = 0.8 * bump(u); return { x: d.x + s * Math.cos(F), y: d.y + s * Math.sin(F), a: settle(d.a, F, u, 0.15) }; });
+      // Back in place, they turn to acknowledge their partner across the set.
+      return ps.map(d => { const across = d.x > ctx.cx ? Math.PI : 0;
+        return u => { const s = 0.8 * bump(u); return { x: d.x + s * Math.cos(F), y: d.y + s * Math.sin(F), a: lerpAngle(settle(d.a, F, u, 0.15), across, mj((u - 0.85) / 0.15)) }; }; });
     } },
     // Fall back: facing the middle of the group, walk backward away from it (and stay there).
     fallBack: { group: 'four', any: true, plan(ps, call, ctx) {
@@ -1623,7 +1637,7 @@ const Contra = (() => {
     if (/see-?saw/.test(t)) return { fig: 'seesaw', who, turns: amount(1) };
     if (/mad-rbn/.test(t)) return { fig: 'madRobin', who: /partner/.test(t) ? 'partners' : 'neighbors', side: rot() };
     if (/^set\b|\bset to\b/.test(t)) return { fig: 'set', who };
-    if (/turn single/.test(t)) return { fig: 'turnSingle', who: 'all', side: lr() };
+    if (/turn single/.test(t)) return { fig: 'turnSingle', who: 'all', side: lr(), cloverleaf: /clover/.test(t), toward: (t.match(/turn single (up|down)/) || [])[1] };
     if (/\b(right|left)[- ]hands? turn|\bturn (by the )?(right|left)( hand)?\b|\bhand turn\b/.test(t)) return { fig: 'handTurn', who, side: lr(), turns: amount(1) };
     if (/balance (the )?wave|wavy line/.test(t)) return { fig: 'balanceWave', who: 'all' };
     if (/balance (the )?ring/.test(t)) return { fig: 'balanceRing', who: 'all' };
@@ -2666,6 +2680,7 @@ const POOL = [
   { cat: 3, label: 'Seesaw', fig: 'seesaw', who: PAIR, amount: 'turns', d: { who: 'partners', amt: 1 }, beats: 8, say: '{who} seesaw {amt}', re: /see-?saw/ },
   { cat: 3, label: 'Mad robin', fig: 'madRobin', who: ['neighbors', 'partners'], side: 'rot', d: { who: 'neighbors', side: 'R' }, beats: 8, say: 'Mad robin {side} around {who_l}', re: /mad robin/ },
   { cat: 3, label: 'Set', fig: 'set', who: PAIR, d: { who: 'partners' }, beats: 4, say: 'Set to {who_l}', re: /^set\b|\bset to\b/ },
+  { cat: 3, label: 'Turn single cloverleaf', fig: 'turnSingle', d: {}, beats: 4, say: 'Turn single cloverleaf', re: /turn single clover/, ecd: true },
   { cat: 3, label: 'Turn single', fig: 'turnSingle', side: 'way', d: { side: 'R' }, beats: 4, say: 'Turn single {side}', re: /turn single/ },
   { cat: 3, label: 'Balance the wave', fig: 'balanceWave', d: {}, beats: 4, say: 'Balance the wave', re: /balance (the )?wave|wavy line/ },
   { cat: 3, label: 'Balance the ring', fig: 'balanceRing', d: {}, beats: 4, say: 'Balance the ring', re: /balance (the )?ring/ },
@@ -2961,7 +2976,8 @@ const DESCRIPTIONS = {
   'Seesaw': 'A do-si-do by the left shoulder.',
   'Mad robin': 'Facing across the set, travel an oval around the person beside you, a sideways do-si-do, keeping eye contact with the person across.',
   'Set': 'Step right, then left, in place, facing someone.',
-  'Turn single': 'Turn all the way round in a small loop in place.',
+  'Turn single cloverleaf': 'English: everyone turns single at once, each turning away from the middle of the set (the top couple up, the bottom couple down), so from above the four little circles make a four-leaf clover.',
+  'Turn single': 'Walk forward round a small circle (about the size of a pizza) off to one side, turning all the way round: right turns clockwise, left counter-clockwise. You end where you started.',
   'Balance the wave': 'In a wave, balance forward and back. Shown simply as a step forward and back.',
   'Balance the ring': 'Hands in a ring: step in toward the middle and back.',
   'Circle': 'Hands in a ring, everyone facing the middle. Circle left travels clockwise; the amount counts places around the ring.',
@@ -3024,7 +3040,7 @@ const DESCRIPTIONS = {
 const APPROX = new Set(['Hey for four', 'Robins chain', 'Larks chain', 'Right and left through', 'Flutterwheel', 'Star promenade', 'Weathervane',
   'Give and take', 'Figure eight', 'Slice', 'Shift', 'Veer', 'Lead down', 'Down the hall', 'Up the hall', 'Cast off', 'Cast down', 'Petronella',
   'Poussette', 'Half draw poussette', 'California twirl', 'Hey for three', 'Siding', 'Sharp siding', 'Up a double', 'Fall back', 'Honour',
-  'Hole in the wall cross', 'Chevron', 'Dolphin hey', 'Crossover mirror hey', 'Hey for three on the side', 'Cast across', 'Long cast', 'English gate', 'Hand turn', 'Bentley allemande', 'Half open ladies chain', 'Double figure eight', 'Star through', 'Roll away', 'Half sashay', 'Balance the wave', 'Cross', 'Turn as a couple', 'Butterfly whirl']);
+  'Hole in the wall cross', 'Chevron', 'Dolphin hey', 'Crossover mirror hey', 'Hey for three on the side', 'Cast across', 'Long cast', 'English gate', 'Turn single cloverleaf', 'Hand turn', 'Bentley allemande', 'Half open ladies chain', 'Double figure eight', 'Star through', 'Roll away', 'Half sashay', 'Balance the wave', 'Cross', 'Turn as a couple', 'Butterfly whirl']);
 // Some moves need the dancers set up first: side by side with the chosen person, or couples on the sides.
 const SETUP = {
   californiaTwirl: 'pair', rollAway: 'pair', halfSashay: 'pair', courtesyTurn: 'pair', turnAsCouple: 'pair', butterflyWhirl: 'pair', gate: 'pair',

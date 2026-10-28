@@ -24,7 +24,7 @@ const FIGS = [
   [8, 'Partner side right'], [8, 'Neighbor siding left'], [8, 'Partner sharp siding'], [8, 'Up a double and back'], [4, 'Fall back'],
   [2, 'Honour your partner'], [2, 'Clap'], [4, 'Neighbor hole in the wall cross'], [8, 'Partner turn by the right hand 1'],
   [4, 'Neighbor left hand turn 1/2'], [8, 'Partner Bentley allemande right'], [8, 'Neighbor back to back'],
-  [8, 'Partner half draw poussette clockwise'], [16, 'Rights and lefts, 4 changes'], [8, 'First corners do-si-do'], [8, 'Half open ladies chain'], [8, 'First corners chevron, crossing by the right'], [16, 'Ones dolphin hey across the set'], [8, 'Robins lead between and cast across'], [8, 'Ones long cast down'],
+  [8, 'Partner half draw poussette clockwise'], [16, 'Rights and lefts, 4 changes'], [8, 'First corners do-si-do'], [8, 'Half open ladies chain'], [8, 'First corners chevron, crossing by the right'], [16, 'Ones dolphin hey across the set'], [4, 'Turn single cloverleaf'], [4, 'Turn single up'], [8, 'Robins lead between and cast across'], [8, 'Ones long cast down'],
   [8, 'First lark crosses for a hey for three with the robins'], [16, 'Double figure eight, 2s cross up as 1s cast down'],
 ];
 const wrap = a => ((a + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI;
@@ -51,7 +51,7 @@ for (const [beats, text] of FIGS) {
   rows.push(`${ok ? 'PASS' : 'FAIL'}  ${text.padEnd(42)} ${String(call.fig).padEnd(17)} peak ${peak.toFixed(2)} m/s, turning up to ${Math.round(spin)}°/s${nan ? ', NaN' : ''}${off ? ', leaves the floor' : ''}`);
 }
 // English figures again, in a proper set (as English dances usually are).
-for (const [beats, text] of FIGS.filter(([b, t]) => /side|siding|double|fall back|honour|hole in the wall|hand turn|turn by|bentley|back to back|draw poussette|rights and lefts|corners|chevron|dolphin|cast|hey for three/i.test(t))) {
+for (const [beats, text] of FIGS.filter(([b, t]) => /side|siding|double|fall back|honour|hole in the wall|hand turn|turn by|bentley|back to back|draw poussette|rights and lefts|corners|chevron|dolphin|cast|hey for three|turn single/i.test(t))) {
   const dance = Contra.parseDance(`FormationBase: Duple Minor - Proper\nA1\n(8) In long lines, go forward and back\n(${beats}) ${text}`);
   const call = dance.parts[0].calls[1], c = Contra.compile(dance, { lines: 1, sets: 2, passes: 1 });
   let peak = 0, spin = 0, nan = false;

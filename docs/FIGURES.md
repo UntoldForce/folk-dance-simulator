@@ -20,7 +20,12 @@ each GIF's size to the tutorial page's image list): dolphin hey, double figure e
 ladies chain, chevron, mad robin, cast down and long cast, cast across, crossover mirror hey, hey for three on the side,
 Bentley allemande, hole in the wall cross (first corners), siding (meeting level, shoulder to shoulder), the English
 gate (neighbours on each side, a full circle, mirror images, the gated couple walking forward) and the hey for four
-across starting in the middle (the ends loop out while the middle pair pass first).
+across starting in the middle (the ends loop out while the middle pair pass first), sharp siding (two narrow lanes),
+turn single (a small circle off to one side; cloverleaf: everyone turns away from the middle), and up a double
+(hands across the set, then acknowledging partners).
+
+The tutorial's animations appear to be drawn mirror-image (its "turn single left" turns clockwise in the GIF), so
+directions follow the tutorial's text and shapes follow the animations.
 
 **Neighbour in a proper set** (Ryan's call): English dances are almost always proper, and there your neighbour is the
 dancer beside you on your side (the same role). In improper and other formations it stays the contra meaning, the
