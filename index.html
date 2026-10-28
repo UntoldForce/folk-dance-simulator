@@ -334,6 +334,11 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
 .fpick svg .lks { stroke: var(--lark); } .fpick svg .rbs { stroke: var(--robin); }
 .fpick svg .band { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 2 2; }
 .fpick[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1.5px var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--panel)); }
+
+.fpbox summary { cursor: pointer; font: 500 13px var(--font-body); color: var(--accent); list-style: none; }
+.fpbox summary::-webkit-details-marker { display: none; }
+.fpbox summary::before { content: "▸ "; } .fpbox[open] summary::before { content: "▾ "; }
+.fpbox[open] summary { margin-bottom: 8px; }
 </style>
 </head><body><!--wrap-->
 
@@ -404,7 +409,9 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
       </div>
       <div id="panelEditor" class="tabpanel" role="tabpanel" aria-labelledby="tabEditor">
         <div class="row"><button id="newDance" class="primary">＋ New dance</button><button id="reset2">Load “111”</button></div>
-        <div class="formpicks" id="formPicks" role="group" aria-label="Common formations"></div>
+        <details class="fpbox" id="formPicksBox"><summary>Common formations, as pictures</summary>
+          <div class="formpicks" id="formPicks" role="group" aria-label="Common formations"></div>
+        </details>
         <div class="dsettings">
           <label for="formation">Formation</label>
           <select id="formation">
@@ -4625,6 +4632,9 @@ function renderFormPicks() {
 }
 function markFormPick() { for (const b of $('formPicks').querySelectorAll('.fpick')) b.setAttribute('aria-pressed', String(b.dataset.key === $('formation').value)); }
 renderFormPicks();
+// The pictures start folded away, to leave room for the moves; opening them is remembered.
+$('formPicksBox').open = recall('contra.formPicks') === 'open';
+$('formPicksBox').addEventListener('toggle', () => store('contra.formPicks', $('formPicksBox').open ? 'open' : 'closed'));
 $('formation').onchange = e => { setMeta('FormationBase', Contra.FORMATIONS[e.target.value].name); state.sel = null; commit(true); };
 $('progression').onchange = e => { setMeta('Progression', ['Single', 'Double', 'Triple'][+e.target.value - 1]); commit(true); };
 $('newDance').onclick = () => { state.doc = { title: 'New dance', author: '', meta: {}, metaLines: [['FormationBase', 'Duple Minor - Improper'], ['Progression', 'Single']], parts: [], warnings: [] }; ensureParts(state.doc); state.sel = null; state.t = 0; commit(true); };
