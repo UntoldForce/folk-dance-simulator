@@ -2297,11 +2297,12 @@ const Contra = (() => {
       }
       if (fig) {
         if (!part) { part = { name: 'A1', calls: [] }; dance.parts.push(part); }
-        for (const [beats, text] of splitLine(fig[2].trim(), Number(fig[1]))) {
-          const call = { beats, text, ...parseFigure(text) };
-          if (!call.fig) dance.warnings.push({ level: 'bad', call, part: part.name, text: `${part.name}: “${call.text}” isn't a figure the simulator knows yet. Dancers stand still for those ${call.beats} beats.` });
-          part.calls.push(call);
-        }
+        // A line with several figures ("Neighbors balance & swing") stays one figure in the dance, as written;
+        // it's danced as its steps (see compile). It's read as its first step, for its name and colour.
+        const text = fig[2].trim(), steps = splitLine(text, Number(fig[1]));
+        const call = { beats: Number(fig[1]), text, ...parseFigure(steps.length > 1 ? steps[0][1] : text), ...(steps.length > 1 ? { steps: steps.length } : {}) };
+        if (!call.fig) dance.warnings.push({ level: 'bad', call, part: part.name, text: `${part.name}: “${call.text}” isn't a figure the simulator knows yet. Dancers stand still for those ${call.beats} beats.` });
+        part.calls.push(call);
         continue;
       }
       const kv = line.match(/^([A-Za-z ]+):\s*(.*)$/);
@@ -2801,9 +2802,15 @@ const Contra = (() => {
     let pose = { ...start };
     dancers.forEach(d => { segs[d.id] = []; lineCx[d.id] = lines[d.line].cx; });
     const calls = [], parts = [], warnings = dance.warnings.slice(), passInfo = [];
-    const allCalls = dance.parts.flatMap(part => part.calls);
-    const flat = dance.parts.flatMap(part => part.calls.map(call => {
-      const flatPrev = () => allCalls[(allCalls.indexOf(call) - 1 + allCalls.length) % allCalls.length];
+    // Each figure as danced: a line with several figures in it becomes its steps, sharing out its beats; `src` is the
+    // figure's place in the dance, so the editor can light up the block it came from.
+    const danced = part => part.calls.flatMap(call => {
+      const src = dance.parts.flatMap(q => q.calls).indexOf(call), steps = call.steps ? splitLine(call.text, call.beats) : [];
+      return steps.length > 1 ? steps.map(([beats, text]) => ({ ...call, ...parseFigure(text), beats, text, src, line: call.text, steps: undefined })) : [{ ...call, src }];
+    });
+    const allCalls = dance.parts.flatMap(danced);
+    const flat = dance.parts.flatMap(part => danced(part).map(call => {
+      const flatPrev = () => allCalls[(allCalls.findIndex(q => q.src === call.src && q.text === call.text) - 1 + allCalls.length) % allCalls.length];
       // In a square, long lines become everyone forward and back, and "Heads ..." or "Sides ..." at the start
       // of a figure names the couples who dance it.
       const sq = F.kind === 'square';
@@ -3099,7 +3106,7 @@ const Contra = (() => {
       let k = 0;
       for (const part of dance.parts) {
         const pt0 = t;
-        for (const call of part.calls) {
+        for (const call of danced(part)) {
           const { fig } = flat[k], t0 = t, t1 = t + call.beats;
           const { fns, notes, holds } = planCall(k, pose, pass, t0);
           // Look ahead: plan the next call (in the next time through, after the last one) from where
@@ -3427,6 +3434,7 @@ const AMOUNTS = {
 };
 const POOL = [
   { cat: 1, label: 'Allemande', fig: 'allemande', who: PAIR, side: 'hand', amount: 'turns', d: { who: 'neighbors', side: 'R', amt: 1 }, say: '{who} allemande {side} {amt}' },
+  { cat: 1, label: 'Balance and swing', fig: 'balance', who: PAIR, d: { who: 'neighbors' }, beats: 16, say: '{who} balance & swing', re: /balance (and|&) swing/ },
   { cat: 1, label: 'Swing', fig: 'swing', who: PAIR, beats: 8, d: { who: 'partners' }, say: '{who} swing' },
   { cat: 1, label: 'Shoulder round', fig: 'shoulderRound', who: PAIR, side: 'shoulder', amount: 'turns', d: { who: 'partners', side: 'R', amt: 1 }, beats: 8, say: '{who} {side} shoulder round {amt}', re: /shoulder a?round|gyps/ },
   { cat: 1, label: 'Arm turn', fig: 'armTurn', who: PAIR, side: 'hand', amount: 'turns', d: { who: 'neighbors', side: 'R', amt: 1 }, beats: 8, say: '{who} arm {side} {amt}', re: /\barm (right|left)|arm turn/ },
@@ -3760,10 +3768,11 @@ function renderRows() {
     if (beats > 16) { const m = document.createElement('div'); m.className = 'end16'; m.style.left = `${(16 / scale) * 100}%`; track.appendChild(m); }
     let at = 0;
     part.calls.forEach((k, ci) => {
-      const b = document.createElement('div'), compiled = c.calls[flat++];
+      // (A block with several figures in it is danced as several steps; it's flagged if any step is.)
+      const src = flat++, compiled = c.calls.find(q => q.pass === 0 && q.src === src && q.flagged) || c.calls.find(q => q.pass === 0 && q.src === src), b = document.createElement('div');
       const move = moveOf(k);
       b.className = `fblk cat${move ? move.cat : 0}` + (k.fig ? '' : ' soon') + (compiled && compiled.flagged && k.fig ? ' flag' : '') + (state.sel && state.sel.part === pi && state.sel.index === ci ? ' sel' : '');
-      b.dataset.part = pi; b.dataset.index = ci; b.dataset.flat = flat - 1;
+      b.dataset.part = pi; b.dataset.index = ci; b.dataset.flat = src;
       b.style.left = `calc(${(at / scale) * 100}% + 1px)`; b.style.width = `calc(${(k.beats / scale) * 100}% - 2px)`;
       b.title = `${roleWords(k.text)} (${k.beats} beats)`;
       b.innerHTML = `<span class="name"></span><span class="len">${icon(move ? move.cat : 0)}${k.beats}</span><span class="grip" aria-hidden="true"></span>`;
@@ -3780,7 +3789,7 @@ function renderRows() {
 }
 
 // The moves danced most often in contras, shown first so they're quick to find.
-const COMMON = ['Swing', 'Allemande', 'Do-si-do', 'Balance', 'Circle', 'Star', 'Long lines', 'Robins chain', 'Right and left through',
+const COMMON = ['Balance and swing', 'Swing', 'Allemande', 'Do-si-do', 'Balance', 'Circle', 'Star', 'Long lines', 'Robins chain', 'Right and left through',
   'Hey for four', 'Pull by', 'Box the gnat', 'Shoulder round', 'Petronella', 'Mad robin', 'California twirl', 'Courtesy turn', 'Down the hall', 'Slice'];
 // Does a move match what's typed in the search box? Every word must appear in its name (in either set of role
 // names), or the text must read as that move (so "gypsy" finds the shoulder round, "ladies chain" the robins chain).
@@ -4035,7 +4044,7 @@ function previewOf(def, m, beats) {
   if (previews.has(key)) return previews.get(key);
   const dance = Contra.parseDance(text);
   const c = Contra.compile(dance, { lines: 1, sets: def.square === 'Grid Square' ? 2 : 1, passes: 1, loop: false, params: { swingBeatsPerTurn: +$('swingRate').value } });
-  const t0 = c.calls[c.calls.length - 1].t0, t1 = c.total, b = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity };
+  const last = c.calls[c.calls.length - 1], t0 = c.calls.find(q => q.src === last.src && q.pass === last.pass).t0, t1 = c.total, b = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity };
   for (const d of c.dancers) for (let t = t0; t <= t1; t += 0.25) {
     const p = Contra.poseAt(c, d.id, t);
     b.minX = Math.min(b.minX, p.x); b.maxX = Math.max(b.maxX, p.x); b.minY = Math.min(b.minY, p.y); b.maxY = Math.max(b.maxY, p.y);
@@ -4219,7 +4228,7 @@ function loopSpan() {
   const c = state.c, mode = $('loop').value, t = Math.min(state.t, c.total - 1e-6), p = passAt(t), base = p * c.perPass;
   if (mode === 'pass') return [base, base + c.perPass];
   if (mode === 'part') { const local = t - base, part = c.parts.find(q => local >= q.t0 && local < q.t1) || c.parts[0]; return part ? [base + part.t0, base + part.t1] : [0, c.total]; }
-  if (mode === 'figure' && c.calls.length) { const k = c.calls[Contra.callIndexAt(c, t)]; return [k.t0, k.t1]; }
+  if (mode === 'figure' && c.calls.length) { const k = c.calls[Contra.callIndexAt(c, t)], same = c.calls.filter(q => q.pass === k.pass && q.src === k.src); return [same[0].t0, same[same.length - 1].t1]; }
   return [0, c.total];
 }
 
@@ -4625,7 +4634,7 @@ function updateReadout() {
   $('what').textContent = roleWords(k.text);
   $('passStrip').querySelectorAll('.pbox').forEach((el, j) => { el.classList.toggle('cur', j === p); if (j === p && state.passShown !== p) el.scrollIntoView({ block: 'nearest', inline: 'nearest' }); });
   state.passShown = p;
-  for (const el of $('rows').querySelectorAll('.fblk')) el.classList.toggle('active', +el.dataset.flat === i - p * perPassCalls);
+  for (const el of $('rows').querySelectorAll('.fblk')) el.classList.toggle('active', +el.dataset.flat === k.src);
   const pi = c.parts.indexOf(part);
   $('rows').querySelectorAll('.prow').forEach((row, j) => row.classList.toggle('current', j === pi));
   $('rows').querySelectorAll('.ptrack').forEach((tr, j) => {

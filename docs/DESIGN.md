@@ -187,9 +187,12 @@ there and writes `library/report.txt`: figures not read yet (most common first),
 bumps, hand problems, crashes. It's a to-do list, not a pass/fail test.
 
 What the first 402 dances taught the simulator:
-- **Several figures on one line** ("(16) Neighbors balance & swing", "circle left 3/4 and pass through") are split at
+- **Several figures on one line** ("(16) Neighbors balance & swing", "circle left 3/4 and pass through") stay one
+  figure in the dance and one block in the editor, written as they were (Ryan: balance and swing is so common it
+  should be one move; "Balance and swing" is in the move list too). They're danced as steps: the line is split at
   "&", "and", "then" or ";" when each part reads as a figure; later parts are danced by the same people unless they
-  name others; each part but the last gets its usual length, the last the rest. Names with "and" in them ("right and
+  name others; each part but the last gets its usual length, the last the rest. Compiled calls carry `src`, the
+  figure they came from. Names with "and" in them ("right and
   left through", "forward and back", "give and take", "1 & 1/2") stay whole.
 - **Other spellings:** do si do, see saw, gyre (shoulder round), right left through, grand right left, pass by,
   Rory O'More (slide), "slide left along the set" (a shift, not the wave figure), "swing through" (not a swing; not

@@ -121,6 +121,13 @@ const { chromium } = require('playwright');
   await p.click('#viewParts'); await p.waitForTimeout(100);
   check(await p.locator('#rows').isVisible(), 'Parts brings the rows back');
 
+  // "Balance & swing" on one line: one block, shown as the Balance and swing move, lit while either step plays.
+  await p.evaluate(() => { $('danceText').value = 'A1\n(16) Neighbors balance & swing\nA2\n(16) Partners balance and swing'; build(); seek(10); });
+  await p.waitForTimeout(100);
+  check(await p.evaluate(() => document.querySelectorAll('.fblk[data-part="0"]').length === 1 && moveOf(state.doc.parts[0].calls[0]).label === 'Balance and swing' && document.querySelector('.fblk[data-part="0"]').classList.contains('active')),
+    'a balance & swing line is one block (the Balance and swing move), lit during its swing');
+  await p.click('#reset2'); await p.waitForTimeout(100);
+
   // Formation pictures: the common formations, one click each.
   check(!(await p.locator('.fpick').first().isVisible()), 'the formation pictures start folded away');
   await p.click('#formPicksBox summary'); await p.waitForTimeout(50);

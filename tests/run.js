@@ -331,7 +331,9 @@ for (const k of c.calls) {
 // Reading real dances (from testing against ContraDB): several figures on one line, other spellings, who.
 {
   const read = l => Contra.parseDance('A1\n' + l).parts[0].calls.map(k => `${k.beats} ${k.fig} ${k.who || ''}`.trim()).join(' | ');
-  check(read('(16) neighbors balance & swing') === '4 balance neighbors | 12 swing neighbors', 'a line with two figures is split, the second danced by the same people');
+  const bs = Contra.parseDance('A1\n(16) Neighbors balance & swing'), bsc = Contra.compile(bs, { lines: 1, sets: 2, passes: 1 });
+  check(bs.parts[0].calls.length === 1 && Contra.serialize(bs).includes('(16) Neighbors balance & swing'), 'a line with two figures stays one figure in the dance, written as it was');
+  check(bsc.calls.map(k => `${k.beats} ${k.fig} ${k.who} ${k.src}`).join(' | ') === '4 balance neighbors 0 | 12 swing neighbors 0', 'and is danced as its two steps, the second by the same people');
   check(read('(8) Women allemande left 1 & 1/2') === '8 allemande robins' && read('(8) long lines forward & back') === '8 longLines all' && read('(8) In long lines, go forward and back') === '8 longLines all', '"1 & 1/2", "forward & back" and names with "and" stay whole');
   check(/circle/.test(read('(8) circle left 3 places')) && Contra.parseDance('A1\n(8) circle left 3 places').parts[0].calls[0].turns === 0.75, '"circle left 3 places" is three quarters');
   check(['(8) larks do si do 1½', '(8) robins gyre once', '(8) right left through', '(8) partners see saw', '(4) partners pass by right shoulders'].map(read).join() === '8 dosido larks,8 shoulderRound robins,8 rightLeftThrough all,8 seesaw partners,4 passThrough partners', 'ContraDB spellings: do si do, gyre, right left through, see saw, pass by');
