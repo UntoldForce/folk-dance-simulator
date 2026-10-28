@@ -120,26 +120,24 @@ One HTML file, plain JavaScript, Canvas 2D for the floor, ordinary HTML for cont
 
 ## Hands (Phase 6)
 
-Evaluated October 2026: feasible, about +350 lines, best done as its own phase. Nothing in the engine records hands
-yet; figures only produce paths. The plan:
+Built October 2026, with a Hands switch (on by default, remembered).
 
-1. **Each figure lists its holds** next to its paths: who holds whom, with which hand (right, left, both, or a swing
-   or promenade hold), from when to when in the figure. For example an allemande right is right-to-right from about
-   a sixth of the way in until near the end; a circle is everyone's left in the next dancer's right for the whole
-   figure; a star is right hands to the middle. Most figures need one to three lines.
-2. **Drawing:** each dancer gets two short arms from the shoulders, worked out from where they face. Free arms hang
-   by the sides; held arms reach to the point between the two hands, so you see the connection.
-3. **Checks** that come almost for free:
-   - **Reach:** the two hands would need to be more than about 1.4 m apart (the animation pulls them apart, or the
-     dancers really couldn't hold on).
-   - **Same hand twice:** a hand held by two people at once.
-   - **No time to let go:** a hand released and taken again within about half a beat.
-   - **Twisting:** a hand reaching across the body (right hand to someone on your left), which feels awkward.
-4. **Order:** start with the common figures (allemande, swing, balance, box the gnat, pull by, circle, star, long
-   lines, courtesy turn, promenade), then the rest.
+- **Each figure lists its holds** (`HOLDS` in the engine): who holds whom, with which hand ('R', 'L', or 'near' for
+  whichever hand is toward the other), from when to when in the figure. A star's hands reach into the middle.
+  Examples: allemande, arm and hand turns (the named hand); two-hand turn and poussette (both hands); swing
+  (ballroom hold); courtesy turn (left hands in front, right behind her back); circles and long lines (neighbors'
+  near hands); chains and right and left through (pull by in the middle, then a courtesy turn); promenade (skating
+  hold); grand right and left (right, left, right... with each one met); lead down, down and up the hall, up a double.
+  Figures without hands (do-si-do, hey, siding, shoulder round...) list none.
+- **Geometry** (`handsAt`): shoulders 0.17 m either side, arms reach 0.6 m. Held hands meet halfway between the
+  two shoulders, easing in and out over 0.4 beats; free hands rest by the side.
+- **Drawing:** held arms reach to a small dot where the hands meet; a dashed red line shows hands that can't reach.
+- **Checks**, over the middle of each hold: hands that would need to be more than about 1.5 m apart, one hand held by
+  two people at once (problems), and a hand reaching across the body (a caution; figures that cross arms on purpose,
+  such as the swing, courtesy turn and promenade, are left out).
 
-Left out: dancers are dots that face a direction, not bodies, so elbows, crossed arms and body twist beyond the
-facing aren't modeled.
+Left out: elbows, crossed arms and body twist beyond the facing (dancers are dots); letting go and retaking a hand
+too quickly isn't checked yet.
 
 ## Startup decisions
 

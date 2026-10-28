@@ -231,6 +231,18 @@ check(made.every(k => { const r = Contra.parseDance('A1\n(8) ' + Contra.callText
     && ecd.parts[0].calls[7].turns === 1 && ecd.parts[0].calls[7].who === 'firstCorners', 'English figures read (and couple numbers are not read as amounts)');
 }
 
+// Hands.
+{
+  const c = Contra.compile(dance, { lines: 1, sets: 2, passes: 1 });
+  const H = Contra.handsAt(c, 12), r1 = H['0.1R'].L, r2 = H['0.2R'].L;
+  check(r1.held && r2.held && Math.hypot(r1.x - r2.x, r1.y - r2.y) < 0.05 && !H['0.1L'].L.held, 'hands: robins join left hands in their allemande; larks\' hands are free');
+  const ring = Contra.handsAt(c, 52);
+  check(c.dancers.every(d => ring[d.id].L.held && ring[d.id].R.held), 'hands: everyone holds both hands in the circle');
+  check(!c.warnings.some(w => w.hands), '"111" has no hand problems');
+  const far = Contra.compile(Contra.parseDance('FormationBase: Triplet - Proper\nA1\n(4) 1s and 3s first corners balance (RH)'), { lines: 1, sets: 1, passes: 1 });
+  check(far.warnings.some(w => w.hands && /stretch/.test(w.text)), 'hands: a hand balance between couples two places apart is flagged as out of reach');
+}
+
 // Speeds per figure, at 120 beats per minute (2 beats per second). Not a pass/fail check yet.
 console.log('\nPeak speed per figure at 120 bpm:');
 for (const k of c.calls) {
