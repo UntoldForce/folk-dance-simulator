@@ -166,8 +166,27 @@ check(made.every(k => { const r = Contra.parseDance('A1\n(8) ' + Contra.callText
   check(b.passes.every((p, i) => p.groups.length === (i % 2 ? 2 : 3)), `Becket: couples come back in, so hands-fours keep forming (${b.passes.map(p => p.groups.length).join(', ')})`);
   const pr = Contra.compile(Contra.parseDance('FormationBase: Duple Minor - Proper\nA1\n(8) In long lines, go forward and back'), { lines: 1, sets: 2, passes: 1 });
   check(pr.warnings.every(w => !/isn't supported/.test(w.text)), 'proper is a supported formation');
-  const odd = Contra.parseDance('FormationBase: Triple Minor - Proper\nA1\n(8) In long lines, go forward and back');
-  check(odd.warnings.some(w => /isn't supported yet/.test(w.text)), 'a triple minor is flagged as not supported yet');
+  const odd = Contra.parseDance('FormationBase: Triplet 1-2-3\nA1\n(8) In long lines, go forward and back');
+  check(odd.warnings.some(w => /isn't supported yet/.test(w.text)), 'a triplet is flagged as not supported yet');
+}
+
+// Triple minor, four facing four and Sicilian circle: groups keep forming and everyone progresses.
+{
+  const run = (f, body, sets, passes) => Contra.compile(Contra.parseDance(`FormationBase: ${f}\nA1\n${body}`), { lines: 1, sets, passes });
+  for (const f of ['Triple Minor - Proper', 'Triple Minor - Ones Improper']) {
+    const c = run(f, '(8) In long lines, go forward and back\n(4) Ones cast off', 3, 12);
+    check(c.progression.firstBad === -1 && c.passes.every((p, i) => p.groups.length === [3, 3, 2][i % 3]), `${f}: progresses 12 times through, groups ${c.passes.map(p => p.groups.length).join(',')}`);
+    check(c.passes[1].outs.some(o => o.couple === '0.2' && o.end === 'top') && c.passes[2].outs.some(o => o.couple === '0.2'), `${f}: a couple reaching the top waits out twice`);
+    check(c.passes[2].outs.some(o => o.couple === '0.7' && o.end === 'bottom') && !c.passes[3].outs.some(o => o.couple === '0.7'), `${f}: ones reaching the bottom wait once`);
+  }
+  const f4 = run('Four Facing Four', '(8) Neighbor pass through', 2, 9);
+  check(f4.progression.firstBad === -1 && f4.passes.every((p, i) => p.groups.length === (i % 2 ? 2 : 4)), `four facing four: lines pass through to new lines, ends turn around (${f4.passes.map(p => p.groups.length).join(',')})`);
+  const si = run('Sicilian Circle', '(8) Neighbor pass through', 4, 9);
+  check(si.progression.firstBad === -1 && si.passes.every(p => p.groups.length === 4 && p.outs.length === 0), 'Sicilian circle: couples progress around the circle with no ends');
+  for (const f of ['Duple Minor - Progressed Improper', 'Duple Minor - Reverse Progression Improper']) {
+    const c = run(f, '(4) Ones cast off', 3, 10);
+    check(c.passes.every((p, i) => p.groups.length === (i % 2 ? 2 : 3)), `${f}: couples at the ends wait one time and come back in (${c.passes.map(p => p.groups.length).join(',')})`);
+  }
 }
 
 // Speeds per figure, at 120 beats per minute (2 beats per second). Not a pass/fail check yet.

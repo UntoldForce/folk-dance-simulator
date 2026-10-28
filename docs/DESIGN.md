@@ -146,27 +146,28 @@ Crossed arms and body twist need dancers modeled as bodies rather than dots; lef
 
 ## Formations
 
-Supported (duple minor), chosen with the Formation dropdown or the `FormationBase:` line:
+Chosen with the Formation dropdown or the `FormationBase:` line.
 
-| Formation | Start |
-|---|---|
-| Improper | Ones crossed (lark on the +x side, the caller's left looking down), twos proper; ones above twos |
-| Proper | Every lark on the -x side |
-| Indecent | Twos crossed, ones proper |
-| All improper | Both couples crossed |
-| Progressed improper | Improper after trading with neighbors: ones below twos |
-| Reverse progression improper | Twos (top) crossed, ones (below) proper |
-| Becket clockwise / counter-clockwise | Partners side by side on one side, couples facing across; clockwise has the ones (progressing down) on the +x side |
+| Formation | Start | Ends of the set |
+|---|---|---|
+| Improper | Ones crossed (lark on the +x side, the caller's left looking down), twos proper; ones above twos | Wait one time, partners trade sides, switch role |
+| Proper | Every lark on the -x side | Wait one time, switch role (no crossing) |
+| Indecent | Twos crossed, ones proper | As improper |
+| All improper | Both couples crossed | As proper |
+| Progressed improper | Ones below twos (improper after trading with neighbors) | Wait one time and switch role (Ryan); the couple lets the next couple past, moving two places toward the set |
+| Reverse progression improper | Twos (top) crossed, ones below them proper | As progressed improper |
+| Becket clockwise / counter-clockwise | Partners side by side on one side, couples facing across; clockwise has the ones (progressing down) on the +x side | Cross the set as a couple, diagonally one place, switch role |
+| Triple minor (proper / ones improper) | Hands-six: ones, then two couples below them | At the top a couple waits out twice and comes back in as ones; ones reaching the bottom wait once and come back in as twos; at the very bottom the ones dance a hands-four with the one couple left |
+| Four facing four | Lines of four across the hall, ones' lines facing down, twos' up; each couple meets the couple it faces as a hands-four | A line at the end turns around (each couple turning as a couple) and switches role |
+| Sicilian circle | Couples facing couples around a circle; ones face counter-clockwise, twos clockwise; robins on the larks' right | None: the circle has no ends |
 
-Hands-fours re-form each time through by where the formation puts the twos relative to the ones (one place below,
-one place above, or across for Becket). Waiting couples move at the start of their wait to where their new role
-stands: partners trade sides (improper-type), nobody moves (proper), or a Becket couple crosses the set together,
-diagonally one place. Open question for Ryan: how couples rejoin at the ends in progressed improper and reverse
-progression improper (the checks show a caution).
+Each group re-forms every time through from where couples stand. In four facing four and Sicilian circles every
+hands-four is planned in its own turned frame (ones couple on one side facing the twos), so figures work the same
+way as in a Becket hands-four. In a hands-six, figures for four use the ones and twos; circles and lines use all six.
 
-Not supported yet (they change how groups form): triple minor, four facing four (and tempest), Sicilian circle,
-circle mixers, triplets and quadruplets, squares and their variants, grid contras and grid squares, zia, and other
-special formations. Dances in these are flagged and shown as improper.
+Not supported yet: triplets and quadruplets, tempest and other four-facing-four variants, circle mixers, squares and
+their variants, grid contras and grid squares, zia, and other special formations. Dances in these are flagged and
+shown as improper.
 
 ## Dance editor (decisions)
 

@@ -343,6 +343,8 @@ ul.checks li.passed { color: var(--muted); }
             <option value="allImproper">All improper</option><option value="progressedImproper">Progressed improper</option>
             <option value="reverseImproper">Reverse progression improper</option>
             <option value="becketCW">Becket (clockwise)</option><option value="becketCCW">Becket (counter-clockwise)</option>
+            <option value="tripleProper">Triple minor (proper)</option><option value="tripleImproper">Triple minor (ones improper)</option>
+            <option value="fourFacingFour">Four facing four</option><option value="sicilian">Sicilian circle</option>
           </select>
           <label for="progression">Progression</label>
           <select id="progression"><option value="1">Single</option><option value="2">Double</option><option value="3">Triple</option></select>
@@ -598,7 +600,7 @@ const Contra = (() => {
   // Each figure takes its dancers' starting poses and returns one path function per dancer.
   // A path maps u (0 to 1 through the figure) to a pose { x, y, a }.
   const FIGURES = {
-    longLines: { group: 'four', plan(ps, call, ctx) {
+    longLines: { group: 'four', any: true, plan(ps, call, ctx) {
       return ps.map(d => {
         const dir = Math.sign(ctx.cx - d.x) || 1, face = dir > 0 ? 0 : Math.PI;
         return u => ({ x: d.x + dir * ctx.p.linesStep * bump(u), y: d.y, a: settle(d.a, face, u) });
@@ -677,7 +679,7 @@ const Contra = (() => {
       });
     } },
 
-    circle: { group: 'four', plan(ps, call, ctx) {
+    circle: { group: 'four', any: true, plan(ps, call, ctx) {
       const dir = call.dir === 'R' ? 1 : -1;               // circle left travels clockwise seen from above
       // Take hands: the ring draws in until neighbors in it are ringGap apart; everyone faces the center.
       return ringPlan(ps, dir * call.turns * TAU, ctx.p.ringGap / (2 * Math.sin(Math.PI / ps.length)), ang => ang + Math.PI);
@@ -745,7 +747,7 @@ const Contra = (() => {
       });
     } },
     // Turn single: each dancer loops around a small circle in place, turning all the way round.
-    turnSingle: { group: 'four', plan(ps, call, ctx) {
+    turnSingle: { group: 'four', any: true, plan(ps, call, ctx) {
       const spin = call.side === 'L' ? 1 : -1;
       return ps.map(d => {
         const f = d.a == null ? 0 : d.a, r = 0.15, cx = d.x + r * Math.cos(f), cy = d.y + r * Math.sin(f);
@@ -754,12 +756,12 @@ const Contra = (() => {
       });
     } },
     // Balance the wave: each steps forward and back the way they face (direction of a wave balance varies).
-    balanceWave: { group: 'four', plan(ps, call, ctx) {
+    balanceWave: { group: 'four', any: true, plan(ps, call, ctx) {
       return ps.map(d => { const f = d.a == null ? 0 : d.a;
         return u => { const s = ctx.p.balanceStep * bump(u); return { x: d.x + s * Math.cos(f), y: d.y + s * Math.sin(f), a: f }; }; });
     } },
     // Balance the ring: hands in a ring, step in toward the center and back.
-    balanceRing: { group: 'four', plan(ps, call, ctx) {
+    balanceRing: { group: 'four', any: true, plan(ps, call, ctx) {
       const c = centroid(ps);
       return ps.map(d => { const f = angleTo(d, c);
         return u => { const s = 0.2 * bump(u); return { x: d.x + s * Math.cos(f), y: d.y + s * Math.sin(f), a: settle(d.a, f, u, 0.25) }; }; });
@@ -767,7 +769,7 @@ const Contra = (() => {
 
     // ---------- Hands-four rotations ----------
     // Star: named hand in the middle, walk forward around. A right-hand star turns clockwise.
-    star: { group: 'four', plan(ps, call, ctx) {
+    star: { group: 'four', any: true, plan(ps, call, ctx) {
       const spin = call.side === 'L' ? 1 : -1;
       return ringPlan(ps, spin * call.turns * TAU, ctx.p.starRadius, ang => ang + spin * Math.PI / 2);
     } },
@@ -985,7 +987,7 @@ const Contra = (() => {
   const WHO = [
     [/\b(partners?)\b/, 'partners'], [/\b(neighbou?rs?)\b/, 'neighbors'],
     [/\b(women|ladies|robins?)\b/, 'robins'], [/\b(men|gents|larks?)\b/, 'larks'],
-    [/\b(ones|1s)\b/, 'ones'], [/\b(twos|2s)\b/, 'twos'],
+    [/\b(ones|1s)\b/, 'ones'], [/\b(twos|2s)\b/, 'twos'], [/\b(threes|3s)\b/, 'threes'],
   ];
   const WHO_LABEL = { partners: 'partners', neighbors: 'neighbors', robins: 'robins', larks: 'larks', ones: 'ones', twos: 'twos', all: 'everyone' };
 
@@ -1138,25 +1140,36 @@ const Contra = (() => {
   }
   const FIGURE_INFO = Object.fromEntries(Object.entries(FIGURES).map(([k, f]) => [k, { group: f.group }]));
 
-  // ---------- Formations (duple minor) ----------
-  // For longways formations, `ones`/`twos` give the side each couple's lark stands on (+1 = the +x side,
-  // which is on the caller's left looking down the hall) and `twosAt` whether the twos stand one place
-  // below (-1) or above (+1) the ones. Becket couples stand side by side on one side of the set, facing
-  // across; `becket` is the side the ones (who progress down) start on.
+  // ---------- Formations ----------
+  // kind 'longways' (duple minor, partners across the set): `ones`/`twos` give the side each couple's lark
+  //   stands on (+1 = the +x side, the caller's left looking down the hall); `twosAt` puts the twos one place
+  //   below (-1) or above (+1) the ones.
+  // kind 'becket': partners side by side on one side, couples facing across; `becket` is the ones' side.
+  // kind 'triple': hands-six (ones, then two couples below); `ones`/`twos` are the larks' sides for the
+  //   active couple and the others.
+  // kind 'f4f' (four facing four): lines of four across the hall; ones' lines face down, twos' lines face up.
+  // kind 'sicilian': couples facing couples around a circle; ones face counter-clockwise, twos clockwise.
   const FORMATIONS = {
-    improper: { name: 'Duple Minor - Improper', ones: 1, twos: -1, twosAt: -1 },
-    proper: { name: 'Duple Minor - Proper', ones: -1, twos: -1, twosAt: -1 },
-    indecent: { name: 'Duple Minor - Indecent', ones: -1, twos: 1, twosAt: -1 },
-    allImproper: { name: 'Duple Minor - All Improper', ones: 1, twos: 1, twosAt: -1 },
-    progressedImproper: { name: 'Duple Minor - Progressed Improper', ones: 1, twos: -1, twosAt: 1 },
-    reverseImproper: { name: 'Duple Minor - Reverse Progression Improper', ones: -1, twos: 1, twosAt: 1 },
-    becketCW: { name: 'Duple Minor - Becket CW', becket: 1 },
-    becketCCW: { name: 'Duple Minor - Becket CCW', becket: -1 },
+    improper: { kind: 'longways', name: 'Duple Minor - Improper', ones: 1, twos: -1, twosAt: -1 },
+    proper: { kind: 'longways', name: 'Duple Minor - Proper', ones: -1, twos: -1, twosAt: -1 },
+    indecent: { kind: 'longways', name: 'Duple Minor - Indecent', ones: -1, twos: 1, twosAt: -1 },
+    allImproper: { kind: 'longways', name: 'Duple Minor - All Improper', ones: 1, twos: 1, twosAt: -1 },
+    progressedImproper: { kind: 'longways', name: 'Duple Minor - Progressed Improper', ones: 1, twos: -1, twosAt: 1 },
+    reverseImproper: { kind: 'longways', name: 'Duple Minor - Reverse Progression Improper', ones: -1, twos: 1, twosAt: 1 },
+    becketCW: { kind: 'becket', name: 'Duple Minor - Becket CW', becket: 1 },
+    becketCCW: { kind: 'becket', name: 'Duple Minor - Becket CCW', becket: -1 },
+    tripleProper: { kind: 'triple', name: 'Triple Minor - Proper', ones: -1, twos: -1, twosAt: -1 },
+    tripleImproper: { kind: 'triple', name: 'Triple Minor - Ones Improper', ones: 1, twos: -1, twosAt: -1 },
+    fourFacingFour: { kind: 'f4f', name: 'Four Facing Four' },
+    sicilian: { kind: 'sicilian', name: 'Sicilian Circle' },
   };
   function formationOf(text) {
     const f = (text || '').toLowerCase();
+    if (/four.facing.four|4.fac(e|ing).4|four.face.four|mescolanza|double contra/.test(f)) return /tempest|sicilian/.test(f) ? null : 'fourFacingFour';
+    if (/sicilian/.test(f)) return 'sicilian';
+    if (/triple minor/.test(f)) return /improper|crossed/.test(f) ? 'tripleImproper' : 'tripleProper';
     // Other formations change how groups form and progress; they aren't supported yet.
-    if (/triple|triplet|quadruplet|facing|tempest|sicilian|circle|mixer|square|quadrille|hexagon|grid|zia|longways set|scatter|doublet|singlet|solo|horseshoe|tri-contra/.test(f)) return null;
+    if (/triple|triplet|quadruplet|facing|tempest|circle|mixer|square|quadrille|hexagon|grid|zia|longways set|scatter|doublet|singlet|solo|horseshoe|tri-contra/.test(f)) return null;
     if (/becket/.test(f)) return /ccw|counter/.test(f) ? 'becketCCW' : 'becketCW';
     if (/all improper/.test(f)) return 'allImproper';
     if (/reverse|progressed indecent/.test(f)) return 'reverseImproper';
@@ -1166,10 +1179,10 @@ const Contra = (() => {
     if (/proper/.test(f)) return 'proper';
     return f ? null : 'improper';
   }
-  // Where a couple stands in a role, centred on height y in a line centred on cx.
+  // Where a couple stands in a role (longways, triple or Becket), centred on height y in a line centred on cx.
   function couplePlaces(F, role, cx, y, P) {
     const half = P.partnerGap / 2, h = P.neighborGap / 2;
-    if (F.becket) {
+    if (F.kind === 'becket') {
       const side = role === 'ones' ? F.becket : -F.becket;   // facing in, the robin is on the lark's right
       return side > 0 ? { lark: { x: cx + half, y: y - h }, robin: { x: cx + half, y: y + h } }
         : { lark: { x: cx - half, y: y + h }, robin: { x: cx - half, y: y - h } };
@@ -1177,28 +1190,69 @@ const Contra = (() => {
     const s = F[role];
     return { lark: { x: cx + s * half, y }, robin: { x: cx - s * half, y } };
   }
+  // Group frames: figures are planned in a frame where the ones couple stands on the +x side facing -x
+  // toward the twos (like a Becket hands-four), then turned and moved back onto the floor.
+  const toLocal = (fr, p) => { const dx = p.x - fr.ox, dy = p.y - fr.oy, c = Math.cos(fr.th), s = Math.sin(fr.th);
+    return { x: dx * c + dy * s, y: -dx * s + dy * c, a: p.a == null ? p.a : p.a - fr.th }; };
+  const toWorld = (fr, p) => { const c = Math.cos(fr.th), s = Math.sin(fr.th);
+    return { ...p, x: fr.ox + p.x * c - p.y * s, y: fr.oy + p.x * s + p.y * c, a: p.a == null ? p.a : p.a + fr.th }; };
+  // The direction a couple faces, from where they stand: the robin is on the lark's right.
+  const coupleFacing = (l, r) => Math.atan2(r.y - l.y, r.x - l.x) + Math.PI / 2;
 
   // ---------- Building the floor ----------
-  // Couples stand in "places" along each line, one neighbor-gap apart; place 0 is at the top.
   function layoutFloor(lines, sets, P, F) {
-    const dancers = [], start = {}, couples = [], lineList = [], gap = P.neighborGap;
-    for (let k = 0; k < lines; k++) {
-      const cx = (k - (lines - 1) / 2) * P.lineSpacing, top = (sets - 0.5) * gap;
-      lineList.push({ cx, top });
-      for (let j = 0; j < sets; j++) {
-        const yc = ((sets - 1) / 2 - j) * 2 * gap;
-        for (const role of ['ones', 'twos']) {
-          // Longways: one couple per place (the twos below the ones unless the formation says above).
-          // Becket: both couples share the hands-four's two rows, one couple on each side.
-          const y = F.becket ? yc : yc + (role === 'ones' ? -1 : 1) * F.twosAt * gap / 2;
-          const num = 2 * j + (role === 'ones' ? 1 : 2), at = couplePlaces(F, role, cx, y, P);
-          const couple = { id: `${k}.${num}`, line: k, num, role, lark: `${k}.${num}L`, robin: `${k}.${num}R` };
-          couples.push(couple);
-          for (const r of ['lark', 'robin']) {
-            const id = couple[r], p = at[r];
-            dancers.push({ id, role: r, line: k, couple: couple.id, num, ones: role === 'ones' });
-            start[id] = { x: p.x, y: p.y, a: p.x > cx ? Math.PI : 0 };
+    const dancers = [], start = {}, couples = [], lineList = [], gap = P.neighborGap, half = P.partnerGap / 2;
+    const add = (k, num, role, lark, robin, extra = {}) => {
+      const couple = { id: `${k}.${num}`, line: k, num, role, lark: `${k}.${num}L`, robin: `${k}.${num}R`, waits: 0, ...extra };
+      couples.push(couple);
+      for (const [r, p] of [['lark', lark], ['robin', robin]]) {
+        dancers.push({ id: couple[r], role: r, line: k, couple: couple.id, num, ones: role === 'ones' });
+        start[couple[r]] = p;
+      }
+    };
+    const faceIn = (p, cx) => ({ ...p, a: p.x > cx ? Math.PI : 0 });
+    if (F.kind === 'sicilian') {
+      // Couples evenly around each circle, P.partnerGap apart; partners side by side across the ring.
+      const n = 2 * Math.max(2, sets), R = Math.max(1.6, (n * P.partnerGap) / TAU), dphi = TAU / n;
+      for (let k = 0; k < lines; k++) {
+        const cx = (k - (lines - 1) / 2) * (2 * R + 3);
+        lineList.push({ cx, top: R, R, dphi, center: { x: cx, y: 0 } });
+        for (let i = 0; i < n; i++) {
+          const phi = Math.PI / 2 + i * dphi, ones = i % 2 === 0, F0 = ones ? phi + Math.PI / 2 : phi - Math.PI / 2;
+          const out = { x: Math.cos(phi), y: Math.sin(phi) }, rightOut = ones;   // facing counter-clockwise, your right is outward
+          const at = r => ({ x: cx + out.x * (R + r), y: out.y * (R + r), a: F0 });
+          add(k, i + 1, ones ? 'ones' : 'twos', at(rightOut ? -gap / 2 : gap / 2), at(rightOut ? gap / 2 : -gap / 2));
+        }
+      }
+    } else if (F.kind === 'f4f') {
+      // Lines of four across the hall, P.partnerGap apart along it; ones' lines face down, twos' up.
+      for (let k = 0; k < lines; k++) {
+        const cx = (k - (lines - 1) / 2) * 5.5, rows = 2 * sets, top = ((rows - 1) / 2) * P.partnerGap;
+        lineList.push({ cx, top });
+        for (let row = 0; row < rows; row++) {
+          const y = top - row * P.partnerGap, ones = row % 2 === 0, a = ones ? -Math.PI / 2 : Math.PI / 2;
+          // Facing down, the robin's right-hand side is toward -x; facing up, toward +x.
+          const s = ones ? -1 : 1;
+          for (const [b, x0] of [[0, -1], [1, 1]]) {
+            const lx = cx + x0 * gap - s * gap / 2, rx = cx + x0 * gap + s * gap / 2;
+            add(k, row * 2 + b + 1, ones ? 'ones' : 'twos', { x: lx, y, a }, { x: rx, y, a });
           }
+        }
+      }
+    } else {
+      for (let k = 0; k < lines; k++) {
+        const cx = (k - (lines - 1) / 2) * P.lineSpacing, per = F.kind === 'triple' ? 3 : 2, top = ((sets * per - 1) / 2) * gap;
+        lineList.push({ cx, top });
+        for (let j = 0; j < sets; j++) {
+          const roles = F.kind === 'triple' ? ['ones', 'twos', 'twos'] : ['ones', 'twos'];
+          roles.forEach((role, i) => {
+            let y;
+            if (F.kind === 'becket') y = top - (2 * j + 0.5) * gap;
+            else if (F.kind === 'triple') y = top - (3 * j + i) * gap;
+            else y = top - (2 * j + (F.twosAt < 0 ? i : 1 - i)) * gap;
+            const at = couplePlaces(F, role, cx, y, P), num = per * j + i + 1;
+            add(k, num, role, faceIn(at.lark, cx), faceIn(at.robin, cx));
+          });
         }
       }
     }
@@ -1206,32 +1260,68 @@ const Contra = (() => {
     return { dancers, start, couples, lines: lineList };
   }
 
-  // Form this time through's hands-fours from where couples stand: each ones couple takes hands with the
-  // twos couple where the formation puts them (one place below or above, or across for Becket).
-  // Anyone left over is out at an end of the line.
+  // Form this time through's groups from where couples stand. Anyone left over is out (at an end).
   function formGroups(couples, lines, pose, P, F) {
     const groups = [], outs = [], used = new Set(), gap = P.neighborGap;
     const midOf = c => ({ x: (pose[c.lark].x + pose[c.robin].x) / 2, y: (pose[c.lark].y + pose[c.robin].y) / 2 });
-    const want = F.becket ? 0 : F.twosAt * gap;
-    for (const c of couples) {
-      if (c.role !== 'ones') continue;
-      const m = midOf(c);
-      const t = couples.find(q => q.role === 'twos' && q.line === c.line && !used.has(q) && Math.abs(midOf(q).y - m.y - want) < 0.3 * gap
-        && (!F.becket || Math.sign(midOf(q).x - lines[c.line].cx) !== Math.sign(m.x - lines[c.line].cx)));
-      if (!t) continue;
-      used.add(c); used.add(t);
-      const ids = { L1: c.lark, R1: c.robin, L2: t.lark, R2: t.robin };
-      const cy = Object.values(ids).reduce((s, id) => s + pose[id].y, 0) / 4;
-      groups.push({ line: c.line, cx: lines[c.line].cx, cy, ids, ones: c, twos: t });
+    const group = (members, frame, lineK) => {
+      const keys = ['1', '2', '3'];
+      const ids = {};
+      members.forEach((c, i) => { ids['L' + keys[i]] = c.lark; ids['R' + keys[i]] = c.robin; used.add(c); });
+      const pts = Object.values(ids).map(id => pose[id]);
+      groups.push({ line: lineK, cx: lines[lineK].cx, cy: pts.reduce((s, p) => s + p.y, 0) / pts.length, ids, members, ones: members[0], twos: members[1], frame });
+    };
+    if (F.kind === 'triple') {
+      // From the top of each line: each ones couple takes the next two couples below as twos and threes
+      // (just one at the bottom of the line, making a hands-four).
+      for (const L of lines.keys()) {
+        const line = couples.filter(c => c.line === L).sort((a, b) => midOf(b).y - midOf(a).y);
+        for (let i = 0; i < line.length; i++) {
+          const c = line[i];
+          if (c.role !== 'ones' || used.has(c)) continue;
+          const below = [];
+          for (let j = i + 1; j < line.length && below.length < 2; j++) {
+            const q = line[j];
+            if (q.role !== 'twos' || Math.abs(midOf(below.length ? below[below.length - 1] : c).y - midOf(q).y - gap) > 0.3 * gap) break;
+            below.push(q);
+          }
+          if (below.length) group([c, ...below], null, L);
+        }
+      }
+    } else if (F.kind === 'f4f' || F.kind === 'sicilian') {
+      // Each ones couple takes hands with the twos couple they face, a partner-gap in front of them.
+      for (const c of couples) {
+        if (c.role !== 'ones') continue;
+        const m = midOf(c), Fc = coupleFacing(pose[c.lark], pose[c.robin]), fx = Math.cos(Fc), fy = Math.sin(Fc);
+        // The nearest twos couple in front of them (around a circle, "in front" curves a little).
+        const ahead = couples.filter(q => q.role === 'twos' && q.line === c.line && !used.has(q)).map(q => ({ q, d: dist(midOf(q), m), dot: (midOf(q).x - m.x) * fx + (midOf(q).y - m.y) * fy }))
+          .filter(o => o.dot > 0.5 * o.d && o.d < 1.6 * P.partnerGap).sort((a, b) => a.d - b.d)[0];
+        const t = ahead && ahead.q;
+        if (!t) continue;
+        const mt = midOf(t), o = mid(m, mt);
+        group([c, t], { ox: o.x, oy: o.y, th: angleTo(mt, m) }, c.line);
+      }
+    } else {
+      const want = F.kind === 'becket' ? 0 : F.twosAt * gap;
+      for (const c of couples) {
+        if (c.role !== 'ones') continue;
+        const m = midOf(c);
+        const t = couples.find(q => q.role === 'twos' && q.line === c.line && !used.has(q) && Math.abs(midOf(q).y - m.y - want) < 0.3 * gap
+          && (F.kind !== 'becket' || Math.sign(midOf(q).x - lines[c.line].cx) !== Math.sign(m.x - lines[c.line].cx)));
+        if (t) group([c, t], null, c.line);
+      }
     }
     for (const c of couples) if (!used.has(c)) outs.push({ couple: c, cx: lines[c.line].cx, end: c.role === 'twos' ? 'top' : 'bottom' });
     return { groups, outs };
   }
 
   function whoSets(who, ids) {
-    const { L1, R1, L2, R2 } = ids;
+    const { L1, R1, L2, R2, L3, R3 } = ids;
     switch (who) {
-      case 'partners': return [[L1, R1], [L2, R2]];
+      case 'partners': return L3 ? [[L1, R1], [L2, R2], [L3, R3]] : [[L1, R1], [L2, R2]];
+      case 'threes': return L3 ? [[L3, R3]] : [];
+      case 'four': return [[L1, R1, L2, R2]];
+      case 'all': return [L3 ? [L1, R1, L2, R2, L3, R3] : [L1, R1, L2, R2]];
       case 'neighbors': return [[L1, R2], [L2, R1]];
       case 'larks': return [[L1, L2]];
       case 'robins': return [[R1, R2]];
@@ -1272,67 +1362,89 @@ const Contra = (() => {
     const perPass = flat.reduce((s, k) => s + k.call.beats, 0);
     const crossBeats = Math.min(8, perPass);
 
-    // Everything about one time through that doesn't change call to call: its hands-fours, who is
-    // out, and the out couples' cross-over paths (they cross at the start of their wait).
-    // Couples waiting out move, at the start of their wait, to where the role they come back in as stands:
-    // partners trade sides in improper-type formations, a Becket couple crosses the set together,
-    // and nobody moves in proper.
+    // Everything about one time through that doesn't change call to call: its groups, who is out, which
+    // way "in" is for each dancer, and the waiting couples' paths. A waiting couple moves at the start of its
+    // wait to where the role it comes back in as stands:
+    // - longways: partners trade sides (none in proper). Where the ones stand below the twos, the couple
+    //   also lets the next couple past, moving two places toward the set.
+    // - Becket: the couple crosses the set together, diagonally one place.
+    // - triple minor: a couple reaching the bottom as ones comes back in as a two after one wait; a couple
+    //   reaching the top waits out twice and comes back in as ones.
+    // - four facing four: a line at the end turns around (each couple turning as a couple) and comes back in.
     const startPass = (from, t0) => {
       const { groups, outs } = formGroups(couples, lines, from, P, F);
-      const cross = {};
+      const cross = {}, inFn = {};
+      for (const g of groups) if (g.frame) for (const id of Object.values(g.ids)) inFn[id] = q => (toLocal(g.frame, q).x > 0 ? Math.PI : 0) + g.frame.th;
       for (const o of outs) {
-        const { lark, robin } = o.couple, ctx = { p: P, cx: o.cx };
-        // In a Becket the couples across have moved on a place meanwhile, so a waiting couple crosses
-        // diagonally, one place in the direction it will now progress.
-        const next = o.couple.role === 'ones' ? 'twos' : 'ones';
-        const y = (from[lark].y + from[robin].y) / 2 + (F.becket ? (next === 'ones' ? -1 : 1) * P.neighborGap : 0);
-        const to = couplePlaces(F, next, o.cx, y, P);
+        const c = o.couple, { lark, robin } = c, ctx = { p: P, cx: o.cx };
+        o.flips = F.kind !== 'triple' || c.role === 'ones' || c.waits + 1 >= 2;
+        const next = o.flips ? (c.role === 'ones' ? 'twos' : 'ones') : c.role;
+        const y0 = (from[lark].y + from[robin].y) / 2;
+        let to;
+        if (F.kind === 'f4f') {
+          // Ones' lines face down and twos' up; the line turns around to face back into the set.
+          const facing = c.role === 'ones' ? -Math.PI / 2 : Math.PI / 2;
+          to = { lark: { x: from[robin].x, y: from[robin].y, a: facing + Math.PI }, robin: { x: from[lark].x, y: from[lark].y, a: facing + Math.PI } };
+          o.facing = facing;
+          for (const id of [lark, robin]) inFn[id] = () => null;
+        } else {
+          const shift = !o.flips ? 0 : F.kind === 'becket' ? (next === 'ones' ? -1 : 1) * P.neighborGap
+            : F.kind === 'longways' && F.twosAt > 0 ? (next === 'ones' ? -2 : 2) * P.neighborGap : 0;
+          to = couplePlaces(F, next, o.cx, y0 + shift, P);
+        }
         o.to = to;
         const swap = dist(from[lark], to.robin) < 0.15 && dist(from[robin], to.lark) < 0.15;
-        if (swap) {
+        const stays = dist(from[lark], to.lark) < 0.05 && dist(from[robin], to.robin) < 0.05;
+        if (stays) continue;
+        if (swap && F.kind !== 'f4f') {
           FIGURES.pullBy.plan([from[lark], from[robin]], { hand: 'R' }, ctx).forEach((f, i) => {
             const id = [lark, robin][i];
             cross[id] = turnAtEnd(f, faceInFrom(f(1), o.cx), crossBeats);
           });
         } else {
-          // Move as a couple: the point between them travels across while the pair turns together
+          // Move as a couple: the point between them travels while the pair turns together
           // counter-clockwise (like a courtesy turn), so they arrive side by side without crossing paths.
           const m0 = mid(from[lark], from[robin]), m1 = mid(to.lark, to.robin);
           const v0 = { x: from[lark].x - m0.x, y: from[lark].y - m0.y }, v1 = { x: to.lark.x - m1.x, y: to.lark.y - m1.y };
           let turn = wrap(Math.atan2(v1.y, v1.x) - Math.atan2(v0.y, v0.x));
           if (Math.abs(Math.abs(turn) - Math.PI) < 0.01) turn = Math.PI;
           for (const [id, sign] of [[lark, 1], [robin, -1]]) {
-            const d = from[id], f0 = d.a == null ? faceInFrom(d, o.cx) : d.a;
+            const d = from[id], f0 = o.facing != null ? o.facing : d.a == null ? faceInFrom(d, o.cx) : d.a;
             const f = u => { const s = mj(u), th = turn * s, m = { x: lerp(m0.x, m1.x, s), y: lerp(m0.y, m1.y, s) };
               const vx = sign * (v0.x * Math.cos(th) - v0.y * Math.sin(th)), vy = sign * (v0.x * Math.sin(th) + v0.y * Math.cos(th));
               return { x: m.x + vx, y: m.y + vy, a: f0 + th }; };
-            cross[id] = turnAtEnd(f, faceInFrom(to[id === lark ? 'lark' : 'robin'], o.cx), crossBeats);
+            cross[id] = F.kind === 'f4f' ? f : turnAtEnd(f, faceInFrom(to[id === lark ? 'lark' : 'robin'], o.cx), crossBeats);
           }
         }
       }
-      return { groups, outs, cross, t0 };
+      return { groups, outs, cross, inFn, t0 };
     };
 
     // Plan one call: a path for every dancer. `notes` collects anything odd about where dancers start.
     const planCall = (k, from, pass, t0) => {
       const { call, fig, who, partnerSwing } = flat[k], fns = {}, notes = new Set();
       if (fig) for (const g of pass.groups) {
-        for (const ids of whoSets(fig.group === 'four' ? 'all' : who, g.ids)) {
-          const ps = ids.map(id => from[id]);
-          if (fig.group === 'pair' && dist(ps[0], ps[1]) > 2.0) notes.add(`${WHO_LABEL[who]} start ${dist(ps[0], ps[1]).toFixed(1)} m apart`);
-          const keyOf = id => Object.keys(g.ids).find(k => g.ids[k] === id);
-          fig.plan(ps, call, { p: P, cx: g.cx, keys: ids.map(keyOf) }).forEach((f, i) => (fns[ids[i]] = f));
+        const size = Object.keys(g.ids).length;
+        // Figures for four use the ones and twos of a hands-six, unless they work for any number (circles, lines).
+        const groupWho = fig.group === 'four' ? (size > 4 && !fig.any ? 'four' : 'all') : who;
+        for (const ids of whoSets(groupWho, g.ids)) {
+          let ps = ids.map(id => from[id]);
+          if (fig.group === 'pair' && dist(ps[0], ps[1]) > 2.0) notes.add(`${WHO_LABEL[who] || who} start ${dist(ps[0], ps[1]).toFixed(1)} m apart`);
+          const keyOf = id => Object.keys(g.ids).find(key => g.ids[key] === id);
+          if (g.frame) ps = ps.map(p => toLocal(g.frame, p));
+          fig.plan(ps, call, { p: P, cx: g.frame ? 0 : g.cx, keys: ids.map(keyOf) })
+            .forEach((f, i) => (fns[ids[i]] = g.frame ? u => toWorld(g.frame, f(u)) : f));
         }
       }
       const local0 = t0 - pass.t0, local1 = local0 + call.beats;
       for (const o of pass.outs) {
         const { lark, robin } = o.couple;
-        if (local0 < crossBeats) {
+        if (local0 < crossBeats && pass.cross[lark]) {
           for (const id of [lark, robin]) {
             const f = pass.cross[id];
             fns[id] = u => f(clamp01(lerp(local0, local1, u) / crossBeats));
           }
-        } else if (partnerSwing) {
+        } else if (partnerSwing && (F.kind === 'longways' || F.kind === 'becket')) {
           const places = [from[lark], from[robin]];
           FIGURES.swing.plan(places, { ...call, places }, { p: P, cx: o.cx }).forEach((f, i) => (fns[[lark, robin][i]] = f));
         }
@@ -1341,11 +1453,40 @@ const Contra = (() => {
       return { fns, notes };
     };
 
+    // Where each dancer should be after a time through, if the dance progresses as it should.
+    const expectAfter = (pass, from) => {
+      const want = {}, n = dance.progression;
+      for (const g of pass.groups) {
+        g.members.forEach((c, i) => {
+          for (const id of [c.lark, c.robin]) {
+            const p = from[id];
+            if (F.kind === 'sicilian') {
+              const L = lines[c.line], th = (c.role === 'ones' ? 1 : -1) * n * L.dphi, dx = p.x - L.center.x, dy = p.y - L.center.y;
+              want[id] = { x: L.center.x + dx * Math.cos(th) - dy * Math.sin(th), y: L.center.y + dx * Math.sin(th) + dy * Math.cos(th), a: p.a + th };
+            } else {
+              const step = F.kind === 'f4f' ? P.partnerGap : P.neighborGap;
+              const dy = F.kind === 'triple' ? (i === 0 ? -n : i === 1 ? n : 0) : c.role === 'ones' ? -n : n;
+              want[id] = { x: p.x, y: p.y + dy * step, a: p.a };
+            }
+          }
+        });
+      }
+      for (const o of pass.outs) {
+        for (const r of ['lark', 'robin']) {
+          const e = o.to[r], id = o.couple[r];
+          want[id] = { x: e.x, y: e.y, a: e.a != null ? e.a : e.x > o.cx ? Math.PI : 0 };   // facing in across the set
+        }
+      }
+      return want;
+    };
+
     let t = 0, pass = startPass(pose, 0);
     for (let p = 0; p < passes; p++) {
       const passStart = t, before = pose;
       passInfo.push({
-        t0: t, groups: pass.groups.map(g => ({ line: g.line, cx: g.cx, cy: g.cy, ones: g.ones.id, twos: g.twos.id })),
+        t0: t, want: expectAfter(pass, pose),
+        groups: pass.groups.map(g => ({ line: g.line, cx: g.cx, cy: g.cy, ones: g.ones.id, twos: g.twos.id, members: g.members.map(c => c.id),
+          frame: g.frame, pts: Object.values(g.ids).map(id => ({ x: pose[id].x, y: pose[id].y })) })),
         outs: pass.outs.map(o => ({ couple: o.couple.id, end: o.end, to: o.to })),
       });
       let k = 0;
@@ -1361,7 +1502,11 @@ const Contra = (() => {
           const last = k === flat.length - 1;
           let nextPass = pass;
           if (last) {
-            for (const o of pass.outs) o.couple.role = o.couple.role === 'ones' ? 'twos' : 'ones';
+            for (const g of pass.groups) for (const c of g.members) c.waits = 0;
+            for (const o of pass.outs) {
+              o.couple.waits++;
+              if (o.flips) { o.couple.role = o.couple.role === 'ones' ? 'twos' : 'ones'; o.couple.waits = 0; }
+            }
             nextPass = startPass(ends, t1);
           }
           // A dance that doesn't loop (a single-move preview) ends without turning toward a next figure.
@@ -1369,7 +1514,8 @@ const Contra = (() => {
           const newPose = {};
           for (const d of dancers) {
             const f0 = fns[d.id], end = f0(1);
-            const target = !next ? null : !next[d.id].still ? next[d.id](0).a : faceInFrom(end, lineCx[d.id]);
+            const inward = nextPass.inFn[d.id] || (q => faceInFrom(q, lineCx[d.id]));
+            const target = !next ? null : !next[d.id].still ? next[d.id](0).a : inward(end);
             const f = fig || !f0.still ? turnAtEnd(f0, target, call.beats) : f0;
             segs[d.id].push({ t0, t1, f });
             newPose[d.id] = f(1);
@@ -1390,10 +1536,9 @@ const Contra = (() => {
           if (t - pt0 !== 16) warnings.push({ level: 'warn', text: `${part.name} is ${t - pt0} beats long; a part is usually 16.` });
         }
       }
-      passInfo[p].check = checkPass(passInfo[p], couples, before, pose, dance.progression, P);
+      passInfo[p].check = checkPass(passInfo[p].want, pose);
     }
     if (perPass !== 64) warnings.push({ level: 'warn', text: `The dance is ${perPass} beats long; a contra is usually 64.` });
-    if (F.twosAt > 0 && passes > 1) warnings.push({ level: 'warn', text: `In this formation the ones start below the twos, and how couples rejoin at the ends of the line isn't worked out yet: watch the middle of the set.` });
 
     const xs = Object.values(start).map(p => p.x), ys = Object.values(start).map(p => p.y);
     return {
@@ -1403,29 +1548,15 @@ const Contra = (() => {
     };
   }
 
-  // After each time through: in each hands-four, ones should be `n` places further down and twos `n` places
-  // further up, on the same side and facing the same way. Couples who were out should have crossed over.
-  function checkPass(info, couples, before, after, n, P) {
-    const byId = Object.fromEntries(couples.map(c => [c.id, c])), off = [];
+  // After each time through: is everyone where the progression should have put them, facing the same way
+  // (couples who were out: where their new role stands, facing in)?
+  function checkPass(want, after) {
+    const off = [];
     let good = 0, total = 0;
-    const same = (id, ex, ey, flip) => {
-      const s = before[id], f = after[id];
-      const ok = Math.abs(f.x - ex) < 0.15 && Math.abs(f.y - ey) < 0.15 && Math.abs(wrap(f.a - s.a - (flip ? Math.PI : 0))) < Math.PI / 6;
+    for (const [id, e] of Object.entries(want)) {
+      const f = after[id];
+      const ok = Math.abs(f.x - e.x) < 0.15 && Math.abs(f.y - e.y) < 0.15 && Math.abs(wrap(f.a - e.a)) < Math.PI / 6;
       total++; if (ok) good++; else off.push(id);
-    };
-    for (const g of info.groups) {
-      for (const [cid, dir] of [[g.ones, -1], [g.twos, 1]]) {
-        for (const id of [byId[cid].lark, byId[cid].robin]) same(id, before[id].x, before[id].y + dir * n * P.neighborGap, false);
-      }
-    }
-    for (const o of info.outs) {
-      const c = byId[o.couple];
-      for (const r of ['lark', 'robin']) {
-        const id = c[r], f = after[id], e = o.to[r], cx = (o.to.lark.x + o.to.robin.x) / 2;
-        const face = Math.abs(e.x - cx) < 0.1 ? f.a : e.x > cx ? Math.PI : 0;
-        const ok = Math.abs(f.x - e.x) < 0.15 && Math.abs(f.y - e.y) < 0.15 && Math.abs(wrap(f.a - face)) < Math.PI / 6;
-        total++; if (ok) good++; else off.push(id);
-      }
     }
     return { good, total, off };
   }
@@ -1570,9 +1701,9 @@ const icon = cat => `<svg class="cicon" viewBox="0 0 16 16" aria-hidden="true" f
 // ----- Moves and their modifiers -----
 // Each move has a base and up to three modifiers: who dances it, which side (hand, shoulder or direction),
 // and how far. `say` writes the move as a line of dance text; modifiers fill in {who}, {side} and {amt}.
-const PAIR = ['partners', 'neighbors', 'larks', 'robins', 'ones', 'twos'];
-const WHO_WORD = { partners: 'Partner', neighbors: 'Neighbor', larks: 'Larks', robins: 'Robins', ones: 'Ones', twos: 'Twos' };
-const WHO_LABEL = { partners: 'Partners', neighbors: 'Neighbors', larks: 'Larks', robins: 'Robins', ones: 'Ones', twos: 'Twos' };
+const PAIR = ['partners', 'neighbors', 'larks', 'robins', 'ones', 'twos', 'threes'];
+const WHO_WORD = { partners: 'Partner', neighbors: 'Neighbor', larks: 'Larks', robins: 'Robins', ones: 'Ones', twos: 'Twos', threes: 'Threes' };
+const WHO_LABEL = { partners: 'Partners', neighbors: 'Neighbors', larks: 'Larks', robins: 'Robins', ones: 'Ones', twos: 'Twos', threes: 'Threes' };
 // Sides are stored as 'L' or 'R'. `spin` is the way the move turns seen from above: 1 counter-clockwise, -1 clockwise.
 const SIDES = {
   hand: { words: ['left', 'right'], labels: ['Left hand', 'Right hand'], spin: [1, -1] },
@@ -2094,7 +2225,7 @@ function showChecks() {
   const c = state.c, ul = $('checks'), items = [];
   const pr = c.progression, word = pr.expected === 1 ? 'one place' : `${pr.expected} places`;
   const times = pr.passes === 1 ? 'after one time through' : `every time through (${pr.passes} times)`;
-  if (pr.firstBad < 0) items.push(['ok', `Progression works ${times}: dancing couples move ${word} (ones down, twos up), on their own side and facing their new neighbors; couples out at the ends cross over and come back in.`]);
+  if (pr.firstBad < 0) items.push(['ok', `Progression works ${times}: dancing couples move ${word} along and face their new neighbors; couples out at the ends come back in with their new role.`]);
   else items.push(['bad', `Progression breaks in time ${pr.firstBad + 1}: ${pr.total - pr.good} of ${pr.total} dancers don't end ${word} along, on their own side, facing across. Watch the end of that time through to see where they go.`]);
   // A move from the pool that isn't animated yet is a caution; text the simulator can't recognise is a problem.
   const notYet = w => w.call && moveOf(w.call);
@@ -2249,12 +2380,20 @@ function drawSetting(g, v, c, t, P) {
   g.fillStyle = tokens.muted; g.font = '500 12px "Instrument Sans", system-ui, sans-serif'; g.textAlign = 'right';
   for (const o of pass.outs) {
     const k = c.couples.find(q => q.id === o.couple), y = (Contra.poseAt(c, k.lark, t).y + Contra.poseAt(c, k.robin, t).y) / 2;
-    const cx = (c.start[k.lark].x + c.start[k.robin].x) / 2;  // partners start on opposite sides of their line
-    g.fillText('out', v.X(cx - P.partnerGap / 2 - 0.35), v.Y(y) + 4);
+    const x = Math.min(Contra.poseAt(c, k.lark, t).x, Contra.poseAt(c, k.robin, t).x);
+    g.fillText('out', v.X(x - 0.35), v.Y(y) + 4);
   }
   for (const grp of pass.groups) {
-    const x0 = v.X(grp.cx - P.partnerGap / 2 - 0.45), y0 = v.Y(grp.cy + P.neighborGap / 2 + 0.45);
-    g.strokeRect(x0, y0, (P.partnerGap + 0.9) * v.s, (P.neighborGap + 0.9) * v.s);
+    // Outline the group around where its dancers stood at the start of this time through, turned with the group.
+    const th = grp.frame ? grp.frame.th : 0, c0 = { x: grp.pts.reduce((s, q) => s + q.x, 0) / grp.pts.length, y: grp.pts.reduce((s, q) => s + q.y, 0) / grp.pts.length };
+    const loc = grp.pts.map(q => ({ x: (q.x - c0.x) * Math.cos(th) + (q.y - c0.y) * Math.sin(th), y: -(q.x - c0.x) * Math.sin(th) + (q.y - c0.y) * Math.cos(th) }));
+    const x0 = Math.min(...loc.map(q => q.x)) - 0.45, x1 = Math.max(...loc.map(q => q.x)) + 0.45, y0 = Math.min(...loc.map(q => q.y)) - 0.45, y1 = Math.max(...loc.map(q => q.y)) + 0.45;
+    g.beginPath();
+    [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].forEach(([lx, ly], i) => {
+      const wx = c0.x + lx * Math.cos(th) - ly * Math.sin(th), wy = c0.y + lx * Math.sin(th) + ly * Math.cos(th);
+      if (i) g.lineTo(v.X(wx), v.Y(wy)); else g.moveTo(v.X(wx), v.Y(wy));
+    });
+    g.closePath(); g.stroke();
   }
   g.setLineDash([]);
 }
