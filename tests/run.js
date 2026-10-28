@@ -243,6 +243,16 @@ check(made.every(k => { const r = Contra.parseDance('A1\n(8) ' + Contra.callText
   check(far.warnings.some(w => w.hands && /stretch/.test(w.text)), 'hands: a hand balance between couples two places apart is flagged as out of reach');
 }
 
+// English: in a proper set the chevron progresses the couples, and a neighbour is the dancer beside you.
+{
+  const ch = Contra.compile(Contra.parseDance('FormationBase: Duple Minor - Proper\nA1\n(8) First corners chevron'), { lines: 1, sets: 3, passes: 6 });
+  check(ch.progression.firstBad === -1, `chevron in a proper set: everyone progresses one place, proper, every time through (${ch.progression.good}/${ch.progression.total})`);
+  const nb = Contra.compile(Contra.parseDance('FormationBase: Duple Minor - Proper\nA1\n(8) Neighbour back to back'), { lines: 1, sets: 1, passes: 1 });
+  const moved = t => nb.dancers.filter(d => Math.abs(Contra.poseAt(nb, d.id, t).y - nb.start[d.id].y) > 0.2).map(d => d.id).sort().join();
+  check(moved(4) === '0.1L,0.1R,0.2L,0.2R' && nb.dancers.every(d => Math.abs(Contra.poseAt(nb, d.id, 4).x - nb.start[d.id].x) < 0.35),
+    'proper set: neighbours (beside you, same side) back to back along their own side');
+}
+
 // Corners in a three-couple set count from the middle couple.
 {
   const c = Contra.compile(Contra.parseDance('FormationBase: Triplet - Proper\nA1\n(8) First corners do-si-do\n(8) Second corners do-si-do'), { lines: 1, sets: 1, passes: 1 });

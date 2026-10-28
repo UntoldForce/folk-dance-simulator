@@ -164,7 +164,7 @@ Chosen with the Formation dropdown or the `FormationBase:` line.
 | Formation | Start | Ends of the set |
 |---|---|---|
 | Improper | Ones crossed (lark on the +x side, the caller's left looking down), twos proper; ones above twos | Wait one time, partners trade sides, switch role |
-| Proper | Every lark on the -x side | Wait one time, switch role (no crossing) |
+| Proper | Every lark on the -x side. "Neighbour" here means the dancer beside you on your side (the English meaning) | Wait one time, switch role (no crossing) |
 | Indecent | Twos crossed, ones proper | As improper |
 | All improper | Both couples crossed | As proper |
 | Progressed improper | Ones below twos (improper after trading with neighbors) | Wait one time and switch role (Ryan); the couple lets the next couple past, moving two places toward the set |
