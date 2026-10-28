@@ -303,6 +303,12 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
   .topright { top: 54px; right: auto; left: 12px; flex-direction: row; max-width: none; }
   .followHint { display: none; }
 }
+
+#poolSearch { width: 100%; padding: 7px 10px; border: 1px solid var(--rule); border-radius: 8px; font: 14px var(--font-body); background: var(--panel); color: var(--ink); }
+.pgroup.common { --cat: var(--accent); border-left-color: var(--accent); background: color-mix(in srgb, var(--accent) 6%, transparent); border-radius: 0 8px 8px 0; padding: 4px 8px 2px; }
+.pgroup .ghead { display: flex; align-items: center; gap: 6px; font: 600 13px var(--font-display); color: var(--accent); padding: 2px 0; }
+.pgroup.common .chip { border-left: 3px solid var(--cat); }
+.light small { font: 500 11px var(--font-body); margin-left: 3px; opacity: 0.9; }
 </style>
 </head><body><!--wrap-->
 
@@ -388,6 +394,7 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
         </div>
         <p class="hint">Click a move to set it up (who, side, how far), then add it to a part or drag it into the rows under the floor. Click a figure in the rows to change it.</p>
         <div class="builder" id="builder" hidden></div>
+        <input id="poolSearch" type="search" placeholder="Search moves: chain, hey, gypsy…" aria-label="Search moves" autocomplete="off">
         <div class="pool" id="pool"></div>
       </div>
       <div id="panelText" class="tabpanel" role="tabpanel" aria-labelledby="tabText" hidden>
@@ -3478,23 +3485,45 @@ function renderRows() {
   renderBuilder();
 }
 
+// The moves danced most often in contras, shown first so they're quick to find.
+const COMMON = ['Swing', 'Allemande', 'Do-si-do', 'Balance', 'Circle', 'Star', 'Long lines', 'Robins chain', 'Right and left through',
+  'Hey for four', 'Pull by', 'Box the gnat', 'Shoulder round', 'Petronella', 'Mad robin', 'California twirl', 'Courtesy turn', 'Down the hall', 'Slice'];
+// Does a move match what's typed in the search box? Every word must appear in its name (in either set of role
+// names), or the text must read as that move (so "gypsy" finds the shoulder round, "ladies chain" the robins chain).
+function moveMatches(def, query) {
+  const q = query.toLowerCase().replace(/\b(ladies|women|lady|woman)\b/g, 'robins').replace(/\b(gents|men|gent|man)\b/g, 'larks').replace(/\bgyps(y|ie)\b/g, 'shoulder round').trim();
+  if (!q) return true;
+  const hay = `${def.label} ${roleWords(def.label)} ${CATEGORIES.find(c => c.id === def.cat).name}`.toLowerCase();
+  return q.split(/\s+/).every(w => hay.includes(w)) || !!(def.re && (def.re.test(q) || def.re.test(query.toLowerCase())));
+}
 function renderPool() {
-  const pool = $('pool');
+  const pool = $('pool'), query = $('poolSearch').value.trim();
   pool.innerHTML = '';
-  for (const cat of CATEGORIES) {
-    const group = document.createElement('details'); group.className = `pgroup cat${cat.id}`; group.open = true;
-    const moves = POOL.filter(d => d.cat === cat.id);
-    group.innerHTML = `<summary>${icon(cat.id)}<span>${cat.name}</span><small>${moves.filter(d => d.fig).length}/${moves.length}</small></summary><div class="chips"></div>`;
-    for (const def of moves) {
-      const chip = document.createElement('button'); chip.type = 'button';
-      chip.className = 'chip' + (def.fig ? '' : ' soon');
-      chip.title = def.fig ? `${def.label}: drag into a part` : `${def.label}: not animated yet. You can still place it; dancers stand still during it.`;
-      chip.innerHTML = `${def.label}<small>${def.beats || Contra.TYPICAL_BEATS[def.fig] || 4}</small>`;
-      chip.addEventListener('pointerdown', e => startDrag(e, 'pool', { def, el: chip }));
-      group.querySelector('.chips').appendChild(chip);
-    }
+  const chipFor = (def, cls = '') => {
+    const chip = document.createElement('button'); chip.type = 'button';
+    chip.className = 'chip' + (def.fig ? '' : ' soon') + cls;
+    chip.title = def.fig ? `${roleWords(def.label)}: click to set it up, or drag into a part` : `${def.label}: not animated yet. You can still place it; dancers stand still during it.`;
+    chip.innerHTML = `${roleWords(def.label)}<small>${def.beats || Contra.TYPICAL_BEATS[def.fig] || 4}</small>`;
+    chip.addEventListener('pointerdown', e => startDrag(e, 'pool', { def, el: chip }));
+    return chip;
+  };
+  if (!query) {
+    const group = document.createElement('div'); group.className = 'pgroup common';
+    group.innerHTML = `<div class="ghead">★ <span>Most common</span></div><div class="chips"></div>`;
+    for (const label of COMMON) { const def = POOL.find(d => d.label === label); if (def) group.querySelector('.chips').appendChild(chipFor(def, ` cat${def.cat}`)); }
     pool.appendChild(group);
   }
+  let found = 0;
+  for (const cat of CATEGORIES) {
+    const all = POOL.filter(d => d.cat === cat.id), moves = all.filter(d => moveMatches(d, query));
+    if (!moves.length) continue;
+    found += moves.length;
+    const group = document.createElement('details'); group.className = `pgroup cat${cat.id}`; group.open = true;
+    group.innerHTML = `<summary>${icon(cat.id)}<span>${cat.name}</span><small>${query ? moves.length + ' found' : `${all.filter(d => d.fig).length}/${all.length}`}</small></summary><div class="chips"></div>`;
+    for (const def of moves) group.querySelector('.chips').appendChild(chipFor(def));
+    pool.appendChild(group);
+  }
+  if (query && !found) pool.innerHTML = `<p class="hint">No moves match “${query.replace(/[<&]/g, '')}”. Try one word, like “chain”, “hey” or “turn”.</p>`;
 }
 
 // ----- Dragging: move a figure, resize it by its right edge, or bring one in from the pool -----
@@ -3880,8 +3909,8 @@ function showChecks() {
   if (!c.warnings.some(w => /beats long/.test(w.text))) items.push(['ok', 'Every part is 16 beats and the dance is 64.']);
   if (!c.warnings.some(w => /musical phrase/.test(w.text))) items.push(['ok', '8- and 16-beat figures start on a phrase.']);
   const count = l => items.filter(i => i[0] === l).length;
-  $('lights').innerHTML = [['bad', 'problems'], ['warn', 'cautions'], ['ok', 'passed']]
-    .map(([l, name]) => `<span class="light ${l}${count(l) ? '' : ' zero'}" title="${count(l)} ${name}">${count(l)}</span>`).join('');
+  $('lights').innerHTML = [['bad', 'problem', 'problems'], ['warn', 'caution', 'cautions'], ['ok', 'passed', 'passed']]
+    .map(([l, one, many]) => `<span class="light ${l}${count(l) ? '' : ' zero'}">${count(l)}<small>${count(l) === 1 ? one : many}</small></span>`).join('');
   $('checksOpen').setAttribute('aria-label', `Checks: ${count('bad')} problems, ${count('warn')} cautions, ${count('ok')} passed`);
   $('checksOpen').title = `${count('bad')} problems, ${count('warn')} cautions, ${count('ok')} passed`;
   ul.innerHTML = '';
@@ -4248,6 +4277,7 @@ for (const [tab, panel, other, otherPanel] of [['tabEditor', 'panelEditor', 'tab
 if (recall('contra.tab') === 'tabText') $('tabText').onclick();
 $('exClose').onclick = () => $('explorer').close();
 $('refsOpen').onclick = () => $('refsDialog').showModal();
+$('poolSearch').addEventListener('input', renderPool);
 // Settings and checks open as side panels without covering the floor; a second click on their button closes them.
 for (const [open, dlg, close] of [['settingsOpen', 'settings', 'settingsClose'], ['checksOpen', 'checksDialog', 'checksClose']]) {
   $(open).onclick = () => { if ($(dlg).open) { $(dlg).close(); return; } for (const d of ['settings', 'checksDialog']) if ($(d).open) $(d).close(); $(dlg).show(); };

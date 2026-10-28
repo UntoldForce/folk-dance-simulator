@@ -90,6 +90,17 @@ const { chromium } = require('playwright');
   });
   check(bumps.out.length === 0, `no move has dancers bumping into each other (${bumps.n} versions checked)${bumps.out.length ? '\n      ' + bumps.out.join('\n      ') : ''}`);
 
+  // Move list: the most common moves first; search by name, by the other role names, or an older name.
+  check(await p.locator('.pgroup.common .chip').count() >= 15, 'the most common moves are shown first');
+  const found = async q => { await p.fill('#poolSearch', q); await p.waitForTimeout(50); return p.locator('#pool .chip').allTextContents(); };
+  const chain = await found('chain');
+  check(chain.length >= 3 && chain.every(x => /chain/i.test(x)), `searching "chain" shows only chains (${chain.length})`);
+  check((await found('gypsy')).some(x => /shoulder round/i.test(x)), 'searching "gypsy" finds the shoulder round');
+  check((await found('ladies chain')).some(x => /robins chain/i.test(x)), 'searching "ladies chain" finds the robins chain');
+  check((await found('zzz')).length === 0 && await p.locator('#pool .hint').isVisible(), 'a search with no matches says so');
+  await p.fill('#poolSearch', ''); await p.waitForTimeout(50);
+  check(/problems?/.test(await p.locator('#checksOpen').textContent()) && /passed/.test(await p.locator('#checksOpen').textContent()), 'the Checks counts are labelled');
+
   // Workspace: nothing scrolls on a computer screen; the timeline sits right under the floor.
   await p.click('#reset2'); await p.waitForTimeout(200);
   for (const [w, h] of [[1440, 900], [1366, 768], [1920, 1080]]) {

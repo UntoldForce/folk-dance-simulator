@@ -275,7 +275,11 @@ Like a video editor (Ryan's example: Adobe Premiere), nothing scrolls on a compu
   These replace the two old sliders.
 - **Settings panel:** the floor (lines, hands-fours, times through), music (tempo, music, melody), how it looks (trail,
   role names), how it's danced (swing rate). Settings are remembered on the device.
-- **The editor** (moves, builder, text) sits at the right and scrolls on its own.
+- **The editor** (moves, builder, text) sits at the right and scrolls on its own. The move list starts with a
+  **Most common** row (19 everyday contra moves, each edged in its category's colour), then the categories. A
+  **search box** filters the list by name; it understands the other role names ("ladies chain") and older names
+  ("gypsy").
+- **Checks** shows labelled counts in the top bar: problems, cautions, passed.
 - Narrow or short screens (under 1000 px wide or 560 px tall) fall back to a scrolling page: floor and timeline
   first, the editor below.
 
