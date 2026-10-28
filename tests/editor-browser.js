@@ -8,7 +8,7 @@ const { chromium } = require('playwright');
   const errs = []; p.on('pageerror', e => errs.push(e.message));
   await p.goto('file://' + path.join(__dirname, '..', 'index.html'));
   await p.evaluate(() => localStorage.clear()); await p.reload(); await p.waitForTimeout(300);
-  await p.locator('.editor').scrollIntoViewIfNeeded();
+  await p.locator('#rows').scrollIntoViewIfNeeded();
   const lines = re => p.evaluate(r => $('danceText').value.split('\n').filter(l => new RegExp(r, 'i').test(l)), re);
 
   // Resize: A1's long lines one bar shorter.
@@ -89,6 +89,70 @@ const { chromium } = require('playwright');
     return { out, n };
   });
   check(bumps.out.length === 0, `no move has dancers bumping into each other (${bumps.n} versions checked)${bumps.out.length ? '\n      ' + bumps.out.join('\n      ') : ''}`);
+
+  // Move list: the most common moves first; search by name, by the other role names, or an older name.
+  check(await p.locator('.pgroup.common .chip').count() >= 15, 'the most common moves are shown first');
+  const found = async q => { await p.fill('#poolSearch', q); await p.waitForTimeout(50); return p.locator('#pool .chip').allTextContents(); };
+  const chain = await found('chain');
+  check(chain.length >= 3 && chain.every(x => /chain/i.test(x)), `searching "chain" shows only chains (${chain.length})`);
+  check((await found('gypsy')).some(x => /shoulder round/i.test(x)), 'searching "gypsy" finds the shoulder round');
+  check((await found('ladies chain')).some(x => /robins chain/i.test(x)), 'searching "ladies chain" finds the robins chain');
+  check((await found('zzz')).length === 0 && await p.locator('#pool .hint').isVisible(), 'a search with no matches says so');
+  await p.fill('#poolSearch', ''); await p.waitForTimeout(50);
+  check(/problems?/.test(await p.locator('#checksOpen').textContent()) && /passed/.test(await p.locator('#checksOpen').textContent()), 'the Checks counts are labelled');
+
+  // Dances panel: the examples are the test dances in dances/; save and load your own; next end effect.
+  const fs = require('fs'), files = ['square', 'grid-square', 'circle-mixer', 'triplet', 'tempest'].map(n => fs.readFileSync(path.join(__dirname, '..', 'dances', `${n}-test.txt`), 'utf8').trimEnd());
+  check(await p.evaluate(f => EXAMPLES.slice(1).every((t, i) => t === f[i]), files), 'the example dances match the test dances in dances/');
+  await p.click('#dancesOpen'); await p.click('#exampleList .dlist:has-text("Simple Square")'); await p.waitForTimeout(150);
+  check(await p.evaluate(() => state.c.kind === 'square' && !$('dances').open), 'an example loads from the Dances panel');
+  await p.click('#dancesOpen'); await p.click('#saveDance'); await p.waitForTimeout(50);
+  check(await p.locator('#myList .dlist:has-text("Simple Square")').count() === 1, 'Save this dance adds it to My dances');
+  await p.click('#dancesClose');
+
+  // Journey chart: the timeline's second view; clicking a couple's line follows them and goes to that moment.
+  await p.click('#reset2'); await p.waitForTimeout(150);
+  await p.click('#viewJourney'); await p.waitForTimeout(150);
+  check(await p.locator('#journeyCanvas').isVisible() && !(await p.locator('#rows').isVisible()), 'Journey swaps the part rows for the couple journey chart');
+  const spot = await p.evaluate(() => { const d = journeyData(), v = journeyView($('journeyCanvas')), k = d.couples[2], [t, y] = k.pts[3]; return { id: k.id, x: v.r.left + v.X(t + 0.5 * state.c.perPass) , y: v.r.top + v.Y((y + k.pts[4][1]) / 2), t }; });
+  await p.mouse.click(spot.x, spot.y); await p.waitForTimeout(100);
+  check(await p.evaluate(s => state.highlight === s.id && passAt(state.t) === 3, spot), 'clicking a couple\'s line in the chart follows that couple and goes to that time through');
+  check(await p.evaluate(() => state.journeyChart.couples.some(k => k.pts.some(q => q[2]))), 'the chart knows when couples wait out at the ends');
+  await p.click('#viewParts'); await p.waitForTimeout(100);
+  check(await p.locator('#rows').isVisible(), 'Parts brings the rows back');
+
+  // Workspace: nothing scrolls on a computer screen; the timeline sits right under the floor.
+  await p.click('#reset2'); await p.waitForTimeout(200);
+  for (const [w, h] of [[1440, 900], [1366, 768], [1920, 1080]]) {
+    await p.setViewportSize({ width: w, height: h }); await p.waitForTimeout(150);
+    const lay = await p.evaluate(() => ({ sh: document.documentElement.scrollHeight, sw: document.documentElement.scrollWidth, fl: $('floor').getBoundingClientRect(), tl: document.querySelector('.timeline').getBoundingClientRect() }));
+    check(lay.sh <= h && lay.sw <= w && lay.tl.bottom <= h && lay.tl.top >= lay.fl.bottom && lay.tl.top - lay.fl.bottom < 20 && lay.fl.height > 250,
+      `${w}×${h}: no scrolling, timeline right under the floor (floor ${Math.round(lay.fl.height)} px tall)`);
+  }
+  await p.setViewportSize({ width: 1440, height: 1100 });
+  await p.click('#settingsOpen'); await p.waitForTimeout(100);
+  check(await p.locator('#settings').isVisible() && await p.locator('#lines').isVisible(), 'Settings opens a side panel with the floor settings');
+  await p.keyboard.press('Escape');
+  check(!(await p.locator('#settings').isVisible()), 'and Escape closes it');
+  await p.click('#checksOpen'); await p.waitForTimeout(100);
+  check(await p.locator('#checks li').count() > 0, 'Checks opens the list of checks');
+  await p.click('#checksClose');
+  const nPass = await p.locator('#passStrip .pbox').count();
+  await p.locator('#passStrip .pbox').nth(3).click(); await p.waitForTimeout(100);
+  check(nPass === 8 && await p.evaluate(() => passAt(state.t) === 3), 'the times-through strip has a box per time through, and clicking one goes there');
+  check(await p.locator('#passStrip .pbox .m').count() > 0, 'times when a couple waits out at an end are marked');
+  const rb = await p.locator('#ruler').boundingBox();
+  await p.mouse.move(rb.x + rb.width * 0.5, rb.y + 8); await p.mouse.down(); await p.mouse.move(rb.x + rb.width * 0.75, rb.y + 8, { steps: 4 }); await p.mouse.up();
+  const local = await p.evaluate(() => state.t - passAt(state.t) * state.c.perPass);
+  check(Math.abs(local % 16 - 12) < 0.3, `dragging along the beat ruler moves through the part (now beat ${(local % 16 + 1).toFixed(1)})`);
+  await p.evaluate(() => seek(0)); await p.click('#nextEnd');
+  check(await p.evaluate(() => { const p = passAt(state.t), k = q => state.c.passes[q].outs.map(o => o.couple).sort().join(); return p > 0 && state.t === p * state.c.perPass && k(p) !== k(p - 1); }), 'Next end effect jumps to a time through where who waits out changes');
+  await p.evaluate(() => { seek(3 * state.c.perPass); });
+  await p.evaluate(() => { $('loop').value = 'figure'; seek(3 * state.c.perPass + 9); setPlaying(true); });
+  await p.waitForTimeout(3500);
+  const inFig = await p.evaluate(() => { setPlaying(false); const k = state.c.calls[Contra.callIndexAt(state.c, state.t)]; return k.text; });
+  check(/allemande/i.test(inFig), `Loop: this figure keeps playing the same figure (${inFig})`);
+  await p.evaluate(() => { $('loop').value = 'all'; });
 
   // Settings: music starts off; hands toggle; references open in a pop-up.
   check(await p.evaluate(() => !$('music').checked && !$('melody').checked), 'music and melody start off');

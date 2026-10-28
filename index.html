@@ -78,8 +78,6 @@ h1 { font: 600 24px/1.1 var(--font-display); margin: 0; letter-spacing: -0.01em;
 .sw.lark { background: var(--lark); border-radius: 3px; }
 .sw.robin { background: var(--robin); border-radius: 50%; }
 
-.transport { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 10px 12px; }
-.transport .grp { display: flex; align-items: center; gap: 6px; }
 button, select, input[type=number] {
   font: 500 14px var(--font-body); color: var(--ink); background: var(--panel);
   border: 1px solid var(--rule); border-radius: 7px; padding: 6px 10px;
@@ -203,7 +201,6 @@ label.small { font-size: 13px; color: var(--muted); display: inline-flex; align-
 .exflag { font-size: 13px; color: var(--warn); border-left: 3px solid var(--warn); padding-left: 8px; }
 .tlhead { display: flex; align-items: center; gap: 8px; font: 600 13px var(--font-display); }
 .tlhead button { padding: 2px 8px; }
-#passLabel { min-width: 96px; text-align: center; font-variant-numeric: tabular-nums; }
 .tlhead { flex-wrap: wrap; }
 #whole { flex: 1 1 160px; min-width: 0; accent-color: var(--muted); }
 ol.journey { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 3px; font-size: 13.5px; font-variant-numeric: tabular-nums; }
@@ -225,11 +222,6 @@ ul.checks li.warn::before { color: var(--warn); }
 ul.checks li.bad::before { color: var(--bad); }
 ul.checks li.info::before { color: var(--warn); }
 ul.checks li.passed { color: var(--muted); }
-#checksBox summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; cursor: pointer; list-style: none; }
-#checksBox summary::-webkit-details-marker { display: none; }
-#checksBox summary h2::after { content: " ▸"; color: var(--muted); font-size: 12px; }
-#checksBox[open] summary h2::after { content: " ▾"; }
-#checksBox[open] summary { margin-bottom: 10px; }
 .lights { display: flex; gap: 6px; }
 .light { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 999px; font: 600 12.5px var(--font-body);
   border: 1px solid var(--rule); font-variant-numeric: tabular-nums; }
@@ -248,13 +240,100 @@ ul.checks li.passed { color: var(--muted); }
 .refs dt { font-weight: 600; }
 .refs dt a { color: var(--accent); }
 .refs dd { margin: -9px 0 4px; color: var(--ink); line-height: 1.45; }
+
+/* Workspace (October 2026): like a video editor, nothing scrolls on a computer screen. The floor fills the space
+   left over, the timeline is docked right under it, and the dance editor scrolls on its own at the right.
+   Settings and checks open as panels at the side, so the floor stays in view while you change things. */
+body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 100dvh; overflow: hidden; padding-block: 10px 12px; }
+.topbar { flex: none; margin-bottom: 10px; align-items: center; }
+.tbtools { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.pill { border-radius: 999px; padding: 4px 12px; font: 500 13px var(--font-body); display: inline-flex; align-items: center; gap: 8px; background: var(--panel); }
+.pill .lights { gap: 4px; }
+.pill .light { padding: 0 7px; font-size: 12px; }
+.app { flex: 1 1 auto; min-height: 0; align-items: stretch; grid-template-rows: minmax(0, 1fr); }
+.stage { min-height: 0; gap: 8px; }
+.floorwrap { flex: 1 1 auto; height: auto; min-height: 200px; }
+.side { position: static; max-height: none; height: 100%; overflow-y: auto; }
+.timeline { flex: none; padding: 8px 10px 10px; gap: 5px; }
+.tbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; margin-bottom: 2px; }
+.tbar .grp { display: flex; align-items: center; gap: 6px; }
+.tbar #back, .tbar #fwd { min-width: 36px; }
+.passes { display: flex; gap: 4px; overflow-x: auto; padding: 4px 0 5px 62px; align-items: center; scrollbar-width: thin; }
+.passes .plead { font: 600 12px var(--font-display); color: var(--muted); margin: 0 6px 0 -62px; width: 56px; flex: none; }
+.pbox { position: relative; flex: none; min-width: 32px; padding: 3px 7px; border-radius: 6px; font: 500 12px var(--font-mono); background: var(--bg); }
+.pbox.cur { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.pbox.bad { box-shadow: inset 0 0 0 2px var(--bad); }
+.pbox .m { position: absolute; left: 50%; width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; transform: translateX(-50%); }
+.pbox .m.top { top: -4px; border-bottom: 5px solid var(--warn); }
+.pbox .m.bot { bottom: -4px; border-top: 5px solid var(--warn); }
+.rulerrow .plabel { font: 500 11px var(--font-body); color: var(--muted); }
+.ruler { position: relative; height: 18px; cursor: ew-resize; touch-action: none; user-select: none; border-bottom: 1px solid var(--rule); }
+.ruler .tick { position: absolute; bottom: 0; width: 1px; height: 5px; background: var(--rule); }
+.ruler .tick.bar { height: 9px; background: var(--muted); }
+.ruler .num { position: absolute; top: 0; transform: translateX(-50%); font: 500 10px var(--font-mono); color: var(--muted); }
+.ruler .rhead { position: absolute; top: 0; bottom: -1px; width: 2px; margin-left: -1px; background: var(--accent); pointer-events: none; }
+.ruler .rhead::before { content: ""; position: absolute; top: 0; left: -5px; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 7px solid var(--accent); }
+.rows { display: flex; flex-direction: column; gap: 4px; }
+.ptrack { height: 38px; cursor: text; }
+.fblk { cursor: grab; }
+.fblk { padding: 2px 6px; line-height: 1.2; }
+.fblk .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; font-size: 12.5px; }
+.fblk .len { font-size: 10.5px; }
+.pcursor { top: -3px; bottom: -3px; z-index: 2; }
+.drawer { position: fixed; inset: 0 0 0 auto; margin: 0; height: 100%; max-height: 100%; width: min(380px, 94vw); border: 0; border-left: 1px solid var(--rule);
+  padding: 16px 18px; background: var(--panel); color: var(--ink); box-shadow: -8px 0 24px rgba(0, 0, 0, 0.12); overflow-y: auto; z-index: 30; }
+.drawer fieldset { border: 1px solid var(--rule); border-radius: 8px; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px 12px; align-items: center; margin: 0 0 12px; padding: 8px 12px 12px; }
+.drawer legend { font: 600 13px var(--font-display); padding: 0 4px; }
+.drawer label { font-size: 14px; }
+.drawer .check { grid-column: 1 / -1; }
+.drawer .inline { display: flex; align-items: center; gap: 8px; }
+.drawer .checks { margin: 0; }
+#refsOpen.pill { margin-left: 0; color: var(--accent); }
+/* Small screens can't hold it all: the page scrolls, floor and timeline first, the editor below. */
+@media (max-width: 1000px), (max-height: 560px) {
+  body { display: block; height: auto; overflow: visible; }
+  .side { height: auto; overflow: visible; }
+  .floorwrap { height: 52vh; flex: none; }
+}
+@media (max-width: 640px) {
+  .topbar h1 { font-size: 20px; }
+  .tbtools { margin-left: 0; width: 100%; flex-wrap: wrap; gap: 6px; }
+  .pill { padding: 3px 10px; }
+  .now .what { font-size: 15px; }
+  .topright { top: 54px; right: auto; left: 12px; flex-direction: row; max-width: none; }
+  .followHint { display: none; }
+}
+
+#poolSearch { width: 100%; padding: 7px 10px; border: 1px solid var(--rule); border-radius: 8px; font: 14px var(--font-body); background: var(--panel); color: var(--ink); }
+.pgroup.common { --cat: var(--accent); border-left-color: var(--accent); background: color-mix(in srgb, var(--accent) 6%, transparent); border-radius: 0 8px 8px 0; padding: 4px 8px 2px; }
+.pgroup .ghead { display: flex; align-items: center; gap: 6px; font: 600 13px var(--font-display); color: var(--accent); padding: 2px 0; }
+.pgroup.common .chip { border-left: 3px solid var(--cat); }
+.light small { font: 500 11px var(--font-body); margin-left: 3px; opacity: 0.9; }
+
+.drawer h3 { font: 600 13px var(--font-display); margin: 14px 0 6px; color: var(--muted); }
+.dlist { display: block; width: 100%; text-align: left; margin-bottom: 4px; padding: 6px 10px; border-radius: 6px; }
+.drow { display: flex; gap: 4px; } .drow .dlist { flex: 1; } .drow .dx { margin-bottom: 4px; padding: 0 9px; color: var(--muted); }
+#nextEnd { margin-left: auto; }
+
+.seg.viewseg { display: inline-flex; gap: 0; flex-wrap: nowrap; }
+.viewseg button { border-radius: 0; padding: 4px 11px; font-size: 13px; }
+.viewseg button:first-child { border-radius: 7px 0 0 7px; } .viewseg button:last-child { border-radius: 0 7px 7px 0; margin-left: -1px; }
+.viewseg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.journey { display: flex; flex-direction: column; gap: 2px; }
+#journeyCanvas { width: 100%; height: 178px; display: block; cursor: crosshair; touch-action: none; background: var(--bg); border-radius: 6px; }
+.journey .hint { font-size: 12px; }
 </style>
 </head><body><!--wrap-->
 
-<header>
+<header class="topbar">
   <h1>Contra Dance Simulator</h1>
   <span class="subtitle" id="danceTitle">Phase 1 preview</span>
-  <button type="button" id="refsOpen" class="linkish">References</button>
+  <span class="tbtools">
+    <button type="button" id="dancesOpen" class="pill" aria-haspopup="dialog">♫ Dances</button>
+    <button type="button" id="checksOpen" class="pill" aria-haspopup="dialog"><span>Checks</span><span class="lights" id="lights"></span></button>
+    <button type="button" id="settingsOpen" class="pill" aria-haspopup="dialog">⚙ Settings</button>
+    <button type="button" id="refsOpen" class="pill">References</button>
+  </span>
 </header>
 
 <div class="app">
@@ -275,72 +354,36 @@ ul.checks li.passed { color: var(--muted); }
       </div>
     </div>
 
-    <div class="card transport">
-      <div class="grp">
-        <button id="back" title="Back one beat (←)" aria-label="Back one beat">◀ beat</button>
-        <button id="play" class="primary" title="Play or pause (space)">Play</button>
-        <button id="fwd" title="Forward one beat (→)" aria-label="Forward one beat">beat ▶</button>
-      </div>
-      <input id="scrub" type="range" min="0" max="64" step="0.01" value="0" aria-label="Position in this time through">
-      <div class="grp">
-        <label class="small" for="tempo">Tempo</label>
-        <input id="tempo" type="number" min="40" max="200" step="1" value="120"><span class="small">beats/min</span>
-      </div>
-      <div class="grp">
-        <label class="small" for="speed">Playback</label>
-        <select id="speed"><option value="0.25">¼×</option><option value="0.5">½×</option><option value="1" selected>1×</option><option value="1.5">1½×</option><option value="2">2×</option></select>
-      </div>
-      <div class="grp">
-        <label class="small" for="lines">Lines</label>
-        <select id="lines"><option>1</option><option selected>2</option><option>3</option><option>4</option></select>
-        <label class="small" for="sets">Hands-fours</label>
-        <select id="sets"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option></select>
-        <label class="small" for="passes">Times through</label>
-        <input id="passes" type="number" min="1" max="30" step="1" value="8">
-      </div>
-      <div class="grp">
-        <label class="small" for="swingRate">Swings turn once every</label>
-        <select id="swingRate"><option value="2">2 beats</option><option value="3">3 beats</option><option value="4" selected>4 beats</option><option value="5">5 beats</option><option value="6">6 beats</option></select>
-      </div>
-      <div class="grp">
-        <label class="small" for="trailLen">Trail</label>
-        <input id="trailLen" type="range" min="0" max="8" step="0.5" value="3" aria-describedby="trailVal">
-        <span class="small" id="trailVal">3 beats</span>
-      </div>
-      <div class="grp">
-        <label class="small" for="roleNames">Role names</label>
-        <select id="roleNames"><option value="larks">Larks / Robins</option><option value="gents">Gents / Ladies</option><option value="men">Men / Women</option></select>
-        <span class="info" id="genderNote" hidden tabindex="0" role="note" aria-label="About gender-free calling">ⓘ<span class="tip">Many dance communities now call gender-free, with Larks and Robins, so anyone can dance either role. Give it a try!</span></span>
-      </div>
-      <label class="small"><input id="hands" type="checkbox" checked> Hands</label>
-      <label class="small"><input id="music" type="checkbox"> Music</label>
-      <label class="small"><input id="melody" type="checkbox"> Melody</label>
-    </div>
-
     <div class="card timeline">
-      <div class="tlhead">
-        <button id="prevPass" aria-label="Previous time through">◀</button>
-        <span id="passLabel">Time 1 of 8</span>
-        <button id="nextPass" aria-label="Next time through">▶</button>
-        <input id="whole" type="range" min="0" max="512" step="0.01" value="0" aria-label="Position in the whole run">
-        <label class="small"><input id="repeatPass" type="checkbox"> Repeat this time through</label>
-      </div>
-      <div class="editor">
-        <div class="editmain">
-          <div class="rows" id="rows"></div>
-          <p class="hint">Drag a figure to move it, drag its right edge to change its length (Shift for single beats), click it to change who dances it.</p>
+      <div class="tbar">
+        <div class="grp">
+          <button id="back" title="Back one beat (←)" aria-label="Back one beat">◀</button>
+          <button id="play" class="primary" title="Play or pause (space)">Play</button>
+          <button id="fwd" title="Forward one beat (→)" aria-label="Forward one beat">▶</button>
         </div>
+        <div class="grp">
+          <label class="small" for="speed">Speed</label>
+          <select id="speed"><option value="0.25">¼×</option><option value="0.5">½×</option><option value="1" selected>1×</option><option value="1.5">1½×</option><option value="2">2×</option></select>
+        </div>
+        <div class="grp">
+          <label class="small" for="loop">Loop</label>
+          <select id="loop"><option value="all">Whole dance</option><option value="pass">This time through</option><option value="part">This part</option><option value="figure">This figure</option></select>
+        </div>
+        <label class="small"><input id="hands" type="checkbox" checked> Hands</label>
+        <span class="seg viewseg" role="group" aria-label="Timeline view"><button type="button" id="viewParts" aria-pressed="true">Parts</button><button type="button" id="viewJourney" aria-pressed="false">Journey</button></span>
+        <button type="button" id="nextEnd" title="Go to the next time a couple goes out at an end or comes back in">Next end effect ⏭</button>
       </div>
+      <div class="passes" id="passStrip" role="group" aria-label="Times through"></div>
+      <div class="prow rulerrow"><div class="plabel small">Beat</div><div class="ruler" id="ruler" title="Drag along here to move through this part"></div></div>
+      <div class="journey" id="journeyView" hidden>
+        <canvas id="journeyCanvas" aria-label="Where each couple is along the line, through the whole dance. Click to go to that moment; click a line to follow that couple."></canvas>
+        <p class="hint" id="journeyNote"></p>
+      </div>
+      <div class="rows" id="rows" title="Drag a figure to move it, drag its right edge to change its length (Shift for single beats), click it to change who dances it. Click an empty space to jump there."></div>
     </div>
   </div>
 
   <aside class="side">
-    <section class="card">
-      <details id="checksBox">
-        <summary><h2>Checks</h2><span class="lights" id="lights"></span></summary>
-        <ul class="checks" id="checks"></ul>
-      </details>
-    </section>
     <section class="card dancecard">
       <div class="tabs" role="tablist" aria-label="Edit the dance">
         <button role="tab" id="tabEditor" aria-selected="true" aria-controls="panelEditor">Editor</button>
@@ -371,6 +414,7 @@ ul.checks li.passed { color: var(--muted); }
         </div>
         <p class="hint">Click a move to set it up (who, side, how far), then add it to a part or drag it into the rows under the floor. Click a figure in the rows to change it.</p>
         <div class="builder" id="builder" hidden></div>
+        <input id="poolSearch" type="search" placeholder="Search moves: chain, hey, gypsy…" aria-label="Search moves" autocomplete="off">
         <div class="pool" id="pool"></div>
       </div>
       <div id="panelText" class="tabpanel" role="tabpanel" aria-labelledby="tabText" hidden>
@@ -383,6 +427,42 @@ ul.checks li.passed { color: var(--muted); }
 </div>
 
 
+
+<dialog id="settings" class="drawer" aria-labelledby="settingsTitle">
+  <div class="refshead"><h2 id="settingsTitle">Settings</h2><button type="button" id="settingsClose" aria-label="Close">✕</button></div>
+  <fieldset><legend>The floor</legend>
+    <label for="lines">Lines</label><select id="lines"><option>1</option><option selected>2</option><option>3</option><option>4</option></select>
+    <label for="sets">Hands-fours in each line</label><select id="sets"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option></select>
+    <label for="passes">Times through</label><input id="passes" type="number" min="1" max="30" step="1" value="8">
+  </fieldset>
+  <fieldset><legend>Music</legend>
+    <label for="tempo">Tempo (beats a minute)</label><input id="tempo" type="number" min="40" max="200" step="1" value="120">
+    <label class="check"><input id="music" type="checkbox"> Music</label>
+    <label class="check"><input id="melody" type="checkbox"> Melody</label>
+  </fieldset>
+  <fieldset><legend>How it looks</legend>
+    <label for="trailLen">Trail</label><span class="inline"><input id="trailLen" type="range" min="0" max="8" step="0.5" value="3" aria-describedby="trailVal"><span class="small" id="trailVal">3 beats</span></span>
+    <label for="roleNames">Role names</label><span class="inline"><select id="roleNames"><option value="larks">Larks / Robins</option><option value="gents">Gents / Ladies</option><option value="men">Men / Women</option></select>
+      <span class="info" id="genderNote" hidden tabindex="0" role="note" aria-label="About gender-free calling">ⓘ<span class="tip">Many dance communities now call gender-free, with Larks and Robins, so anyone can dance either role. Give it a try!</span></span></span>
+  </fieldset>
+  <fieldset><legend>How it's danced</legend>
+    <label for="swingRate">Swings turn once every</label><select id="swingRate"><option value="2">2 beats</option><option value="3">3 beats</option><option value="4" selected>4 beats</option><option value="5">5 beats</option><option value="6">6 beats</option></select>
+  </fieldset>
+  <p class="hint">Settings are remembered on this device.</p>
+</dialog>
+
+<dialog id="dances" class="drawer" aria-labelledby="dancesTitle">
+  <div class="refshead"><h2 id="dancesTitle">Dances</h2><button type="button" id="dancesClose" aria-label="Close">✕</button></div>
+  <div class="row"><button type="button" id="saveDance" class="primary">Save this dance</button><span class="small" id="saveNote"></span></div>
+  <h3>My dances</h3><div id="myList"></div>
+  <h3>Examples</h3><div id="exampleList"></div>
+  <p class="hint">Saving keeps the dance under its title, on this device only. To share one, copy it from the Text tab.</p>
+</dialog>
+
+<dialog id="checksDialog" class="drawer" aria-labelledby="checksTitle">
+  <div class="refshead"><h2 id="checksTitle">Checks</h2><button type="button" id="checksClose" aria-label="Close">✕</button></div>
+  <ul class="checks" id="checks"></ul>
+</dialog>
 
 <dialog id="refsDialog" class="refs" aria-labelledby="refsTitle">
   <div class="refshead"><h2 id="refsTitle">References and thanks</h2><button type="button" id="refsClose" aria-label="Close">✕</button></div>
@@ -3126,6 +3206,7 @@ function store(key, val) { try { localStorage.setItem(key, val); } catch (e) { /
 function recall(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
 
 function build() {
+  state.buildId = (state.buildId || 0) + 1;   // the journey chart is worked out again for each new run
   const dance = Contra.parseDance($('danceText').value);
   ensureParts(dance);
   state.doc = dance;
@@ -3141,9 +3222,8 @@ function build() {
   $('sets').disabled = dance.formation === 'square' || kind === 'set';
   state.t = Math.min(state.t, state.c.total);
   $('danceTitle').textContent = dance.title ? `${dance.title}${dance.author ? ' by ' + dance.author : ''}` : 'Untitled dance';
-  $('scrub').max = state.c.perPass;
-  $('whole').max = state.c.total;
   renderRows();
+  renderPasses();
   showChecks(dance);
   if (state.highlight && !state.c.dancers.some(d => d.couple === state.highlight)) state.highlight = null;
   showJourney();
@@ -3382,6 +3462,149 @@ function newCall(def, m = def.d, beats) {
 }
 const history = { list: [], at: -1 };
 
+// Example dances in the Dances panel: "111", then one test dance for each other kind of formation (the same text as
+// the files in dances/, which the tests check).
+const EXAMPLES = [SAMPLE,
+`Simple Square (test dance)
+by the simulator
+
+Permission: test dance written for the simulator
+
+FormationBase:	Square
+Progression:	Single
+Figures:
+A1
+(8) Heads forward and back
+(8) Sides forward and back
+
+A2
+(8) Heads ladies chain
+(8) Heads ladies chain
+
+B1
+(8) Sides right and left through
+(8) Sides right and left through
+
+B2
+(8) Grand right and left
+(8) Promenade home`,
+`Grid Square (test dance)
+by the simulator
+
+Permission: test dance written for the simulator
+
+FormationBase:	Grid Square
+Progression:	Single
+Figures:
+A1
+(8) Circle left
+(8) Corner allemande left
+
+A2
+(8) Partner swing
+(8) Heads star right
+
+B1
+(8) Heads pass through to the next square
+(8) Sides pass through to the next square
+
+B2
+(16) Partner swing`,
+`Circle Mixer (test dance)
+by the simulator
+
+Permission: test dance written for the simulator
+
+FormationBase:	Circle Mixer
+Progression:	Single
+Figures:
+A1
+(8) Everyone forward and back
+(8) Circle left 1/4
+
+A2
+(8) Partner do-si-do
+(8) Corner allemande left 1
+
+B1
+(16) Corner swing
+
+B2
+(16) Promenade 1/4`,
+`Triplet (test dance)
+by the simulator
+
+Permission: test dance written for the simulator
+
+FormationBase:	Triplet - Proper
+Progression:	Single
+Figures:
+A1
+(8) In long lines, go forward and back
+(4) 1s cast off
+(4) 1s cast off with the 3s
+
+A2
+(8) 2s and 3s circle left
+(8) 2s and 3s circle right
+
+B1
+(8) 2s and 3s first corners do-si-do
+(8) 3s and 1s right and left through
+
+B2
+(8) 3s and 1s right and left through
+(8) Turn single right`,
+`Tempest (test dance)
+by the simulator
+
+Permission: test dance written for the simulator
+
+FormationBase:	Tempest
+Progression:	Single
+Figures:
+A1
+(8) Circle left
+(8) Circle right
+
+A2
+(8) Robins chain
+(8) Robins chain
+
+B1
+(8) Neighbor do-si-do
+(8) Neighbor swing
+
+B2
+(8) Partner balance
+(8) Partner swing`];
+// Your own dances, saved on this device by title.
+const savedDances = () => { try { return JSON.parse(recall('contra.saved') || '{}'); } catch (e) { return {}; } };
+function renderDances() {
+  const ex = $('exampleList'), mine = $('myList'), saved = savedDances(), titleOf = t => t.split('\n')[0].trim();
+  ex.innerHTML = ''; mine.innerHTML = '';
+  for (const text of EXAMPLES) {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'dlist'; b.textContent = titleOf(text).replace(/ \(test dance\)$/, '');
+    b.onclick = () => loadDance(text); ex.appendChild(b);
+  }
+  const names = Object.keys(saved).sort();
+  if (!names.length) mine.innerHTML = '<p class="hint">None yet. Saved dances stay on this device.</p>';
+  for (const name of names) {
+    const row = document.createElement('div'); row.className = 'drow';
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'dlist'; b.textContent = name; b.onclick = () => loadDance(saved[name]);
+    const x = document.createElement('button'); x.type = 'button'; x.className = 'dx'; x.textContent = '✕'; x.title = `Remove “${name}”`; x.setAttribute('aria-label', x.title);
+    x.onclick = () => { if (!confirm(`Remove “${name}” from your dances?`)) return; const all = savedDances(); delete all[name]; store('contra.saved', JSON.stringify(all)); renderDances(); };
+    row.append(b, x); mine.appendChild(row);
+  }
+}
+function loadDance(text) { $('danceText').value = text; state.sel = null; state.t = 0; build(); commit(true); $('dances').close(); }
+function saveDance() {
+  const text = $('danceText').value, title = (state.doc && state.doc.title) || 'Untitled dance', all = savedDances();
+  if (all[title] && all[title] !== text && !confirm(`Replace your saved “${title}”?`)) return;
+  all[title] = text; store('contra.saved', JSON.stringify(all)); renderDances();
+  $('saveNote').textContent = `Saved “${title}”.`;
+}
+
 // Every edit goes through here: write the dance out as text, remember it for undo, and re-run it.
 function commit(record = true) {
   const text = Contra.serialize(state.doc);
@@ -3428,28 +3651,51 @@ function renderRows() {
       at += k.beats;
     });
     const cur = document.createElement('div'); cur.className = 'pcursor'; cur.hidden = true; track.appendChild(cur);
+    track.addEventListener('pointerdown', e => { if (e.target === track && !drag) scrubFrom(e, pi); });
     row.append(label, track); rows.appendChild(row);
   });
   renderBuilder();
 }
 
+// The moves danced most often in contras, shown first so they're quick to find.
+const COMMON = ['Swing', 'Allemande', 'Do-si-do', 'Balance', 'Circle', 'Star', 'Long lines', 'Robins chain', 'Right and left through',
+  'Hey for four', 'Pull by', 'Box the gnat', 'Shoulder round', 'Petronella', 'Mad robin', 'California twirl', 'Courtesy turn', 'Down the hall', 'Slice'];
+// Does a move match what's typed in the search box? Every word must appear in its name (in either set of role
+// names), or the text must read as that move (so "gypsy" finds the shoulder round, "ladies chain" the robins chain).
+function moveMatches(def, query) {
+  const q = query.toLowerCase().replace(/\b(ladies|women|lady|woman)\b/g, 'robins').replace(/\b(gents|men|gent|man)\b/g, 'larks').replace(/\bgyps(y|ie)\b/g, 'shoulder round').trim();
+  if (!q) return true;
+  const hay = `${def.label} ${roleWords(def.label)} ${CATEGORIES.find(c => c.id === def.cat).name}`.toLowerCase();
+  return q.split(/\s+/).every(w => hay.includes(w)) || !!(def.re && (def.re.test(q) || def.re.test(query.toLowerCase())));
+}
 function renderPool() {
-  const pool = $('pool');
+  const pool = $('pool'), query = $('poolSearch').value.trim();
   pool.innerHTML = '';
-  for (const cat of CATEGORIES) {
-    const group = document.createElement('details'); group.className = `pgroup cat${cat.id}`; group.open = true;
-    const moves = POOL.filter(d => d.cat === cat.id);
-    group.innerHTML = `<summary>${icon(cat.id)}<span>${cat.name}</span><small>${moves.filter(d => d.fig).length}/${moves.length}</small></summary><div class="chips"></div>`;
-    for (const def of moves) {
-      const chip = document.createElement('button'); chip.type = 'button';
-      chip.className = 'chip' + (def.fig ? '' : ' soon');
-      chip.title = def.fig ? `${def.label}: drag into a part` : `${def.label}: not animated yet. You can still place it; dancers stand still during it.`;
-      chip.innerHTML = `${def.label}<small>${def.beats || Contra.TYPICAL_BEATS[def.fig] || 4}</small>`;
-      chip.addEventListener('pointerdown', e => startDrag(e, 'pool', { def, el: chip }));
-      group.querySelector('.chips').appendChild(chip);
-    }
+  const chipFor = (def, cls = '') => {
+    const chip = document.createElement('button'); chip.type = 'button';
+    chip.className = 'chip' + (def.fig ? '' : ' soon') + cls;
+    chip.title = def.fig ? `${roleWords(def.label)}: click to set it up, or drag into a part` : `${def.label}: not animated yet. You can still place it; dancers stand still during it.`;
+    chip.innerHTML = `${roleWords(def.label)}<small>${def.beats || Contra.TYPICAL_BEATS[def.fig] || 4}</small>`;
+    chip.addEventListener('pointerdown', e => startDrag(e, 'pool', { def, el: chip }));
+    return chip;
+  };
+  if (!query) {
+    const group = document.createElement('div'); group.className = 'pgroup common';
+    group.innerHTML = `<div class="ghead">★ <span>Most common</span></div><div class="chips"></div>`;
+    for (const label of COMMON) { const def = POOL.find(d => d.label === label); if (def) group.querySelector('.chips').appendChild(chipFor(def, ` cat${def.cat}`)); }
     pool.appendChild(group);
   }
+  let found = 0;
+  for (const cat of CATEGORIES) {
+    const all = POOL.filter(d => d.cat === cat.id), moves = all.filter(d => moveMatches(d, query));
+    if (!moves.length) continue;
+    found += moves.length;
+    const group = document.createElement('details'); group.className = `pgroup cat${cat.id}`; group.open = true;
+    group.innerHTML = `<summary>${icon(cat.id)}<span>${cat.name}</span><small>${query ? moves.length + ' found' : `${all.filter(d => d.fig).length}/${all.length}`}</small></summary><div class="chips"></div>`;
+    for (const def of moves) group.querySelector('.chips').appendChild(chipFor(def));
+    pool.appendChild(group);
+  }
+  if (query && !found) pool.innerHTML = `<p class="hint">No moves match “${query.replace(/[<&]/g, '')}”. Try one word, like “chain”, “hey” or “turn”.</p>`;
 }
 
 // ----- Dragging: move a figure, resize it by its right edge, or bring one in from the pool -----
@@ -3835,14 +4081,164 @@ function showChecks() {
   if (!c.warnings.some(w => /beats long/.test(w.text))) items.push(['ok', 'Every part is 16 beats and the dance is 64.']);
   if (!c.warnings.some(w => /musical phrase/.test(w.text))) items.push(['ok', '8- and 16-beat figures start on a phrase.']);
   const count = l => items.filter(i => i[0] === l).length;
-  $('lights').innerHTML = [['bad', 'problems'], ['warn', 'cautions'], ['ok', 'passed']]
-    .map(([l, name]) => `<span class="light ${l}${count(l) ? '' : ' zero'}" title="${count(l)} ${name}">${count(l)}</span>`).join('');
-  $('checksBox').querySelector('summary').setAttribute('aria-label', `Checks: ${count('bad')} problems, ${count('warn')} cautions, ${count('ok')} passed`);
+  $('lights').innerHTML = [['bad', 'problem', 'problems'], ['warn', 'caution', 'cautions'], ['ok', 'passed', 'passed']]
+    .map(([l, one, many]) => `<span class="light ${l}${count(l) ? '' : ' zero'}">${count(l)}<small>${count(l) === 1 ? one : many}</small></span>`).join('');
+  $('checksOpen').setAttribute('aria-label', `Checks: ${count('bad')} problems, ${count('warn')} cautions, ${count('ok')} passed`);
+  $('checksOpen').title = `${count('bad')} problems, ${count('warn')} cautions, ${count('ok')} passed`;
   ul.innerHTML = '';
   const order = { bad: 0, warn: 1, ok: 2 };
   for (const [level, text] of items.sort((a, b) => order[a[0]] - order[b[0]])) {
     const li = document.createElement('li'); li.className = level === 'ok' ? 'ok passed' : level; li.textContent = roleWords(text); ul.appendChild(li);
   }
+}
+
+// The stretch playback loops over (see the Loop menu), in beats from the start of the run.
+function loopSpan() {
+  const c = state.c, mode = $('loop').value, t = Math.min(state.t, c.total - 1e-6), p = passAt(t), base = p * c.perPass;
+  if (mode === 'pass') return [base, base + c.perPass];
+  if (mode === 'part') { const local = t - base, part = c.parts.find(q => local >= q.t0 && local < q.t1) || c.parts[0]; return part ? [base + part.t0, base + part.t1] : [0, c.total]; }
+  if (mode === 'figure' && c.calls.length) { const k = c.calls[Contra.callIndexAt(c, t)]; return [k.t0, k.t1]; }
+  return [0, c.total];
+}
+
+// The times-through strip: one box per time through. Click one to go there. A mark above a box means a couple
+// waits out at the top that time, below means at the bottom; a red edge means the progression went wrong.
+function renderPasses() {
+  const c = state.c, strip = $('passStrip');
+  strip.innerHTML = '<span class="plead">Times through</span>';
+  c.passes.forEach((ps, p) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'pbox';
+    const top = ps.outs.filter(o => o.end === 'top'), bot = ps.outs.filter(o => o.end !== 'top'), bad = ps.check && ps.check.good < ps.check.total;
+    if (bad) b.classList.add('bad');
+    const coupleList = os => os.map(o => (c.couples.find(q => q.id === o.couple) || {}).num).filter(Boolean).join(', ');
+    const notes = [top.length ? `couple ${coupleList(top)} waits out at the top` : '', bot.length ? `couple ${coupleList(bot)} waits out at the bottom` : '', bad ? 'the progression goes wrong' : ''].filter(Boolean);
+    b.title = `Time ${p + 1}${notes.length ? ': ' + notes.join('; ') : ''}`;
+    b.innerHTML = `${p + 1}${top.length ? '<span class="m top"></span>' : ''}${bot.length ? '<span class="m bot"></span>' : ''}`;
+    b.onclick = () => { const cur = passAt(state.t); seek(p * c.perPass + (state.t - cur * c.perPass)); };
+    strip.appendChild(b);
+  });
+  state.passShown = null;
+}
+
+// ---------- Couple journey chart ----------
+// Where every couple in a line is along it (top of the hall at the top), through the whole run: couples
+// zigzag down and up the set, wait out at the ends, and come back in. The couple you follow is drawn bold.
+// Click anywhere to go to that moment; click near a couple's line to follow them.
+const JOURNEY_KINDS = new Set(['longways', 'becket', 'triple', 'set', 'tempest', 'f4f']);
+function journeyData() {
+  const c = state.c, hl = c.couples.find(k => k.id === state.highlight), line = hl ? hl.line : 0, key = `${state.buildId}|${line}`;
+  if (state.journeyChart && state.journeyChart.key === key) return state.journeyChart;
+  // One point per time through (where the couple stands as it starts), so the figures' own movement doesn't
+  // blur the picture of how couples travel along the set; and whether they are out at an end that time.
+  const couples = c.couples.filter(k => k.line === line).map(k => {
+    const pts = [];
+    for (let p = 0; p <= c.passes.length; p++) {
+      const t = Math.min(p * c.perPass, c.total), a = Contra.poseAt(c, k.lark, t), b = Contra.poseAt(c, k.robin, t);
+      pts.push([t, (a.y + b.y) / 2, p < c.passes.length && c.passes[p].outs.some(o => o.couple === k.id)]);
+    }
+    return { id: k.id, num: k.num, pts };
+  });
+  const ys = couples.flatMap(k => k.pts.map(p => p[1]));
+  return (state.journeyChart = { key, line, couples, yMin: Math.min(...ys), yMax: Math.max(...ys), lines: new Set(c.couples.map(k => k.line)).size });
+}
+function journeyView(cv) {
+  const r = cv.getBoundingClientRect(), d = state.journeyChart, pad = { l: 46, r: 30, t: 8, b: 16 };
+  const X = t => pad.l + (t / state.c.total) * (r.width - pad.l - pad.r), Y = y => pad.t + ((d.yMax - y) / Math.max(0.5, d.yMax - d.yMin)) * (r.height - pad.t - pad.b);
+  return { r, pad, X, Y, T: x => ((x - pad.l) / (r.width - pad.l - pad.r)) * state.c.total };
+}
+function drawJourney() {
+  const cv = $('journeyCanvas'), c = state.c, dpr = window.devicePixelRatio || 1, r = cv.getBoundingClientRect();
+  if (!r.width) return;
+  if (cv.width !== Math.round(r.width * dpr) || cv.height !== Math.round(r.height * dpr)) { cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr); }
+  const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, r.width, r.height);
+  if (!JOURNEY_KINDS.has(c.kind) || !c.calls.length) {
+    $('journeyNote').textContent = !c.calls.length ? 'Add some figures to see where couples go.' : 'The journey chart is for dances in lines (contras, English sets, Becket, triple minor, tempest, four facing four). In squares and circles, follow a couple by clicking a dancer on the floor.';
+    return;
+  }
+  const d = journeyData(), v = journeyView(cv);
+  $('journeyNote').textContent = `${d.lines > 1 ? `Line ${d.line + 1}. ` : ''}Each line is a couple, at the start of each time through; a hollow dot means waiting out at an end. ${state.highlight ? 'Click another line to follow that couple' : 'Click a line to follow that couple'}, or anywhere to go to that moment.`;
+  g.font = '500 10.5px "JetBrains Mono", monospace'; g.textBaseline = 'middle';
+  // Times through: alternating bands, numbered along the bottom.
+  c.passes.forEach((p, i) => {
+    const x0 = v.X(i * c.perPass), x1 = v.X((i + 1) * c.perPass);
+    if (i % 2) { g.fillStyle = tokens.rule; g.globalAlpha = 0.25; g.fillRect(x0, v.pad.t, x1 - x0, r.height - v.pad.t - v.pad.b); g.globalAlpha = 1; }
+    g.fillStyle = tokens.muted; g.textAlign = 'center'; g.fillText(String(i + 1), (x0 + x1) / 2, r.height - 7);
+  });
+  g.textAlign = 'right'; g.fillStyle = tokens.muted; g.font = '600 11px "Instrument Sans", system-ui, sans-serif';
+  g.fillText('Top', v.pad.l - 8, v.Y(d.yMax)); g.fillText('Bottom', v.pad.l - 8, v.Y(d.yMin));
+  // Every couple's path; the one being followed last, bold, in the accent colour.
+  const order = d.couples.slice().sort((a, b) => (a.id === state.highlight) - (b.id === state.highlight));
+  g.lineJoin = 'round';
+  for (const k of order) {
+    const on = k.id === state.highlight;
+    g.strokeStyle = on ? tokens.accent : tokens.muted; g.globalAlpha = on ? 1 : state.highlight ? 0.3 : 0.6; g.lineWidth = on ? 3 : 1.4;
+    g.beginPath(); k.pts.forEach(([t, y], i) => (i ? g.lineTo(v.X(t), v.Y(y)) : g.moveTo(v.X(t), v.Y(y)))); g.stroke();
+    // A dot where each time through starts: hollow while the couple waits out at an end.
+    for (const [t, y, out] of k.pts.slice(0, -1)) {
+      g.beginPath(); g.arc(v.X(t), v.Y(y), on ? 4 : 2.6, 0, Math.PI * 2);
+      if (out) { g.fillStyle = tokens.panel; g.fill(); g.lineWidth = on ? 2 : 1.2; g.stroke(); g.lineWidth = on ? 3 : 1.4; } else { g.fillStyle = g.strokeStyle; g.fill(); }
+    }
+    const last = k.pts[k.pts.length - 1];
+    g.fillStyle = on ? tokens.accent : tokens.muted; g.textAlign = 'left'; g.font = `${on ? 700 : 500} 11px "JetBrains Mono", monospace`;
+    g.fillText(String(k.num), v.X(last[0]) + 6, v.Y(last[1]));
+  }
+  g.globalAlpha = 1;
+  // The playhead, and where the followed couple is now.
+  const x = v.X(Math.min(state.t, c.total));
+  g.strokeStyle = tokens.accent; g.lineWidth = 2; g.beginPath(); g.moveTo(x, v.pad.t - 4); g.lineTo(x, r.height - v.pad.b); g.stroke();
+  const hk = d.couples.find(k => k.id === state.highlight);
+  if (hk) { const ck = c.couples.find(k => k.id === hk.id), y = (Contra.poseAt(c, ck.lark, state.t).y + Contra.poseAt(c, ck.robin, state.t).y) / 2;
+    g.fillStyle = tokens.accent; g.beginPath(); g.arc(x, v.Y(y), 5, 0, Math.PI * 2); g.fill(); }
+}
+function journeyPointer(e) {
+  const cv = $('journeyCanvas'), c = state.c;
+  if (!JOURNEY_KINDS.has(c.kind) || !c.calls.length) return;
+  e.preventDefault(); setPlaying(false);
+  const d = journeyData(), v = journeyView(cv), at = ev => { const x = ev.clientX - v.r.left; return Math.max(0, Math.min(c.total - 1e-3, v.T(x))); };
+  // A click near a couple's line follows that couple (the nearest within 10 px).
+  const t0 = at(e), y = e.clientY - v.r.top;
+  let best = null, bd = 10;
+  for (const k of d.couples) {
+    const i = Math.min(k.pts.length - 2, Math.floor(t0 / c.perPass)), [ta, ya] = k.pts[i], [tb, yb] = k.pts[i + 1], yy = ya + (yb - ya) * ((t0 - ta) / Math.max(1e-6, tb - ta));
+    const dd = Math.abs(v.Y(yy) - y); if (dd < bd) { bd = dd; best = k; }
+  }
+  if (best && best.id !== state.highlight) { state.highlight = best.id; showJourney(); }
+  seek(t0);
+  const go = ev => seek(at(ev)), up = () => { window.removeEventListener('pointermove', go); window.removeEventListener('pointerup', up); };
+  window.addEventListener('pointermove', go); window.addEventListener('pointerup', up);
+}
+function setTimelineView(journey) {
+  $('journeyView').hidden = !journey; $('rows').hidden = journey; document.querySelector('.rulerrow').hidden = journey;
+  $('viewParts').setAttribute('aria-pressed', String(!journey)); $('viewJourney').setAttribute('aria-pressed', String(journey));
+  store('contra.view', journey ? 'journey' : 'parts');
+}
+
+// The beat ruler over the part rows (16 beats, or the length of a longer part), with the playhead on it.
+function renderRuler(scale) {
+  const r = $('ruler');
+  state.rulerScale = scale;
+  r.innerHTML = '';
+  for (let b = 0; b <= scale; b++) {
+    const t = document.createElement('i'); t.className = 'tick' + (b % 2 ? '' : ' bar'); t.style.left = `${(b / scale) * 100}%`; r.appendChild(t);
+    if (b < scale && b % 2 === 0) { const n = document.createElement('span'); n.className = 'num'; n.textContent = b + 1; n.style.left = `${((b + 0.5) / scale) * 100}%`; r.appendChild(n); }
+  }
+  const h = document.createElement('i'); h.className = 'rhead'; r.appendChild(h);
+}
+// Scrubbing: drag along the ruler (in the current part) or press on an empty stretch of a part's row (that part).
+function scrubFrom(e, partIndex) {
+  const c = state.c, el = e.currentTarget;
+  if (!c.calls.length) return;
+  e.preventDefault(); setPlaying(false);
+  const go = ev => {
+    const p = passAt(state.t), base = p * c.perPass, local = state.t - base;
+    const part = partIndex != null ? c.parts[partIndex] : c.parts.find(q => local >= q.t0 && local < q.t1) || c.parts[c.parts.length - 1];
+    if (!part) return;
+    const r = el.getBoundingClientRect(), scale = Math.max(16, part.t1 - part.t0), beat = Math.max(0, Math.min(part.t1 - part.t0 - 1e-3, ((ev.clientX - r.left) / r.width) * scale));
+    seek(base + part.t0 + beat);
+  };
+  go(e);
+  const up = () => { window.removeEventListener('pointermove', go); window.removeEventListener('pointerup', up); };
+  window.addEventListener('pointermove', go); window.addEventListener('pointerup', up);
 }
 
 function seek(t) { state.t = Math.max(0, Math.min(state.c.total, t)); music.next = null; }
@@ -3942,8 +4338,9 @@ function readTokens() {
 const rgb = hex => { const h = hex.replace('#', ''); return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)); };
 
 // How metres on the floor map to pixels on a canvas: fit `b` (bounds in metres) with some room around it.
-function view(cv = canvas, b = state.c.bounds, pad = { l: 1.0, r: 1.0, t: 1.6, b: 0.9 }) {
+function view(cv = canvas, b = state.c.bounds, pad) {
   const r = cv.getBoundingClientRect();
+  pad = pad || { l: 1.0, r: 1.0, t: r.width < 640 ? 2.4 : 1.6, b: 0.9 };   // more room at the top on a phone, for the key
   const W = b.maxX - b.minX + pad.l + pad.r, H = b.maxY - b.minY + pad.t + pad.b;
   const s = Math.min(r.width / W, r.height / H);
   const ox = (r.width - W * s) / 2 + pad.l * s, oy = (r.height - H * s) / 2 + pad.t * s;
@@ -3952,6 +4349,7 @@ function view(cv = canvas, b = state.c.bounds, pad = { l: 1.0, r: 1.0, t: 1.6, b
 
 function draw() {
   drawFloor(canvas, state.c, state.t, { trail: +$('trailLen').value, focus: state.highlight, full: true, hands: $('hands').checked });
+  if (!$('journeyView').hidden) drawJourney();
 }
 
 // Draw a compiled dance at time t on a canvas. `full` adds the band label, hands-four outlines and "out"
@@ -3970,7 +4368,7 @@ function drawFloor(cv, c, t, o) {
 
 function drawSetting(g, v, c, t, P) {
   g.fillStyle = tokens.muted; g.font = '600 11px "Instrument Sans", system-ui, sans-serif'; g.textAlign = 'center';
-  g.fillText('BAND  ↑  TOP OF THE HALL', v.w / 2, Math.max(62, v.Y(c.bounds.maxY + 1.3)));
+  g.fillText('BAND  ↑  TOP OF THE HALL', v.w / 2, Math.max(v.w < 640 ? 88 : 62, v.Y(c.bounds.maxY + 1.3)));   // on a phone the key sits above it
 
   // This time through's hands-fours, and a label beside couples waiting out at the ends.
   const pass = c.passes[passAt(t)];
@@ -4087,7 +4485,8 @@ function updateReadout() {
   const passText = c.passes.length > 1 ? `Time ${p + 1} of ${c.passes.length} · ` : '';
   $('where').textContent = `${passText}${part.name} · beat ${beat} of ${part.t1 - part.t0} · bar ${Math.ceil(beat / 2)}`;
   $('what').textContent = roleWords(k.text);
-  $('passLabel').textContent = `Time ${p + 1} of ${c.passes.length}`;
+  $('passStrip').querySelectorAll('.pbox').forEach((el, j) => { el.classList.toggle('cur', j === p); if (j === p && state.passShown !== p) el.scrollIntoView({ block: 'nearest', inline: 'nearest' }); });
+  state.passShown = p;
   for (const el of $('rows').querySelectorAll('.fblk')) el.classList.toggle('active', +el.dataset.flat === i - p * perPassCalls);
   const pi = c.parts.indexOf(part);
   $('rows').querySelectorAll('.prow').forEach((row, j) => row.classList.toggle('current', j === pi));
@@ -4096,20 +4495,20 @@ function updateReadout() {
     cur.hidden = j !== pi;
     if (j === pi) cur.style.left = `${((local - part.t0) / Math.max(16, beats)) * 100}%`;
   });
+  const scale = Math.max(16, part.t1 - part.t0);
+  if (state.rulerScale !== scale) renderRuler(scale);
+  $('ruler').querySelector('.rhead').style.left = `${((local - part.t0) / scale) * 100}%`;
   for (const el of $('journey').children) el.classList.toggle('current', +el.dataset.p === p);
   if (state.followPass !== p) { state.followPass = p; updateFollowNow(); }
-  $('scrub').value = local;
-  $('whole').value = state.t;
 }
 
 function frame(now) {
   if (state.playing && state.c.total > 0) {  // an empty dance has nothing to play
     const dt = Math.min(0.1, (now - state.last) / 1000), bps = (+$('tempo').value || 120) / 60 * +$('speed').value;
-    const p0 = passAt(state.t);
+    const [from, to] = loopSpan();
     state.t += dt * bps;
-    // With "Repeat this time through" on, playback loops within the current time through.
-    const wrapAt = $('repeatPass').checked ? (p0 + 1) * state.c.perPass : state.c.total, back = $('repeatPass').checked ? state.c.perPass : state.c.total;
-    if (state.t >= wrapAt) { state.t -= back; if (music.next !== null) music.next -= back; }
+    // Playback loops over the chosen stretch: the whole dance, this time through, this part or this figure.
+    if (state.t >= to) { state.t -= to - from; if (music.next !== null) music.next -= to - from; }
     if ($('music').checked) scheduleMusic(bps);
   }
   const pdt = Math.min(0.1, (now - (state.plast || now)) / 1000), pbps = (+$('tempo').value || 120) / 60;
@@ -4125,8 +4524,6 @@ function frame(now) {
 $('play').onclick = () => setPlaying(!state.playing);
 $('back').onclick = () => { setPlaying(false); seek(Math.ceil(state.t - 1e-6) - 1); };
 $('fwd').onclick = () => { setPlaying(false); seek(Math.floor(state.t + 1e-6) + 1); };
-$('scrub').oninput = e => { setPlaying(false); seek(passAt(state.t) * state.c.perPass + Math.min(+e.target.value, state.c.perPass - 1e-6)); };
-$('whole').oninput = e => { setPlaying(false); seek(+e.target.value); };
 $('music').onchange = () => { music.next = null; if ($('music').checked && state.playing) startAudio(); };
 $('run').onclick = () => { state.sel = null; build(); commit(true); };
 $('reset').onclick = $('reset2').onclick = () => { $('danceText').value = SAMPLE; state.sel = null; build(); commit(true); };
@@ -4146,6 +4543,35 @@ for (const [tab, panel, other, otherPanel] of [['tabEditor', 'panelEditor', 'tab
 if (recall('contra.tab') === 'tabText') $('tabText').onclick();
 $('exClose').onclick = () => $('explorer').close();
 $('refsOpen').onclick = () => $('refsDialog').showModal();
+$('poolSearch').addEventListener('input', renderPool);
+// Settings and checks open as side panels without covering the floor; a second click on their button closes them.
+const DRAWERS = ['settings', 'checksDialog', 'dances'];
+for (const [open, dlg, close] of [['settingsOpen', 'settings', 'settingsClose'], ['checksOpen', 'checksDialog', 'checksClose'], ['dancesOpen', 'dances', 'dancesClose']]) {
+  $(open).onclick = () => { if ($(dlg).open) { $(dlg).close(); return; } for (const d of DRAWERS) if ($(d).open) $(d).close(); if (dlg === 'dances') { renderDances(); $('saveNote').textContent = ''; } $(dlg).show(); };
+  $(close).onclick = () => $(dlg).close();
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') for (const d of DRAWERS) if ($(d).open) $(d).close(); });
+$('saveDance').onclick = saveDance;
+$('viewParts').onclick = () => setTimelineView(false);
+$('viewJourney').onclick = () => setTimelineView(true);
+$('journeyCanvas').addEventListener('pointerdown', journeyPointer);
+if (recall('contra.view') === 'journey') setTimelineView(true);
+// Jump to the start of the next time through where a couple goes out at an end or comes back in.
+$('nextEnd').onclick = () => {
+  const c = state.c, p = passAt(state.t), key = q => c.passes[q].outs.map(o => o.couple).sort().join();
+  for (let q = p + 1; q < c.passes.length; q++) if (key(q) !== key(q - 1)) { seek(q * c.perPass); return; }
+  for (let q = 1; q <= p; q++) if (key(q) !== key(q - 1)) { seek(q * c.perPass); return; }   // round to the first one
+};
+$('ruler').addEventListener('pointerdown', e => scrubFrom(e, null));
+// On a phone, start with one line so the dancers aren't tiny (until a choice is remembered).
+if (window.innerWidth < 640 && recall('contra.set.lines') == null) $('lines').value = '1';
+// Remember the settings on this device.
+for (const id of ['lines', 'sets', 'passes', 'tempo', 'swingRate', 'trailLen', 'speed', 'loop', 'music', 'melody']) {
+  const el = $(id), v = recall('contra.set.' + id), box = el.type === 'checkbox';
+  if (v != null) { if (box) el.checked = v === 'on'; else el.value = v; }
+  el.addEventListener('change', () => store('contra.set.' + id, box ? (el.checked ? 'on' : 'off') : el.value));
+}
+$('trailLen').dispatchEvent(new Event('input'));
 $('refsClose').onclick = () => $('refsDialog').close();
 $('refsDialog').onclick = e => { if (e.target === $('refsDialog')) $('refsDialog').close(); };   // a click on the backdrop closes it
 $('explorer').addEventListener('click', e => { if (e.target === $('explorer')) $('explorer').close(); });
@@ -4166,8 +4592,6 @@ $('redo').onclick = () => undoTo(history.at + 1);
 for (const id of ['lines', 'sets', 'swingRate', 'passes']) $(id).onchange = build;
 $('hands').onchange = () => { store('contra.hands', $('hands').checked ? 'on' : 'off'); draw(); };
 if (recall('contra.hands') === 'off') $('hands').checked = false;
-$('prevPass').onclick = () => { const c = state.c, p = passAt(state.t); seek(Math.max(0, p - 1) * c.perPass + (state.t - p * c.perPass)); };
-$('nextPass').onclick = () => { const c = state.c, p = passAt(state.t); seek(Math.min(c.passes.length - 1, p + 1) * c.perPass + (state.t - p * c.perPass)); };
 $('trailLen').oninput = e => { const b = +e.target.value; $('trailVal').textContent = b ? `${b} beat${b === 1 ? '' : 's'}` : 'Off'; };
 document.addEventListener('keydown', e => {
   if (/^(TEXTAREA|INPUT|SELECT)$/.test(e.target.tagName) || $('explorer').open) return;
