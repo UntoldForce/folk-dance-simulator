@@ -130,6 +130,10 @@ const { chromium } = require('playwright');
   await p.click('.fpick[data-key="improper"]'); await p.waitForTimeout(100);
   await p.click('#formPicksBox summary');
 
+  // Floor outlines: worked out once per time through; "out" labels stay put (they don't follow the couple about).
+  check(await p.evaluate(() => { const c = state.c, a = settingShapes(c, 1); return a.some(s => s.corners) && a.some(s => s.label === 'out') && settingShapes(c, 1) === a; }),
+    'hands-four outlines and "out" labels are fixed for each time through');
+
   // Workspace: nothing scrolls on a computer screen; the timeline sits right under the floor.
   await p.click('#reset2'); await p.waitForTimeout(200);
   for (const [w, h] of [[1440, 900], [1366, 768], [1920, 1080]]) {

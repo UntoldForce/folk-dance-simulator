@@ -4391,28 +4391,44 @@ function drawSetting(g, v, c, t, P) {
   g.fillStyle = tokens.muted; g.font = '600 11px "Instrument Sans", system-ui, sans-serif'; g.textAlign = 'center';
   g.fillText('BAND  ↑  TOP OF THE HALL', v.w / 2, Math.max(v.w < 640 ? 88 : 62, v.Y(c.bounds.maxY + 1.3)));   // on a phone the key sits above it
 
-  // This time through's hands-fours, and a label beside couples waiting out at the ends.
-  const pass = c.passes[passAt(t)];
+  // This time through's hands-fours, and a label beside couples waiting out at the ends. When the groups change at
+  // the start of a time through, the old outlines fade out as the new ones fade in, over SETTING_FADE beats;
+  // an outline that stays put just stays. The "out" label sits still beside where the couple waits.
+  const p = passAt(t), local = t - c.passes[p].t0, u = Math.min(1, Math.max(0, local / SETTING_FADE)), fadeIn = p > 0 ? u * u * (3 - 2 * u) : 1;
+  const now = settingShapes(c, p), before = fadeIn < 1 ? settingShapes(c, p - 1) : [];
+  const keys = new Set(now.map(s => s.key)), oldKeys = new Set(before.map(s => s.key));
+  const draws = [...now.map(s => [s, oldKeys.has(s.key) ? 1 : fadeIn]), ...before.filter(s => !keys.has(s.key)).map(s => [s, 1 - fadeIn])];
   g.strokeStyle = tokens.rule; g.lineWidth = 1; g.setLineDash([4, 4]);
   g.fillStyle = tokens.muted; g.font = '500 12px "Instrument Sans", system-ui, sans-serif'; g.textAlign = 'right';
-  for (const o of pass.outs) {
-    const k = c.couples.find(q => q.id === o.couple), y = (Contra.poseAt(c, k.lark, t).y + Contra.poseAt(c, k.robin, t).y) / 2;
-    const x = Math.min(Contra.poseAt(c, k.lark, t).x, Contra.poseAt(c, k.robin, t).x);
-    g.fillText('out', v.X(x - 0.35), v.Y(y) + 4);
+  for (const [sh, alpha] of draws) {
+    if (alpha <= 0.01) continue;
+    g.globalAlpha = alpha;
+    if (sh.label) { g.fillText(sh.label, v.X(sh.x), v.Y(sh.y) + 4); continue; }
+    g.beginPath(); sh.corners.forEach(([wx, wy], i) => (i ? g.lineTo(v.X(wx), v.Y(wy)) : g.moveTo(v.X(wx), v.Y(wy)))); g.closePath(); g.stroke();
   }
+  g.globalAlpha = 1;
+  g.setLineDash([]);
+}
+const SETTING_FADE = 2;
+// The outlines of a time through's hands-fours, and its "out" labels, worked out once per compiled dance.
+function settingShapes(c, p) {
+  c.shapes = c.shapes || [];
+  if (c.shapes[p]) return c.shapes[p];
+  const pass = c.passes[p], out = [], r2 = x => Math.round(x * 50) / 50;
   for (const grp of pass.groups) {
     // Outline the group around where its dancers stood at the start of this time through, turned with the group.
     const th = grp.frame ? grp.frame.th : 0, c0 = { x: grp.pts.reduce((s, q) => s + q.x, 0) / grp.pts.length, y: grp.pts.reduce((s, q) => s + q.y, 0) / grp.pts.length };
     const loc = grp.pts.map(q => ({ x: (q.x - c0.x) * Math.cos(th) + (q.y - c0.y) * Math.sin(th), y: -(q.x - c0.x) * Math.sin(th) + (q.y - c0.y) * Math.cos(th) }));
     const x0 = Math.min(...loc.map(q => q.x)) - 0.45, x1 = Math.max(...loc.map(q => q.x)) + 0.45, y0 = Math.min(...loc.map(q => q.y)) - 0.45, y1 = Math.max(...loc.map(q => q.y)) + 0.45;
-    g.beginPath();
-    [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].forEach(([lx, ly], i) => {
-      const wx = c0.x + lx * Math.cos(th) - ly * Math.sin(th), wy = c0.y + lx * Math.sin(th) + ly * Math.cos(th);
-      if (i) g.lineTo(v.X(wx), v.Y(wy)); else g.moveTo(v.X(wx), v.Y(wy));
-    });
-    g.closePath(); g.stroke();
+    const corners = [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].map(([lx, ly]) => [c0.x + lx * Math.cos(th) - ly * Math.sin(th), c0.y + lx * Math.sin(th) + ly * Math.cos(th)]);
+    out.push({ key: corners.map(([x, y]) => `${r2(x)},${r2(y)}`).join(' '), corners });
   }
-  g.setLineDash([]);
+  // "out" beside each waiting couple, where they stand at the start of the time through (so it doesn't follow them about).
+  for (const o of pass.outs) {
+    const k = c.couples.find(q => q.id === o.couple), a = Contra.poseAt(c, k.lark, pass.t0), b = Contra.poseAt(c, k.robin, pass.t0);
+    out.push({ key: `out ${o.couple}`, label: 'out', x: Math.min(a.x, b.x) - 0.35, y: (a.y + b.y) / 2 });
+  }
+  return (c.shapes[p] = out);
 }
 
 function drawDancers(g, v, c, t, o) {

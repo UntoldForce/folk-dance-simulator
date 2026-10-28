@@ -290,6 +290,9 @@ Like a video editor (Ryan's example: Adobe Premiere), nothing scrolls on a compu
   Shown for dances in lines (contra, English sets, Becket, triple minor, tempest, four facing four); squares and
   circles get a note instead.
 - Phones start with one line (until a choice is remembered).
+- **On the floor**, the dashed hands-four outlines cross-fade over the first two beats of a time through when the
+  groups change (an outline that stays the same just stays), and the "out" label sits still beside where a waiting
+  couple starts that time through instead of following them about.
 - **Formation pictures** above the Formation menu, folded away by default ("Common formations, as pictures") to leave room for the moves; opening them is remembered: the common formations, grouped Contra (improper, Becket), English
   (proper, three-couple set) and Square & circle (square, circle mixer). Each picture is drawn from where the
   simulator starts everyone (larks as squares, robins as circles, a tick for facing, the band as a dotted line at
