@@ -21,4 +21,4 @@ Read `docs/DESIGN.md` first; it holds the agreed decisions. The original brief i
 - The page script's editor section (part rows, pool, dragging, settings) edits a parsed dance and writes it back with `Contra.serialize`.
 - `tests/figures.js` runs every figure on its own and checks speeds, turning and continuity.
 - `tests/editor-browser.js` drives the editor in a real browser (Playwright); run it after editor changes.
-- Test dances live in `dances/`. How each figure moves is in `docs/FIGURES.md`.
+- Test dances live in `dances/`. How each figure moves is in `docs/FIGURES.md`; the review of every move and formation against The Caller's Box glossary and the English tutorial is `docs/REVIEW.md`.

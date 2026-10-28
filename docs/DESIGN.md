@@ -200,9 +200,16 @@ robin's spot, so partners can change (after a corner swing, the corner is the ne
 - Circle mixers use the same machinery with any number of couples (promenade, grand right and left and corners work
   the same way); fixed sets use the same check, with places on either side of the set, facing across.
 
-Not supported yet: zia (a square with contra lines radiating from its sides), tri-contra (three facing three),
-scatter mixers, solo dances, double and five-couple squares, hexagons, horseshoes and triangles. Dances in these are
-flagged and shown as improper. Grid contra and tempest need a real dance to check their progression against.
+Also: six facing six (four facing four with lines of three couples), singlet (one couple), and a whole-set
+"longways set" (shown as a six-couple proper set, like the Virginia Reel).
+
+Not supported yet (checked against The Caller's Box glossary, October 2026): zia (contra lines crossing at right
+angles, with squares where they meet), three facing three, tri-contra and circles of threesomes (partnerships of
+three), scatter mixers, solo dances, double quadrilles and hexagons (more than one couple to a side, or six couples),
+five-couple squares (a couple in the middle), horseshoes (top couple improper, the rest Becket) and triangles. Dances
+in these are flagged and shown as improper. Not modelled within supported formations: indecent and proper Becket, a
+doublet's rotating progression (neighbours become partners and the top of the hall turns 90 degrees each time), and
+the tempest's usual progression (the ones' line goes down the hall and returns only as far as new neighbours).
 
 ## Dance editor (decisions)
 

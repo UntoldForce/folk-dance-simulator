@@ -243,6 +243,21 @@ check(made.every(k => { const r = Contra.parseDance('A1\n(8) ' + Contra.callText
   check(far.warnings.some(w => w.hands && /stretch/.test(w.text)), 'hands: a hand balance between couples two places apart is flagged as out of reach');
 }
 
+// More formations from the glossary: six facing six, singlet, whole-set longways dances; the new contra moves.
+{
+  const read = f => Contra.parseDance(`FormationBase: ${f}\nA1\n(8) Circle left`).formation;
+  check(['Six Facing Six', 'Singlet', 'Longways set', 'Three facing three', 'Zia'].map(read).join() === 'sixFacingSix,singlet,set6Proper,improper,improper', 'six facing six, singlet and whole-set longways read; three facing three and zia flagged');
+  const six = Contra.compile(Contra.parseDance('FormationBase: Six Facing Six\nA1\n(8) Neighbor pass through'), { lines: 1, sets: 2, passes: 4 });
+  check(six.progression.firstBad === -1 && six.passes[0].groups.length === 6, 'six facing six: lines of three couples pass through to new lines');
+  const sg = Contra.compile(Contra.parseDance('FormationBase: Singlet\nA1\n(8) Partner do-si-do'), { lines: 1, sets: 1, passes: 2 });
+  check(sg.couples.length === 1 && sg.progression.firstBad === -1, 'singlet: one couple dancing on its own');
+  const figs = Contra.parseDance('A1\n(2) Turn alone\n(8) Partner promenade across the set\n(4) Dixie twirl\n(16) Ones turn contra corners\n(8) Weathervane').parts[0].calls;
+  check(figs.map(k => k.fig).join() === 'turnAlone,promenadeAcross,dixieTwirl,contraCorners,starPromenade' && figs[4].turns === 1, 'turn alone, promenade across, Dixie twirl and contra corners read; a weathervane goes once around');
+  const pa = Contra.compile(Contra.parseDance('A1\n(8) Partner swing\n(8) Partner promenade across the set'), { lines: 1, sets: 1, passes: 1 });
+  const across = ['0.1L', '0.1R', '0.2L', '0.2R'].every(id => Math.sign(pa.final[id].x) !== Math.sign(Contra.poseAt(pa, id, 8).x));
+  check(across, 'promenade across: each couple ends on the other side of the set');
+}
+
 // English: in a proper set the chevron progresses the couples, and a neighbour is the dancer beside you.
 {
   const ch = Contra.compile(Contra.parseDance('FormationBase: Duple Minor - Proper\nA1\n(8) First corners chevron'), { lines: 1, sets: 3, passes: 6 });

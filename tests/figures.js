@@ -68,6 +68,30 @@ for (const [beats, text] of FIGS.filter(([b, t]) => /side|siding|double|fall bac
   rows.push(`${ok ? 'PASS' : 'FAIL'}  ${('[proper] ' + text).padEnd(42)} ${String(call.fig).padEnd(17)} peak ${peak.toFixed(2)} m/s, turning up to ${Math.round(spin)}°/s`);
 }
 
+// Moves that need a particular lead-in: [formation, lead-in, beats, figure].
+for (const [form, lead, beats, text] of [
+  ['Triple Minor - Proper', '(4) Ones cast off', 16, 'Ones turn contra corners'],
+  ['Duple Minor - Improper', '(8) Partner swing', 8, 'Partner promenade across the set'],
+  ['Duple Minor - Improper', '(8) Down the hall in a line of four', 4, 'Dixie twirl'],
+  ['Duple Minor - Improper', '(8) Down the hall in a line of four', 2, 'Turn alone'],
+]) {
+  const dance = Contra.parseDance(`FormationBase: ${form}\nA1\n${lead}\n(${beats}) ${text}`);
+  const call = dance.parts[0].calls[1], c = Contra.compile(dance, { lines: 1, sets: 3, passes: 1 }), t0 = c.calls[1].t0;
+  let peak = 0, spin = 0, nan = false;
+  for (const d of c.dancers) {
+    let prev = Contra.poseAt(c, d.id, t0);
+    for (let t = t0 + 0.02; t <= t0 + beats + 1e-9; t += 0.02) {
+      const p = Contra.poseAt(c, d.id, t);
+      if ([p.x, p.y, p.a].some(v => Number.isNaN(v))) nan = true;
+      peak = Math.max(peak, Math.hypot(p.x - prev.x, p.y - prev.y) / 0.01); spin = Math.max(spin, Math.abs(wrap(p.a - prev.a)) / 0.01 * 180 / Math.PI); prev = p;
+    }
+  }
+  const ok = call.fig && !nan && peak < 5 && spin < 1500 && !c.warnings.some(w => /needs both corners/.test(w.text));
+  if (!ok) failures++;
+  FIGS.push([beats, text]);
+  rows.push(`${ok ? 'PASS' : 'FAIL'}  ${('[lead-in] ' + text).padEnd(42)} ${String(call.fig).padEnd(17)} peak ${peak.toFixed(2)} m/s, turning up to ${Math.round(spin)}°/s`);
+}
+
 // Hey for three, in a three-couple set.
 for (const [beats, text] of [[8, 'Hey for three on the sides, right shoulders to start'], [8, 'Half hey for three on the sides'], [16, 'Ones crossover mirror hey']]) {
   const dance = Contra.parseDance(`FormationBase: Triplet - Proper\nA1\n(8) In long lines, go forward and back\n(${beats}) ${text}`);
