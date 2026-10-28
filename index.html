@@ -461,6 +461,8 @@ const Contra = (() => {
     linesStep: 0.4,         // m forward in long lines
     balanceStep: 0.15,      // m
     passOffset: 0.2,        // m sideways when passing by
+    bodyGap: 0.4,           // m: dancers' middles never come closer than this (shoulder to shoulder)
+    coupleTuck: 0.25,       // m from the middle to each of a couple turning together (a courtesy turn)
     squareRadius: 1.6,      // m from a square's center to the middle of each couple
     squareGap: 1.0,         // m between back-to-back couples of neighboring squares in a grid
   };
@@ -607,13 +609,17 @@ const Contra = (() => {
   // A figure eight for dancer i around the other couple of a hands-four: cross through the middle between them,
   // cast around the one on the far side, and come back up; `halves` 2 goes on around the other one to home.
   // `backward` runs the same track the other way (casting first); the robin crosses half a step ahead of the lark.
-  function eightPath(ps, keys, i, ctx, halves, backward) {
+  function eightPath(ps, keys, i, ctx, halves, backward, beyond = 0.45) {
     const act = keys[i][1], c = centroid(ps), pts = [{ x: ps[i].x, y: ps[i].y }];
     let cur = ps[i];
     for (let h = 0; h < halves; h++) {
       const sx = cur.x > ctx.cx ? -1 : 1, q = ps[[0, 1, 2, 3].find(k => keys[k][1] !== act && Math.sign(ps[k].x - ctx.cx) === sx)];
       const dy = Math.sign(q.y - cur.y) || -1;
-      pts.push({ x: c.x, y: (cur.y + q.y) / 2 }, { x: q.x, y: q.y + dy * 0.45 }, { x: q.x + sx * 0.45, y: q.y }, { x: q.x + sx * 0.25, y: cur.y - dy * 0.05 }, { x: q.x, y: cur.y });
+      // Round the one cast around at about 0.42 m (inside, beyond by `beyond`, outside), so as not to brush past them.
+      // The robin crosses first, a little nearer the others; the lark crosses just behind her.
+      const pass = (keys[i][0] === 'L' ? -1 : 1) * 0.15;
+      pts.push({ x: c.x, y: (cur.y + q.y) / 2 + dy * pass }, { x: q.x - sx * 0.4, y: q.y - dy * 0.15 }, { x: q.x - sx * 0.3, y: q.y + dy * beyond * 0.7 },
+        { x: q.x, y: q.y + dy * beyond }, { x: q.x + sx * 0.42, y: q.y }, { x: q.x + sx * 0.25, y: cur.y - dy * 0.05 }, { x: q.x, y: cur.y });
       cur = { x: q.x, y: cur.y };
     }
     const fwd = spline(pts), path = backward ? s => fwd(1 - s) : fwd, lag = keys[i][0] === 'L' ? 0.08 : 0;
@@ -646,14 +652,21 @@ const Contra = (() => {
   // Which way a pair standing side by side faces: the way the lark faces if known, else across into the set.
   const facingOf = (lark, robin, ctx) => (lark.a != null ? lark.a : mid(lark, robin).x > ctx.cx ? Math.PI : 0);
 
+  // A point on an oval around c: `r` along the starting direction a0, at most `side` across it, `phi` round from a0.
+  // Pairs turning in a line squeeze their turn this way so they keep clear of the pairs beside them.
+  const ovalAt = (c, a0, r, side, phi) => { const along = r * Math.cos(phi), across = Math.min(r, side) * Math.sin(phi);
+    return { x: c.x + along * Math.cos(a0) - across * Math.sin(a0), y: c.y + along * Math.sin(a0) + across * Math.cos(a0) }; };
+  // How far a pair can turn out sideways before meeting the next pair along the line, a neighbor-gap away.
+  const roomBeside = P => (P.neighborGap - P.bodyGap) / 2;
   // Two dancers turn around each other by `sweep`, `gap` apart, facing each other offset by `look`.
-  function turnPair([p, q], sweep, gap, look) {
-    const c = mid(p, q), r0 = dist(p, q) / 2, rt = Math.min(r0, gap / 2), dir = Math.sign(sweep) || -1;
+  function turnPair([p, q], sweep, gap, look, P) {
+    const c = mid(p, q), r0 = dist(p, q) / 2, rt = Math.min(r0, gap / 2), dir = Math.sign(sweep) || -1, a00 = angleTo(c, p);
     return [p, q].map(d => {
       const a0 = angleTo(c, d);
       return u => {
-        const ang = a0 + sweep * trap(u, 0.25), r = lerp(r0, rt, u < 0.2 ? mj(u / 0.2) : u > 0.8 ? mj((1 - u) / 0.2) : 1);
-        return { x: c.x + r * Math.cos(ang), y: c.y + r * Math.sin(ang), a: settle(d.a, ang + Math.PI - dir * look, u) };
+        const th = sweep * trap(u, 0.25), r = lerp(r0, rt, u < 0.2 ? mj(u / 0.2) : u > 0.8 ? mj((1 - u) / 0.2) : 1);
+        const at = ovalAt(c, a00, r, P ? roomBeside(P) : r, a0 - a00 + th);
+        return { x: at.x, y: at.y, a: settle(d.a, angleTo(at, c) - dir * look, u) };
       };
     });
   }
@@ -703,12 +716,16 @@ const Contra = (() => {
         return { x: c.x + r * Math.cos(ang), y: c.y + r * Math.sin(ang), a: settle(d.a, faceAt(ang), u) }; };
     });
   }
+  // A couple turning together draws in close (hip to hip, `coupleTuck` from the middle each) while it is turned
+  // across its starting line, and opens back out to `r0` when lined up again, so it doesn't sweep into the people
+  // beside it. `th` is how far it has turned.
+  const tuckR = (r0, th, P) => (r0 > P.coupleTuck ? P.coupleTuck + (r0 - P.coupleTuck) * Math.cos(th) ** 2 : r0);
   // A couple turning together around the point between them by `sweep` (counter-clockwise positive).
   function pivotPair([p, q], ctx, sweep) {
     const c = mid(p, q), F = facingOf(p, q, ctx);
     return [p, q].map(d => {
-      const a0 = angleTo(c, d), r = dist(c, d);
-      return u => { const th = sweep * trap(u, 0.25), ang = a0 + th;
+      const a0 = angleTo(c, d), r0 = dist(c, d);
+      return u => { const th = sweep * trap(u, 0.25), ang = a0 + th, r = tuckR(r0, th, ctx.p);
         return { x: c.x + r * Math.cos(ang), y: c.y + r * Math.sin(ang), a: settle(d.a, F, u, 0.15) + th }; };
     });
   }
@@ -735,7 +752,7 @@ const Contra = (() => {
           const a = crosses ? settle(d.a, dir, u / split, 0.3) : settle(d.a, F0, u / split, 0.9);
           return { x: p.x, y: p.y, a: u / split > 0.7 && crosses ? a + wrap(F0 - dir) * mj((u / split - 0.7) / 0.3) : a };
         }
-        const th = sgn * Math.PI * mj((u - split) / (1 - split)), a0 = angleTo(M, m), r = dist(M, m);
+        const th = sgn * Math.PI * mj((u - split) / (1 - split)), a0 = angleTo(M, m), r = tuckR(dist(M, m), th, P);
         return { x: M.x + r * Math.cos(a0 + th), y: M.y + r * Math.sin(a0 + th), a: F0 + th };
       };
     }
@@ -854,11 +871,19 @@ const Contra = (() => {
       // Ending facing across, the couple drifts back to its side of the set while swinging.
       // With `places` (a couple waiting out at the end), they open out to those spots, facing each other.
       // In a square (`ctx.slot`) they finish in the lark's place.
-      const m1 = places ? mid(places[0], places[1]) : ctx.slot ? ctx.slot : call.end != null ? m0 : { x: ctx.cx + (onRight ? half : -half), y: m0.y };
-      const a0 = angleTo(robin, lark), af = places ? angleTo(places[1], places[0]) : F + Math.PI / 2;  // lark ends on the left of the facing direction
+      // Partners swinging from straight across a hands-four finish level with the other couple, facing them.
+      const across = Math.abs(m0.x - ctx.cx) <= 0.1 && ctx.gc && ctx.everyone;
+      let m1 = places ? mid(places[0], places[1]) : ctx.slot ? ctx.slot : call.end != null ? m0 : { x: ctx.cx + (onRight ? half : -half), y: across ? ctx.gc.y : m0.y };
+      // A pair swinging while the others stand (the ones swing) finishes where nobody stands: in the middle of the
+      // set if their side is taken, facing the others.
+      let Fend = F;
+      if (!places && !ctx.slot && call.end == null && ctx.others && ctx.others.some(o => dist(o, m1) < P.neighborGap / 2 + P.bodyGap)) {
+        m1 = { x: ctx.cx, y: m0.y }; Fend = ctx.gc && ctx.gc.y < m0.y ? -Math.PI / 2 : Math.PI / 2;
+      }
+      const a0 = angleTo(robin, lark), af = places ? angleTo(places[1], places[0]) : Fend + Math.PI / 2;  // lark ends on the left of the facing direction
       const sameSide = places && Math.sign(places[0].x - ctx.cx) === Math.sign(places[1].x - ctx.cx), Fin = places && places[0].x > ctx.cx ? Math.PI : 0;
-      const rEnd = places ? dist(places[0], places[1]) / 2 : P.neighborGap / 2;
-      const faceEnd = places ? (sameSide ? [Fin, Fin] : [af + Math.PI, af]) : [F, F];
+      const rEnd = places ? dist(places[0], places[1]) / 2 : Fend !== F ? P.bodyGap / 2 + 0.05 : P.neighborGap / 2;
+      const faceEnd = places ? (sameSide ? [Fin, Fin] : [af + Math.PI, af]) : [Fend, Fend];
       const nominal = -(call.beats / P.swingBeatsPerTurn) * TAU; // swings turn clockwise
       const base = wrap(af - a0);
       const sweep = base - Math.round((base - nominal) / TAU) * TAU;
@@ -882,10 +907,10 @@ const Contra = (() => {
     } },
     // ---------- Turns with one person ----------
     // Shoulder round (formerly "gypsy"): walk around each other without touching, looking at each other.
-    shoulderRound: { group: 'pair', plan: (ps, call, ctx) => turnPair(ps, (call.side === 'L' ? 1 : -1) * call.turns * TAU, ctx.p.shoulderGap, 0) },
+    shoulderRound: { group: 'pair', plan: (ps, call, ctx) => turnPair(ps, (call.side === 'L' ? 1 : -1) * call.turns * TAU, ctx.p.shoulderGap, 0, ctx.p) },
     armTurn: { group: 'pair', plan: (ps, call, ctx) => FIGURES.allemande.plan(ps, { ...call, hand: call.side }, ctx) },
     // Two-hand turn: both hands joined at arm's length, facing each other.
-    twoHandTurn: { group: 'pair', plan: (ps, call, ctx) => turnPair(ps, (call.side === 'L' ? 1 : -1) * call.turns * TAU, ctx.p.handHold, 0) },
+    twoHandTurn: { group: 'pair', plan: (ps, call, ctx) => turnPair(ps, (call.side === 'L' ? 1 : -1) * call.turns * TAU, ctx.p.handHold, 0, ctx.p) },
 
     // ---------- Trading places ----------
     passThrough: { group: 'pair', plan: (ps, call, ctx) => FIGURES.pullBy.plan(ps, { ...call, hand: call.side }, ctx) },
@@ -900,8 +925,9 @@ const Contra = (() => {
       return [[lark, -1, ctx.p.twirlLarkRadius], [robin, 1, ctx.p.twirlRobinRadius]].map(([d, turn, rIn]) => {
         const a0 = angleTo(c, d), r0 = dist(c, d);
         return u => {
-          const s = mj(u), ang = a0 - Math.PI * s, r = lerp(r0, rIn, Math.sin(Math.PI * s));
-          return { x: c.x + r * Math.cos(ang), y: c.y + r * Math.sin(ang), a: settle(d.a, F, u, 0.15) + turn * Math.PI * mj((u - 0.1) / 0.9) };
+          // The lark's loop out in front is kept shallow, clear of the couple across the set.
+          const s = mj(u), r = lerp(r0, rIn, Math.sin(Math.PI * s)), at = ovalAt(c, a0, r, (ctx.p.partnerGap - ctx.p.bodyGap) / 2 - 0.05, -Math.PI * s);
+          return { x: at.x, y: at.y, a: settle(d.a, F, u, 0.15) + turn * Math.PI * mj((u - 0.1) / 0.9) };
         };
       });
     } },
@@ -910,10 +936,12 @@ const Contra = (() => {
     starThrough: { group: 'pair', plan([lark, robin], call, ctx) {
       const c = mid(lark, robin), toward = angleTo(lark, robin), F = toward - Math.PI / 2, h = ctx.p.neighborGap / 2;
       const left = { x: Math.cos(F + Math.PI / 2), y: Math.sin(F + Math.PI / 2) };
-      return [[lark, { x: c.x + left.x * h, y: c.y + left.y * h }, toward, -1], [robin, { x: c.x - left.x * h, y: c.y - left.y * h }, toward + Math.PI, 1]]
-        .map(([d, e, face, turn]) => u => {
-          const s = mj(u);
-          return { x: lerp(d.x, e.x, s), y: lerp(d.y, e.y, s), a: settle(d.a, face, u, 0.15) + turn * (Math.PI / 2) * mj((u - 0.15) / 0.85) };
+      // They change sides as they turn: the robin turns under the arch, the lark passes behind her (CALLERLAB).
+      const bow = ctx.p.bodyGap * 0.65, fx = Math.cos(F), fy = Math.sin(F);
+      return [[lark, { x: c.x + left.x * h, y: c.y + left.y * h }, toward, -1, -bow], [robin, { x: c.x - left.x * h, y: c.y - left.y * h }, toward + Math.PI, 1, bow]]
+        .map(([d, e, face, turn, off]) => u => {
+          const s = mj(u), b = off * Math.sin(Math.PI * s);
+          return { x: lerp(d.x, e.x, s) + fx * b, y: lerp(d.y, e.y, s) + fy * b, a: settle(d.a, face, u, 0.15) + turn * (Math.PI / 2) * mj((u - 0.15) / 0.85) };
         });
     } },
     // Roll away with a half sashay: side by side; the robin rolls across in front of the lark, turning a full
@@ -950,8 +978,9 @@ const Contra = (() => {
     turnSingle: { group: 'four', any: true, plan(ps, call, ctx) {
       const c = centroid(ps);
       return ps.map(d => {
-        const f = d.a == null ? (d.x > ctx.cx ? Math.PI : 0) : d.a, r = 0.2;
         const toward = call.cloverleaf ? Math.sign(d.y - c.y) || 1 : call.toward === 'up' ? 1 : call.toward === 'down' ? -1 : 0;
+        // Turning up or down the set, the circle is kept small: the next couple may be turning toward them.
+        const f = d.a == null ? (d.x > ctx.cx ? Math.PI : 0) : d.a, r = toward ? 0.13 : 0.2;
         // The circle lies on the side the dancer turns toward (left for counter-clockwise).
         const spin = toward ? (Math.sin(f + Math.PI / 2) * toward > 0 ? 1 : -1) : call.side === 'L' ? 1 : -1;
         const cx = d.x + r * Math.cos(f + spin * Math.PI / 2), cy = d.y + r * Math.sin(f + spin * Math.PI / 2), a0 = f - spin * Math.PI / 2;
@@ -992,12 +1021,15 @@ const Contra = (() => {
       const c = centroid(ps), sweep = (call.side === 'L' ? 1 : -1) * call.turns * TAU, pairs = whoSets(call.who === 'neighbors' ? 'neighbors' : 'partners', { L1: 0, R1: 1, L2: 2, R2: 3 });
       const out = [];
       for (const [i, j] of pairs) {
-        const m = mid(ps[i], ps[j]), a0 = angleTo(c, m), r = dist(c, m);
+        const m = mid(ps[i], ps[j]), a0 = angleTo(c, m), r0 = dist(c, m), h0 = dist(ps[i], ps[j]) / 2, h1 = Math.min(h0, ctx.p.handHold / 2);
+        // Partners close to arm's length, and the couples go round each other wide enough to pass clear.
+        const r1 = Math.max(r0, h1 + ctx.p.bodyGap / 2 + 0.05);
         for (const k of [i, j]) {
           const d = ps[k], off = { x: d.x - m.x, y: d.y - m.y }, face = angleTo(d, ps[k === i ? j : i]);
           // A draw poussette also turns each couple half round as they go, so they end on the other side.
-          out[k] = u => { const ang = a0 + sweep * trap(u, 0.25), spin = call.draw ? Math.sign(sweep) * Math.PI * mj(u) : 0;
-            const ox = off.x * Math.cos(spin) - off.y * Math.sin(spin), oy = off.x * Math.sin(spin) + off.y * Math.cos(spin);
+          out[k] = u => { const ang = a0 + sweep * trap(u, 0.25), spin = call.draw ? Math.sign(sweep) * Math.PI * mj(u) : 0, w = Math.sin(Math.PI * clamp01(u)) ** 0.5;
+            const q = h0 ? lerp(h0, h1, w) / h0 : 1, r = lerp(r0, r1, w);
+            const ox = q * (off.x * Math.cos(spin) - off.y * Math.sin(spin)), oy = q * (off.x * Math.sin(spin) + off.y * Math.cos(spin));
             return { x: c.x + r * Math.cos(ang) + ox, y: c.y + r * Math.sin(ang) + oy, a: settle(d.a, face, u) + spin }; };
         }
       }
@@ -1069,8 +1101,9 @@ const Contra = (() => {
         const a0 = angleTo(c, d), r0 = dist(c, d), leads = keys[i][0] === lead;
         return u => {
           if (leads) {
-            const ang = a0 + spin * TAU * 0.5 * mj(u / 0.5) + (u > 0.5 ? spin * Math.PI * mj((u - 0.5) / 0.5) : 0);
-            const r = u < 0.5 ? lerp(r0, 0.3, mj(u / 0.5)) : lerp(0.3, r0, mj((u - 0.5) / 0.5));
+            // They step into the middle first, so they turn there clear of the larks waiting at the sides.
+            const ang = a0 + spin * Math.PI * mj(clamp01((u - 0.06) / 0.44)) + (u > 0.5 ? spin * Math.PI * mj((u - 0.5) / 0.5) : 0);
+            const r = u < 0.5 ? lerp(r0, 0.3, mj(clamp01(u / 0.22))) : lerp(0.3, r0, mj((u - 0.5) / 0.5));
             return { x: c.x + r * Math.cos(ang), y: c.y + r * Math.sin(ang), a: settle(d.a, ang + spin * Math.PI / 2, u) };
           }
           // Larks wait facing in, then turn to walk around with the robin who brings them across.
@@ -1140,16 +1173,21 @@ const Contra = (() => {
       if ([W, M, tw, tm].some(i => i == null)) return out;
       // The track: a figure eight along the line from the other robin's end (-) to the other lark's end (+).
       const c = mid(ps[W], ps[M]), L = Math.max(0.6, dist(ps[W], ps[M]) / 2), e = { x: (ps[M].x - ps[W].x) / (2 * L), y: (ps[M].y - ps[W].y) / (2 * L) };
-      const A = L / Math.cos(Math.PI / 6), B = 0.35 * (call.side === 'L' ? -1 : 1), f = { x: -e.y, y: e.x };
+      const A = L / Math.cos(Math.PI / 6), B = 0.42 * (call.side === 'L' ? -1 : 1), f = { x: -e.y, y: e.x };
       const track = t => ({ x: c.x + e.x * A * Math.cos(t) + f.x * B * Math.sin(2 * t), y: c.y + e.y * A * Math.cos(t) + f.y * B * Math.sin(2 * t) });
-      const span = (call.turns || 1) * TAU, gap = 0.4;
+      const span = (call.turns || 1) * TAU;
       // Who leads the pair: +1 the robin (heading toward the robins' end), -1 the lark; side by side as they turn.
       const lead = t => Math.tanh(3 * Math.sin(t));
+      // Which side of the pair each takes: whoever starts nearer that side (so they don't cross to get there).
+      const h0 = Math.atan2(track(Math.PI / 2 + 0.01).y - track(Math.PI / 2 - 0.01).y, track(Math.PI / 2 + 0.01).x - track(Math.PI / 2 - 0.01).x);
+      const robinRight = (ps[tw].x - ps[tm].x) * Math.sin(h0) - (ps[tw].y - ps[tm].y) * Math.cos(h0) >= 0 ? 1 : -1;
       const place = (t0, i, k) => s => {
         const t = t0 + span * s;
         if (k == null) return track(t);
-        const sg = lead(t) * k, p = track(t + gap * sg), side = 0.22 * (1 - Math.abs(lead(t))) * k;
-        return { x: p.x + f.x * side, y: p.y + f.y * side };
+        // Side by side a shoulder-width apart, the leader a little ahead; the lead changes as the pair turns at each end.
+        const p = track(t), h = Math.atan2(track(t + 0.01).y - track(t - 0.01).y, track(t + 0.01).x - track(t - 0.01).x);
+        const side = 0.22 * k * robinRight, ahead = 0.16 * lead(t) * k;
+        return { x: p.x + Math.sin(h) * side + Math.cos(h) * ahead, y: p.y - Math.cos(h) * side + Math.sin(h) * ahead };
       };
       const units = [[W, 7 * Math.PI / 6, null], [M, -Math.PI / 6, null], [tw, Math.PI / 2, 1], [tm, Math.PI / 2, -1]];
       for (const [i, t0, k] of units) {
@@ -1205,7 +1243,8 @@ const Contra = (() => {
     // By default the twos cross and the ones cast; "1s cross" swaps them. Everyone ends at home.
     doubleFigureEight: { group: 'four', plan(ps, call, ctx) {
       const casters = call.castFirst || '1';
-      return ps.map((d, i) => eightPath(ps, ctx.keys, i, ctx, 2, ctx.keys[i][1] === casters));
+      // Everyone is moving, so the loops can be tight; the next hands-four's loops come toward these ones.
+      return ps.map((d, i) => eightPath(ps, ctx.keys, i, ctx, 2, ctx.keys[i][1] === casters, 0.28));
     } },
     // Half open ladies chain (English): the robins pull by right in the middle and go on to the lark's place on the
     // far side, while each lark walks a small loop along his side (round the outside first), away from his place and back;
@@ -1231,14 +1270,14 @@ const Contra = (() => {
           // Arriving, she turns to face the lark she'll turn with.
           if (u < 0.5) { const s = mj(u / 0.5), p = along(s), a = settle(d.a, heading(along, s), u / 0.5, 0.2);
             return { ...p, a: u < 0.38 ? a : lerpAngle(a, angA + Math.PI, mj((u - 0.38) / 0.12)) }; }
-          const ang = angA + way * Math.PI * mj((u - 0.5) / 0.5);
-          return { x: Ms.x + r * Math.cos(ang), y: Ms.y + r * Math.sin(ang), a: ang + Math.PI };
+          const ang = angA + way * Math.PI * mj((u - 0.5) / 0.5), rt = tuckR(r, ang - angA, P);
+          return { x: Ms.x + rt * Math.cos(ang), y: Ms.y + rt * Math.sin(ang), a: ang + Math.PI };
         };
         out[t] = u => {
           // He waits until the robins have passed each other in the middle, then sets off round his loop.
           const ang = angA + way * Math.PI * (mj(clamp01((Math.min(u, 0.5) - 0.15) / 0.35)) + (u > 0.5 ? mj((u - 0.5) / 0.5) : 0));
-          const walk = settle(A.a, ang + way * Math.PI / 2, clamp01((u - 0.1) / 0.4), 0.3);
-          return { x: Ms.x + r * Math.cos(ang), y: Ms.y + r * Math.sin(ang), a: u >= 0.5 ? ang + Math.PI : u < 0.38 ? walk : lerpAngle(walk, ang + Math.PI, mj((u - 0.38) / 0.12)) };
+          const walk = settle(A.a, ang + way * Math.PI / 2, clamp01((u - 0.1) / 0.4), 0.3), rt = u > 0.5 ? tuckR(r, ang - angA, P) : r;
+          return { x: Ms.x + rt * Math.cos(ang), y: Ms.y + rt * Math.sin(ang), a: u >= 0.5 ? ang + Math.PI : u < 0.38 ? walk : lerpAngle(walk, ang + Math.PI, mj((u - 0.38) / 0.12)) };
         };
       }
       return out;
@@ -1259,8 +1298,10 @@ const Contra = (() => {
       const keys = ctx.keys, act = call.who === 'twos' ? '2' : '1', dir = call.dir === 'up' ? 1 : -1, F = dir > 0 ? Math.PI / 2 : -Math.PI / 2;
       const ys = [0, 1, 2, 3].filter(i => keys[i][1] === act).map(i => ps[i].y), y0 = (ys[0] + ys[1]) / 2;
       return ps.map((d, i) => {
-        if (keys[i][1] !== act) return u => ({ ...d, a: settle(d.a, d.x > ctx.cx ? Math.PI : 0, u) });
-        const left = keys[i][0] === 'L' ? 1 : -1, x1 = ctx.cx + left * -dir * 0.35;   // lark on the left of the way they face
+        // The others step back a touch to let them by.
+        if (keys[i][1] !== act) return u => ({ ...d, x: d.x + Math.sign(d.x - ctx.cx) * 0.06 * bump(u), a: settle(d.a, d.x > ctx.cx ? Math.PI : 0, u) });
+        // Lark on the left of the way they face, inside hands joined, close enough to pass the others clear.
+        const left = keys[i][0] === 'L' ? 1 : -1, x1 = ctx.cx + left * -dir * (ctx.p.bodyGap / 2 + 0.02);
         return u => { const s = mj(u / 0.2), t = trap(clamp01((u - 0.15) / 0.85), 0.2);
           return { x: lerp(d.x, x1, s), y: lerp(d.y, y0, s) + dir * ctx.p.hallWalk * t, a: settle(d.a, F, u, 0.15) }; };
       });
@@ -1313,13 +1354,21 @@ const Contra = (() => {
     castAcross: { group: 'four', plan(ps, call, ctx) {
       const keys = ctx.keys, lead = call.who === 'larks' ? 'L' : 'R', out = ps.map(d => () => d);
       const leaders = [0, 1, 2, 3].filter(i => keys[i][0] === lead);
-      if (leaders.length !== 2) return out;
+      // The two leaders start side by side on one side of the set (an English proper set); otherwise nobody moves.
+      if (leaders.length !== 2 || Math.sign(ps[leaders[0]].x - ctx.cx) !== Math.sign(ps[leaders[1]].x - ctx.cx)) return out;
       const ym = (ps[leaders[0]].y + ps[leaders[1]].y) / 2, sL = Math.sign(ps[leaders[0]].x + ps[leaders[1]].x - 2 * ctx.cx) || 1;
       for (const i of leaders) {
         const d = ps[i], w = Math.max(0.4, Math.abs(d.x - ctx.cx)), hy = Math.max(0.3, Math.abs(d.y - ym)), sy = Math.sign(d.y - ym) || 1;
         const at = (t, v) => ({ x: ctx.cx + sL * t * w, y: ym + sy * v * hy });   // t: 1 own side, -1 far side; v: 1 own end
-        const path = spline([at(1, 1), at(0.5, 0.4), at(-1, 0.3), at(-1.7, 0.5), at(-1.6, 1.6), at(-0.5, 1.8), at(0.7, 1.5), at(1, 1)]);
+        // Hands joined, a shoulder-width apart, between the two opposite; the loop back stays inside their own hands-four.
+        const path = spline([at(1, 1), at(0.5, 0.45), at(-1, 0.4), at(-1.7, 0.55), at(-1.6, 1.4), at(-0.5, 1.5), at(0.7, 1.3), at(1, 1)]);
         out[i] = u => { const s = trap(u, 0.15), p = path(s); return { ...p, a: settle(d.a, heading(path, s), u, 0.1) }; };
+      }
+      // The two they lead between step apart a little to let them through, then in toward each other to let them
+      // cast round behind.
+      for (const j of [0, 1, 2, 3].filter(j => keys[j][0] !== lead && Math.sign(ps[j].x - ctx.cx) !== sL)) {
+        const d = ps[j], sy = Math.sign(d.y - ym) || 1;
+        out[j] = u => ({ ...d, y: d.y + sy * (0.12 * bump(clamp01((u - 0.1) / 0.4)) - 0.22 * bump(clamp01((u - 0.45) / 0.45))) });
       }
       return out;
     } },
@@ -1402,12 +1451,13 @@ const Contra = (() => {
       const c = centroid(ps), F = ps[0].a != null ? ps[0].a : -Math.PI / 2, fwd = { x: Math.cos(F), y: Math.sin(F) }, right = { x: Math.sin(F), y: -Math.cos(F) };
       const along = d => (d.x - c.x) * right.x + (d.y - c.y) * right.y, order = [0, 1, 2, 3].sort((a, b) => along(ps[a]) - along(ps[b]));
       const out = [];
-      for (const [pair, spin, bulge] of [[order.slice(0, 2), -1, 0.7], [order.slice(2), 1, -0.15]]) {   // left couple over (clockwise), right couple under
+      // Each couple draws in close as it turns, and the couple going over loops out in front far enough to clear the other.
+      for (const [pair, spin, bulge] of [[order.slice(0, 2), -1, 0.8], [order.slice(2), 1, -0.15]]) {   // left couple over (clockwise), right couple under
         const m0 = mid(ps[pair[0]], ps[pair[1]]), m1 = { x: 2 * c.x - m0.x, y: 2 * c.y - m0.y };
         for (const i of pair) {
-          const d = ps[i], off = { x: d.x - m0.x, y: d.y - m0.y };
-          out[i] = u => { const s = mj(u), th = spin * Math.PI * s, b = bulge * Math.sin(Math.PI * s);
-            return { x: lerp(m0.x, m1.x, s) + fwd.x * b + off.x * Math.cos(th) - off.y * Math.sin(th), y: lerp(m0.y, m1.y, s) + fwd.y * b + off.x * Math.sin(th) + off.y * Math.cos(th), a: F + th }; };
+          const d = ps[i], off = { x: d.x - m0.x, y: d.y - m0.y }, r0 = Math.hypot(off.x, off.y);
+          out[i] = u => { const s = mj(u), th = spin * Math.PI * s, b = bulge * Math.sin(Math.PI * s), k = r0 ? tuckR(r0, th, ctx.p) / r0 : 1;
+            return { x: lerp(m0.x, m1.x, s) + fwd.x * b + k * (off.x * Math.cos(th) - off.y * Math.sin(th)), y: lerp(m0.y, m1.y, s) + fwd.y * b + k * (off.x * Math.sin(th) + off.y * Math.cos(th)), a: F + th }; };
         }
       }
       return out;
@@ -1529,8 +1579,10 @@ const Contra = (() => {
       run(0, 0.4, half);
       const byX = [0, 1, 2, 3].sort((a, b) => along(cur[a]) - along(cur[b])), ctr = [byX[1], byX[2]], ends = [byX[0], byX[3]], second = {};
       const fs = FIGURES.allemande.plan([cur[ctr[0]], cur[ctr[1]]], { hand: h2, turns: 0.75 }, ctx); second[ctr[0]] = fs[0]; second[ctr[1]] = fs[1];
+      // The ends move up a quarter round the outside; turned along the line, the wave closes up to fit its hands-four.
+      const fit = ctx.p.neighborGap - ctx.p.bodyGap / 2;
       for (const i of ends) { const d = cur[i], a0 = angleTo(c, d), r = dist(c, d), sw = (rightHanded ? -1 : 1) * Math.PI / 2;
-        second[i] = u => { const ang = a0 + sw * mj(u); return { x: c.x + r * Math.cos(ang), y: c.y + r * Math.sin(ang), a: (d.a || 0) + sw * mj(u) }; }; }
+        second[i] = u => { const ang = a0 + sw * mj(u), rr = lerp(r, Math.min(r, fit), mj(u)); return { x: c.x + rr * Math.cos(ang), y: c.y + rr * Math.sin(ang), a: (d.a || 0) + sw * mj(u) }; }; }
       run(0.4, 1, second);
       return ps.map((d, i) => u => { let st = d; for (const sg of segs) { if (!sg.fns[i]) continue; if (u < sg.u0) return st; if (u <= sg.u1) return sg.fns[i]((u - sg.u0) / (sg.u1 - sg.u0)); st = sg.fns[i](1); } return st; });
     } },
@@ -1539,10 +1591,11 @@ const Contra = (() => {
     // Siding: walk forward toward the other, a little to your left (right siding) so right shoulders come
     // side by side in the middle, then fall back home, facing them throughout.
     siding: { group: 'pair', plan([p, q], call, ctx) {
-      const c = mid(p, q), side = call.side === 'L' ? -1 : 1;
+      // When another pair sides across the same middle at the same time (corners), the four pass wider round it.
+      const shared = ctx.gc && ctx.everyone && dist(mid(p, q), ctx.gc) < 0.3, c = mid(p, q), side = call.side === 'L' ? -1 : 1, w = shared ? 0.45 : 0.3;
       return [[p, q], [q, p]].map(([d, o]) => {
         // They meet level in the middle, each a step to their own left (right siding), shoulder to shoulder.
-        const f = angleTo(d, o), t = { x: c.x - Math.sin(f) * side * 0.3, y: c.y + Math.cos(f) * side * 0.3 };
+        const f = angleTo(d, o), t = { x: c.x - Math.sin(f) * side * w, y: c.y + Math.cos(f) * side * w };
         return u => { const s = bump(u); return { x: lerp(d.x, t.x, s), y: lerp(d.y, t.y, s), a: settle(d.a, f, u, 0.15) }; };
       });
     } },
@@ -1567,8 +1620,10 @@ const Contra = (() => {
     } },
     // Fall back: facing the middle of the group, walk backward away from it (and stay there).
     fallBack: { group: 'four', any: true, plan(ps, call, ctx) {
+      // Straight back out from the set, across it (not away from the middle of the group, which would crowd the
+      // groups beside it); in a ring, back from its middle.
       const c = centroid(ps);
-      return ps.map(d => { const f = angleTo(d, c);
+      return ps.map(d => { const f = ctx.sq ? angleTo(d, c) : d.x > ctx.cx ? Math.PI : 0;
         return u => { const s = 0.5 * mj(u); return { x: d.x - s * Math.cos(f), y: d.y - s * Math.sin(f), a: settle(d.a, f, u, 0.15) }; }; });
     } },
     // Honour (bow and curtsey; also kiss and salute): face each other with a small dip toward them.
@@ -1587,17 +1642,19 @@ const Contra = (() => {
           return { x: c.x + r * Math.cos(ang), y: c.y + r * Math.sin(ang), a: settle(d.a, ang + Math.PI, u, 0.15) }; }; });
     } },
     // Right or left hand turn: take the hand at arm's length (a finger clasp) and walk around each other.
-    handTurn: { group: 'pair', plan: (ps, call, ctx) => turnPair(ps, (call.side === 'L' ? 1 : -1) * call.turns * TAU, ctx.p.handHold, 0.6) },
+    handTurn: { group: 'pair', plan: (ps, call, ctx) => turnPair(ps, (call.side === 'L' ? 1 : -1) * call.turns * TAU, ctx.p.handHold, 0.6, ctx.p) },
     // Bentley allemande (English allemande): the robin steps forward and turns in place holding up the named hand;
     // the lark walks once around her by that shoulder, and both step back.
     bentleyAllemande: { group: 'pair', plan([lark, robin], call, ctx) {
-      const dir = call.side === 'L' ? 1 : -1, f = angleTo(robin, lark), c = { x: robin.x + 0.3 * Math.cos(f), y: robin.y + 0.3 * Math.sin(f) };
-      const a0 = angleTo(c, lark), r0 = dist(c, lark), rr = 0.6;
+      // The lark's circle is an oval, narrower along the line, so the couples beside have room for theirs.
+      const dir = call.side === 'L' ? 1 : -1, f = angleTo(robin, lark), c = { x: robin.x + 0.2 * Math.cos(f), y: robin.y + 0.2 * Math.sin(f) };
+      const a0 = angleTo(c, lark), r0 = dist(c, lark), rr = 0.5, side = ctx.p.bodyGap - 0.02;
+      const turn = u => dir * TAU * trap(clamp01((u - 0.12) / 0.76), 0.2);
+      const larkAt = u => ovalAt(c, a0, u < 0.12 ? lerp(r0, rr, mj(u / 0.12)) : u > 0.88 ? lerp(rr, r0, mj((u - 0.88) / 0.12)) : rr, side, turn(u));
       return [
-        u => { const ang = a0 + dir * TAU * trap(clamp01((u - 0.12) / 0.76), 0.2), r = u < 0.12 ? lerp(r0, rr, mj(u / 0.12)) : u > 0.88 ? lerp(rr, r0, mj((u - 0.88) / 0.12)) : rr;
-          return { x: c.x + r * Math.cos(ang), y: c.y + r * Math.sin(ang), a: settle(lark.a, ang + dir * Math.PI / 2, u, 0.12) }; },
-        u => { const s = u < 0.12 ? mj(u / 0.12) : u > 0.88 ? mj((1 - u) / 0.12) : 1, ang = a0 + dir * TAU * trap(clamp01((u - 0.12) / 0.76), 0.2);
-          return { x: lerp(robin.x, c.x, s), y: lerp(robin.y, c.y, s), a: settle(robin.a, ang, u, 0.12) }; },
+        u => { const at = larkAt(u); return { x: at.x, y: at.y, a: settle(lark.a, angleTo(c, at) + dir * Math.PI / 2, u, 0.12) }; },
+        u => { const s = u < 0.12 ? mj(u / 0.12) : u > 0.88 ? mj((1 - u) / 0.12) : 1;
+          return { x: lerp(robin.x, c.x, s), y: lerp(robin.y, c.y, s), a: settle(robin.a, angleTo(c, larkAt(u)), u, 0.12) }; },
       ];
     } },
     // Hey for three: the three dancers on each side of the set weave a figure eight along it, passing alternate
@@ -1624,12 +1681,16 @@ const Contra = (() => {
     // is the lark's place; an amount goes that far and ends at the nearest place. Each lark promenades with the
     // robin beside him (after a corner swing, the corner), or his partner when two robins are as close.
     promenade: { group: 'four', square: true, plan(ps, call, ctx) {
-      const R = ctx.sq.R, n = ctx.sq.n, h = ctx.p.neighborGap / 2, out = [], q = TAU / n, taken = new Set();
-      for (const [i, j] of promenadePairs(ps, ctx)) {
+      const R = ctx.sq.R, n = ctx.sq.n, h = ctx.p.neighborGap / 2, out = [], q = TAU / n, taken = new Set(), pairs = promenadePairs(ps, ctx), s1 = slotAngle(1, n);
+      // Couples may stand between places (after a swing, say); they all keep the same spacing, so each is snapped
+      // to its place by the same amount, and no two couples end in one place.
+      const phis = pairs.map(([i, j]) => { const m = mid(ps[i], ps[j]); return Math.atan2(m.y, m.x); });
+      const c = Math.atan2(...['sin', 'cos'].map(fn => phis.reduce((t, p) => t + Math[fn]((p - s1) * n), 0))) / n;
+      for (const [pi, [i, j]] of pairs.entries()) {
         const key = ctx.keys[i];
-        const L0 = ps[i], R0 = ps[j], m0 = mid(L0, R0), phi0 = Math.atan2(m0.y, m0.x), r0 = Math.hypot(m0.x, m0.y), psi0 = angleTo(L0, R0);
+        const L0 = ps[i], R0 = ps[j], m0 = mid(L0, R0), phi0 = phis[pi], r0 = Math.hypot(m0.x, m0.y), psi0 = angleTo(L0, R0);
         let travel;
-        if (call.turns) travel = slotAngle(1, n) + Math.round((phi0 + call.turns * TAU - slotAngle(1, n)) / q) * q - phi0;
+        if (call.turns) travel = s1 + Math.round((phi0 - c - s1) / q) * q + Math.round((c + call.turns * TAU) / q) * q - phi0;
         else { travel = ((slotAngle(+key.slice(1), n) - phi0) % TAU + TAU) % TAU; if (travel < q / 2) travel += TAU; }
         const place = u => {
           const phi = phi0 + travel * trap(u, 0.25), r = lerp(r0, R, mj(u / 0.25));
@@ -1678,7 +1739,8 @@ const Contra = (() => {
         for (const [k, spot] of [[i, home.lark], [j, home.robin]]) {
           const d = ps[k], e = { x: spot.x + dir.x * len, y: spot.y + dir.y * len };
           out[k] = u => {
-            const s = mj(u / walk), side = off * Math.sin(Math.PI * clamp01((s * len) / (2 * R)));
+            // Keep right all the way, passing the couple across the square and then the one coming from the next square.
+            const s = mj(u / walk), side = Math.max(off, ctx.p.bodyGap / 2 + 0.02) * mj(Math.min(1, s / 0.15, (1 - s) / 0.15));
             const p = { x: lerp(d.x, e.x, s) + dir.y * side, y: lerp(d.y, e.y, s) - dir.x * side };
             if (u <= walk) return { ...p, a: settle(d.a, F, u, 0.1) };
             const th = Math.PI * mj((u - walk) / (1 - walk)), vx = p.x - M.x, vy = p.y - M.y;
@@ -1838,6 +1900,16 @@ const Contra = (() => {
     }
     return out;
   }
+
+  // Where a figure is usually danced from, when it can't start from long lines: a lead-in to dance first ('pair':
+  // a swing with the same people, so they stand side by side; 'facing': a swing with the others, so the named pair
+  // face each other across the set). Used by the move builder's preview and the tests.
+  const SETUP = {
+    californiaTwirl: 'pair', rollAway: 'pair', halfSashay: 'pair', courtesyTurn: 'pair', turnAsCouple: 'pair', butterflyWhirl: 'pair', gate: 'pair',
+    chain: '(8) Neighbor swing', rightLeftThrough: '(8) Neighbor swing', hey: '(8) Neighbor swing', flutterwheel: '(8) Neighbor swing',
+    starPromenade: '(8) Neighbor swing', giveAndTake: '(8) Neighbor swing', upHall: '(8) Down the hall in a line of four', petronella: '(4) Balance the ring',
+    starThrough: 'facing',
+  };
 
   // Typical lengths in beats, for figures built so far: the ContraLab timing chart (contralab.org),
   // and Contrafusion for pull by (4 beats; 2 when done rapidly as a single change).
@@ -2431,6 +2503,78 @@ const Contra = (() => {
   }
 
   const standStill = p => { const f = () => p; f.still = true; return f; };
+
+  // Dancers give each other room. Where two would pass closer than `bodyGap` during a figure, both ease aside
+  // a little, smoothly, as real dancers do; at the start and end of the figure nobody is moved, so figures still
+  // join up. Returns the adjusted paths, and the closest pairs still left (a real bump, reported in the checks).
+  function makeRoom(fs, ids, beats, P) {
+    const N = Math.max(24, Math.round(beats * 10)), G = P.bodyGap, us = Array.from({ length: N + 1 }, (_, k) => k / N);
+    const base = ids.map(id => us.map(u => fs[id](u))), dx = ids.map(() => new Float64Array(N + 1)), dy = ids.map(() => new Float64Array(N + 1));
+    const at = (i, k) => ({ x: base[i][k].x + dx[i][k], y: base[i][k].y + dy[i][k] });
+    // Pairs that are ever close, found once from the paths as planned: only dancers whose areas of the floor
+    // overlap during the figure are compared step by step.
+    const box = base.map(path => path.reduce((b, p) => ({ x0: Math.min(b.x0, p.x), x1: Math.max(b.x1, p.x), y0: Math.min(b.y0, p.y), y1: Math.max(b.y1, p.y) }), { x0: Infinity, x1: -Infinity, y0: Infinity, y1: -Infinity }));
+    const order = ids.map((id, i) => i).sort((i, j) => box[i].x0 - box[j].x0), near = [];
+    for (let a = 0; a < order.length; a++) for (let b = a + 1; b < order.length; b++) {
+      const i = order[a], j = order[b];
+      if (box[j].x0 > box[i].x1 + G) break;
+      if (box[j].y0 > box[i].y1 + G || box[i].y0 > box[j].y1 + G) continue;
+      if (us.some((u, k) => Math.abs(base[i][k].x - base[j][k].x) < G + 0.3 && Math.abs(base[i][k].y - base[j][k].y) < G + 0.3)) near.push(i < j ? [i, j] : [j, i]);
+    }
+    if (!near.length) return { fs, bumps: [] };
+    const kernel = [1, 2, 3, 4, 3, 2, 1], ksum = 16, fade = k => Math.min(1, k / 4, (N - k) / 4);
+    // Two dancers walking past each other step aside, sideways to the way they pass, and each keeps to the same
+    // side all the way past (by the right shoulder if they'd meet head on). Dancers barely moving just ease apart.
+    const vel = (i, k) => { const a = base[i][Math.max(0, k - 1)], b = base[i][Math.min(N, k + 1)]; return { x: b.x - a.x, y: b.y - a.y }; };
+    const sideOf = near.map(([i, j]) => {
+      let kmin = 0, dmin = Infinity;
+      for (let k = 0; k <= N; k++) { const d = Math.hypot(base[i][k].x - base[j][k].x, base[i][k].y - base[j][k].y); if (d < dmin) { dmin = d; kmin = k; } }
+      const vi = vel(i, kmin), vj = vel(j, kmin), v = { x: vi.x - vj.x, y: vi.y - vj.y }, n = Math.hypot(v.x, v.y);
+      if (n < 1e-6) return 1;
+      const off = ((base[i][kmin].x - base[j][kmin].x) * v.y - (base[i][kmin].y - base[j][kmin].y) * v.x) / n;   // + : i is to the right
+      return Math.abs(off) < 0.02 ? 1 : Math.sign(off);
+    });
+    let moved = false;
+    for (let round = 0; round < 8; round++) {
+      const px = ids.map(() => new Float64Array(N + 1)), py = ids.map(() => new Float64Array(N + 1));
+      let any = false;
+      near.forEach(([i, j], n) => { for (let k = 1; k < N; k++) {
+        const a = at(i, k), b = at(j, k), d = Math.hypot(a.x - b.x, a.y - b.y);
+        if (d >= G) continue;
+        any = true;
+        const vi = vel(i, k), vj = vel(j, k), v = { x: vi.x - vj.x, y: vi.y - vj.y }, sp = Math.hypot(v.x, v.y) * N / beats;   // m per beat
+        let ux, uy;
+        if (sp > 0.15) { ux = (v.y / Math.hypot(v.x, v.y)) * sideOf[n]; uy = (-v.x / Math.hypot(v.x, v.y)) * sideOf[n]; }
+        else if (d > 1e-3) { ux = (a.x - b.x) / d; uy = (a.y - b.y) / d; }
+        else { ux = -Math.sin(base[i][k].a || 0); uy = Math.cos(base[i][k].a || 0); }
+        const push = (G - d) / 2 + 0.01;
+        px[i][k] += ux * push; py[i][k] += uy * push; px[j][k] -= ux * push; py[j][k] -= uy * push;
+      } });
+      if (!any) break;
+      moved = true;
+      // Spread each nudge over the beats around it, so dancers drift aside rather than jump.
+      for (let i = 0; i < ids.length; i++) for (let k = 1; k < N; k++) {
+        let sx = 0, sy = 0;
+        kernel.forEach((w, o) => { const q = k + o - 3; if (q > 0 && q < N) { sx += w * px[i][q]; sy += w * py[i][q]; } });
+        dx[i][k] += (sx / ksum) * 2.2 * fade(k); dy[i][k] += (sy / ksum) * 2.2 * fade(k);
+      }
+    }
+    const bumps = [];
+    for (const [i, j] of near) {
+      let best = Infinity, when = 0;
+      for (let k = 0; k <= N; k++) { const a = at(i, k), b = at(j, k), d = Math.hypot(a.x - b.x, a.y - b.y); if (d < best) { best = d; when = k / N; } }
+      if (best < G - 0.08) bumps.push({ a: ids[i], b: ids[j], d: best, u: when });
+    }
+    if (!moved) return { fs, bumps };
+    const out = {};
+    ids.forEach((id, i) => {
+      const f = fs[id];
+      if (!dx[i].some(v => v) && !dy[i].some(v => v)) { out[id] = f; return; }
+      out[id] = u => { const p = f(u), v = clamp01(u) * N, k = Math.min(N - 1, Math.floor(v)), s = v - k;
+        return { ...p, x: p.x + lerp(dx[i][k], dx[i][k + 1], s), y: p.y + lerp(dy[i][k], dy[i][k + 1], s) }; };
+    });
+    return { fs: out, bumps };
+  }
   const faceInFrom = (p, cx) => (Math.abs(p.x - cx) > 0.1 ? (p.x > cx ? Math.PI : 0) : null);
 
   function compile(dance, opts = {}) {
@@ -2609,6 +2753,14 @@ const Contra = (() => {
           const keyOf = id => Object.keys(idmap).find(key => idmap[key] === id);
           if (frame) ps = ps.map(p => toLocal(frame, p));
           const ctx = { p: planP || (g.center ? ringP(g.ring) : P), cx: frame ? 0 : g.cx, keys: ids.map(keyOf), slot, english: PROPER };
+          // A hands-four's middle, for pairs that should finish lined up with the other couple.
+          // and where the rest of the group stand (a pair shouldn't finish on top of them).
+          if (fig.group === 'pair' && !g.center && !g.longSet && size === 4) {
+            const loc = id => (frame ? toLocal(frame, from[id]) : from[id]);
+            ctx.gc = centroid(Object.values(g.ids).map(loc));
+            ctx.everyone = whoSets(groupWho, g.ids).flat().length === size;
+            ctx.others = Object.values(g.ids).filter(id => !whoSets(groupWho, g.ids).flat().includes(id)).map(loc);
+          }
           if (g.center) ctx.sq = { R: g.ring.R, n: g.ring.n, spacing: g.ring.spacing, hasSlot: q => hasSlot(toWorld(frame, q)) };
           if (call.fig === 'contraCorners' && ids.length < 6) notes.add('contra corners needs both corners in the group (a triple minor or a three-couple set); the corners from the next hands-four are not included yet');
           if ((call.fig === 'heyThree' || call.fig === 'crossoverMirrorHey') && ids.length < 6) notes.add('a hey for three needs three dancers on each side (a hands-six or a three-couple set); dancers stand still');
@@ -2725,18 +2877,26 @@ const Contra = (() => {
           }
           // A dance that doesn't loop (a single-move preview) ends without turning toward a next figure.
           const next = last && p === passes - 1 && opts.loop === false ? null : planCall(last ? 0 : k + 1, ends, nextPass, t1).fns;
-          const newPose = {};
+          const newPose = {}, turned = {};
           for (const d of dancers) {
             const f0 = fns[d.id], end = f0(1);
             const inward = nextPass.inFn[d.id] || (q => faceInFrom(q, lineCx[d.id]));
             const target = !next ? null : !next[d.id].still ? next[d.id](0).a : inward(end);
-            const f = fig || !f0.still ? turnAtEnd(f0, target, call.beats) : f0;
+            turned[d.id] = fig || !f0.still ? turnAtEnd(f0, target, call.beats) : f0;
+          }
+          const room = opts.room === false ? { fs: turned, bumps: [] } : makeRoom(turned, dancers.map(d => d.id), call.beats, P);
+          for (const d of dancers) {
+            const f = room.fs[d.id];
             segs[d.id].push({ t0, t1, f });
             newPose[d.id] = f(1);
           }
           pose = newPose;
           if (p === 0) {
             for (const n of notes) warnings.push({ level: 'warn', text: `${part.name}: “${call.text}”: ${n}.` });
+            if (room.bumps.length) {
+              const b = room.bumps.reduce((x, y) => (y.d < x.d ? y : x)), who = id => { const d = dancers.find(q => q.id === id); return `${d.role} ${d.num}`; };
+              warnings.push({ level: 'warn', bump: true, text: `${part.name}: “${call.text}”: ${who(b.a)} and ${who(b.b)} bump into each other${room.bumps.length > 1 ? `, and ${room.bumps.length - 1} other pair${room.bumps.length > 2 ? 's' : ''}` : ''} (${b.d.toFixed(2)} m apart, beat ${(b.u * call.beats).toFixed(1)}).` });
+            }
             const typical = typeof TYPICAL_BEATS[call.fig] === 'function' ? TYPICAL_BEATS[call.fig](call) : TYPICAL_BEATS[call.fig];
             if (typical && call.beats < typical) warnings.push({ level: 'info', text: `${part.name}: “${call.text}” gets ${call.beats} beats; ${SOURCE[call.fig] || 'the ContraLab timing chart'} gives it ${typical}. Expect it to feel quick.` });
             if ((call.beats === 8 && t0 % 8) || (call.beats === 16 && t0 % 16)) warnings.push({ level: 'info', text: `${part.name}: “${call.text}” is ${call.beats} beats but starts partway through a musical phrase.` });
@@ -2847,7 +3007,7 @@ const Contra = (() => {
     return seg.f((t - seg.t0) / (seg.t1 - seg.t0));
   }
 
-  return { DEFAULTS, FORMATIONS, FIGURE_INFO, TYPICAL_BEATS, parseDance, serialize, callText, compile, poseAt, handsAt, callIndexAt, meetings };
+  return { DEFAULTS, FORMATIONS, FIGURE_INFO, TYPICAL_BEATS, SETUP, parseDance, serialize, callText, compile, poseAt, handsAt, callIndexAt, meetings };
 })();
 </script>
 
@@ -3410,23 +3570,24 @@ const DESCRIPTIONS = {
 const APPROX = new Set(['Balance the wave', 'Cross', 'Star through', 'Turn as a couple', 'Broken circle', 'Contra corners', 'Dixie twirl',
   'Promenade across', 'Turn alone', 'Half open ladies chain', 'Hey for four', 'Honour', 'Fall back']);
 // Some moves need the dancers set up first: side by side with the chosen person, or couples on the sides.
-const SETUP = {
-  californiaTwirl: 'pair', rollAway: 'pair', halfSashay: 'pair', courtesyTurn: 'pair', turnAsCouple: 'pair', butterflyWhirl: 'pair', gate: 'pair',
-  chain: '(8) Neighbor swing', rightLeftThrough: '(8) Neighbor swing', hey: '(8) Neighbor swing', flutterwheel: '(8) Neighbor swing',
-  starPromenade: '(8) Neighbor swing', giveAndTake: '(8) Neighbor swing', upHall: '(8) Down the hall in a line of four', petronella: '(4) Balance the ring',
-};
 const previews = new Map();
-function previewOf(def, m, beats) {
-  if (!def || !def.fig) return null;
-  let setup = def.setup === 'triplet' || def.setup === 'none' ? '' : def.setup === 'triple' ? '(4) Ones cast off' : def.setup || SETUP[def.fig] || '';
+// The little dance a move's preview plays: its set-up (if it needs one) and the move, in the formation it's danced in.
+function previewText(def, m, beats) {
+  let setup = def.setup === 'triplet' || def.setup === 'none' ? '' : def.setup === 'triple' ? '(4) Ones cast off' : def.setup || Contra.SETUP[def.fig] || '';
   if (setup === 'pair') setup = `(8) ${WHO_WORD[m.who] || 'Partner'} swing`;
-  const line = sayMove(def, m), key = [setup, line, beats, $('swingRate').value].join('|');
-  if (previews.has(key)) return previews.get(key);
+  if (setup === 'facing') setup = `(8) ${m.who === 'partners' ? 'Neighbor' : 'Partner'} swing`;
   // Square moves are shown in a square (passing to the next square needs two squares of a grid).
   // English moves are shown in a proper set, as English dances almost always are (the half open ladies chain needs
   // a lark and a robin on each side, so it stays improper, as the tutorial describes it).
   const base = def.square || (def.setup === 'triplet' ? 'Triplet - Proper' : def.setup === 'triple' ? 'Triple Minor - Proper' : def.ecd && def.fig !== 'openChain' ? 'Duple Minor - Proper' : '');
-  const dance = Contra.parseDance([base ? `FormationBase: ${base}` : '', 'A1', setup, `(${beats}) ${line}`].filter(Boolean).join('\n'));
+  const line = sayMove(def, m);
+  return { line, text: [base ? `FormationBase: ${base}` : '', 'A1', setup, `(${beats}) ${line}`].filter(Boolean).join('\n') };
+}
+function previewOf(def, m, beats) {
+  if (!def || !def.fig) return null;
+  const { line, text } = previewText(def, m, beats), key = [text, $('swingRate').value].join('|');
+  if (previews.has(key)) return previews.get(key);
+  const dance = Contra.parseDance(text);
   const c = Contra.compile(dance, { lines: 1, sets: def.square === 'Grid Square' ? 2 : 1, passes: 1, loop: false, params: { swingBeatsPerTurn: +$('swingRate').value } });
   const t0 = c.calls[c.calls.length - 1].t0, t1 = c.total, b = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity };
   for (const d of c.dancers) for (let t = t0; t <= t1; t += 0.25) {

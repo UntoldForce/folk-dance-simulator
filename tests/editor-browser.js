@@ -67,6 +67,29 @@ const { chromium } = require('playwright');
   const total = await p.evaluate(() => POOL.length);
   check(opened === total, `every move opens in the explorer (${opened} of ${total})`);
 
+  // Collisions: every move in the list, with each choice of who and side, as its preview plays it and again on a
+  // fuller floor (three hands-fours, so neighbouring groups can get in each other's way). Nobody should pass
+  // closer than 0.38 m (where the dots would overlap).
+  const bumps = await p.evaluate(() => {
+    const out = [], close = (c, t0, t1) => { let m = Infinity, who = '';
+      for (let t = t0; t <= t1 + 1e-9; t += 0.05) { const ps = c.dancers.map(d => Contra.poseAt(c, d.id, t));
+        for (let i = 0; i < ps.length; i++) for (let j = i + 1; j < ps.length; j++) { const d = Math.hypot(ps[i].x - ps[j].x, ps[i].y - ps[j].y); if (d < m) { m = d; who = `${c.dancers[i].role} ${c.dancers[i].num}, ${c.dancers[j].role} ${c.dancers[j].num} at beat ${(t - t0).toFixed(1)}`; } } }
+      return { m, who }; };
+    let n = 0;
+    for (const def of POOL.filter(d => d.fig)) {
+      const variants = [{ ...def.d }];
+      for (const w of def.who || []) if (w !== def.d.who) variants.push({ ...def.d, who: w });
+      if (def.side && def.d.side) variants.push({ ...def.d, side: def.d.side === 'L' ? 'R' : 'L' });
+      for (const m of variants) for (const sets of [1, 3]) {
+        const { text } = previewText(def, m, def.beats || 4), c = Contra.compile(Contra.parseDance(text), { lines: 1, sets: def.square === 'Grid Square' ? 2 : sets, passes: 1, loop: false });
+        const k = c.calls[c.calls.length - 1], r = close(c, k.t0, k.t1); n++;
+        if (r.m < 0.38) out.push(`${text.split('\n').pop()} [${sets} hands-four${sets > 1 ? 's' : ''}]: ${r.m.toFixed(2)} m (${r.who})`);
+      }
+    }
+    return { out, n };
+  });
+  check(bumps.out.length === 0, `no move has dancers bumping into each other (${bumps.n} versions checked)${bumps.out.length ? '\n      ' + bumps.out.join('\n      ') : ''}`);
+
   // Settings: music starts off; hands toggle; references open in a pop-up.
   check(await p.evaluate(() => !$('music').checked && !$('melody').checked), 'music and melody start off');
   await p.click('#hands'); await p.waitForTimeout(100); await p.click('#hands'); await p.waitForTimeout(100);

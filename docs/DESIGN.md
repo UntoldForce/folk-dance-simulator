@@ -141,6 +141,27 @@ Built October 2026, with a Hands switch (on by default, remembered).
 Left out: elbows, crossed arms and body twist beyond the facing (dancers are dots); letting go and retaking a hand
 too quickly isn't checked yet.
 
+## Collisions (October 2026)
+
+Dancers are drawn 0.38 m across; `bodyGap` (0.4 m) is the closest two dancers' middles may come.
+
+- **Figures are built to keep clear.** Couples turning together (courtesy turn, chains, gates, Dixie twirl) draw in
+  hip to hip while turned across their line (`coupleTuck`); pair turns in a line (shoulder round, two-hand and
+  hand turns, Bentley allemande) squeeze into an oval along the line (`ovalAt`, `roomBeside`) so they miss the
+  pairs beside them; poussette couples close to arm's length and go round wide enough to pass; star through's lark
+  passes behind the robin; figure eights round the one they cast around at about 0.42 m; a partner swing from
+  straight across finishes level with the other couple, and a pair swinging while the others stand finishes in the
+  middle if its side is taken.
+- **Then everyone makes room** (`makeRoom`, after each figure is planned): where two dancers would still pass
+  closer than `bodyGap`, both ease aside, sideways to the way they pass and keeping to one side all the way past,
+  spread smoothly over the beats around. Nobody is moved at the start or end of a figure, so figures still join up.
+  Nudges in single moves are under 0.3 m (`tests/collisions.js` checks).
+- **Real bumps are reported:** if two dancers are still closer than about 0.32 m, the checks list it ("lark 1 and
+  robin 2 bump into each other"), which usually means the figures don't fit together as written.
+- `tests/collisions.js` runs every move (with its usual set-up, `Contra.SETUP`) and every test dance;
+  `tests/editor-browser.js` runs every move in the list with each choice of who and side, as its preview plays it
+  and with three hands-fours.
+
 ## Startup decisions
 
 1. **Multiple lines:** always modeled by the engine; figures between lines are rare, so their controls and checks live under **Advanced settings**.
