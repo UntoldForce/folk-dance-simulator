@@ -486,6 +486,25 @@ const Contra = (() => {
   const bump = u => (u < 0.5 ? mj(u * 2) : mj((1 - u) * 2));
 
   // ---------- Shared pieces for figures ----------
+  // A hey for three along one side (sideSign -1 or +1): the three dancers `idx` weave a figure eight along it, the
+  // top one starting down toward the middle; a half hey swaps the ends. Returns paths by dancer index.
+  function heyThreeOnSide(ps, idx, sideSign, call) {
+    const out = {}, order = idx.slice().sort((i, j) => ps[j].y - ps[i].y);
+    const c = centroid(order.map(i => ps[i])), A = Math.max(0.6, (ps[order[0]].y - ps[order[2]].y) / 2 + 0.15), B = 0.35 * (call.side === 'L' ? -1 : 1) * sideSign;
+    const track = t => ({ x: c.x + B * Math.sin(2 * t), y: c.y + A * Math.cos(t) }), span = (call.turns || 1) * TAU;
+    order.forEach((i, k) => {
+      const d = ps[i], t0 = [0, 4 * Math.PI / 3, 2 * Math.PI / 3][k], path = s => track(t0 + span * s);
+      const end = call.turns === 0.5 ? { x: d.x, y: 2 * c.y - d.y } : { x: d.x, y: d.y };
+      out[i] = u => {
+        const s = trap(u, 0.1);
+        let p = path(s);
+        if (u < 0.15) { const k2 = mj(u / 0.15); p = { x: lerp(d.x, p.x, k2), y: lerp(d.y, p.y, k2) }; }
+        if (u > 0.85) { const k2 = mj((u - 0.85) / 0.15); p = { x: lerp(p.x, end.x, k2), y: lerp(p.y, end.y, k2) }; }
+        return { x: p.x, y: p.y, a: settle(d.a, heading(path, s), u, 0.1) };
+      };
+    });
+    return out;
+  }
   // A figure eight for dancer i around the other couple of a hands-four: cross through the middle between them,
   // cast around the one on the far side, and come back up; `halves` 2 goes on around the other one to home.
   // `backward` runs the same track the other way (casting first); the robin crosses half a step ahead of the lark.
@@ -1147,13 +1166,85 @@ const Contra = (() => {
     } },
     // Cast off: the active couple turn away from each other and go down the outside one place;
     // the other couple move up into their places.
+    // In an English (proper) set the other couple lead up (or down) through the middle, holding hands, to make room
+    // (as in the tutorial's animation). A long cast first comes into the middle to touch hands, then casts.
     castOff: { group: 'four', plan(ps, call, ctx) {
-      const keys = ctx.keys, act = call.who === 'twos' ? '2' : '1', dy = act === '1' ? -1 : 1, gap = ctx.p.neighborGap;
+      const keys = ctx.keys, act = call.who === 'twos' ? '2' : '1', dy = act === '1' ? -1 : 1, gap = ctx.p.neighborGap, long = !!call.long;
       return ps.map((d, i) => {
         const active = keys[i][1] === act, e = { x: d.x, y: d.y + (active ? dy : -dy) * gap }, out = d.x > ctx.cx ? 1 : -1;
-        return u => { const s = mj(u), bulge = active ? out * 0.4 * Math.sin(Math.PI * s) : 0;
-          return { x: lerp(d.x, e.x, s) + bulge, y: lerp(d.y, e.y, s), a: settle(d.a, active ? (dy > 0 ? Math.PI / 2 : -Math.PI / 2) : (d.x > ctx.cx ? Math.PI : 0), u, 0.2) }; };
+        if (!active && ctx.english) {
+          // Lead through the middle: in to inside hands, along, and back out to the side.
+          const across = d.x > ctx.cx ? Math.PI : 0, along = dy > 0 ? -Math.PI / 2 : Math.PI / 2;
+          return u => { const s = mj(clamp01((u - 0.2) / 0.8)), w = bump(clamp01((u - 0.15) / 0.85)), inn = w * (Math.abs(d.x - ctx.cx) - 0.3);
+            return { x: d.x - out * inn, y: lerp(d.y, e.y, s), a: lerpAngle(settle(d.a, across, u, 0.15), along, Math.min(1, 1.6 * w)) }; };
+        }
+        if (!active) return u => ({ x: d.x, y: lerp(d.y, e.y, mj(u)), a: settle(d.a, d.x > ctx.cx ? Math.PI : 0, u, 0.2) });   // contra: the others step up
+        const run = long ? 0.4 : 0;   // a long cast spends the first part meeting in the middle
+        return u => {
+          const k = long ? bump(clamp01(u / 0.45)) * (Math.abs(d.x - ctx.cx) - 0.25) : 0, s = mj(clamp01((u - run) / (1 - run))), bulge = out * 0.4 * Math.sin(Math.PI * s);
+          const across = d.x > ctx.cx ? Math.PI : 0, down = dy > 0 ? Math.PI / 2 : -Math.PI / 2;
+          const a = !long ? settle(d.a, down, u, 0.2) : u < run ? settle(d.a, across, u / run, 0.3) : lerpAngle(across, down, mj((u - run) / 0.15));
+          return { x: lerp(d.x, e.x, s) + bulge - out * k, y: lerp(d.y, e.y, s), a };
+        };
       });
+    } },
+    // Cast across (English, from the tutorial's animation): the leaders (robins by default), holding inside hands,
+    // lead across between the two dancers opposite, part, and cast back round the outside of those dancers to home.
+    castAcross: { group: 'four', plan(ps, call, ctx) {
+      const keys = ctx.keys, lead = call.who === 'larks' ? 'L' : 'R', out = ps.map(d => () => d);
+      const leaders = [0, 1, 2, 3].filter(i => keys[i][0] === lead);
+      if (leaders.length !== 2) return out;
+      const ym = (ps[leaders[0]].y + ps[leaders[1]].y) / 2, sL = Math.sign(ps[leaders[0]].x + ps[leaders[1]].x - 2 * ctx.cx) || 1;
+      for (const i of leaders) {
+        const d = ps[i], w = Math.max(0.4, Math.abs(d.x - ctx.cx)), hy = Math.max(0.3, Math.abs(d.y - ym)), sy = Math.sign(d.y - ym) || 1;
+        const at = (t, v) => ({ x: ctx.cx + sL * t * w, y: ym + sy * v * hy });   // t: 1 own side, -1 far side; v: 1 own end
+        const path = spline([at(1, 1), at(0.5, 0.4), at(-1, 0.3), at(-1.7, 0.5), at(-1.6, 1.6), at(-0.5, 1.8), at(0.7, 1.5), at(1, 1)]);
+        out[i] = u => { const s = trap(u, 0.15), p = path(s); return { ...p, a: settle(d.a, heading(path, s), u, 0.1) }; };
+      }
+      return out;
+    } },
+    // Hey for three on the side (English, from the tutorial's animation): one dancer (the first lark by default)
+    // crosses into the middle of the other side and heys with the two there, then loops back home.
+    heyThreeSide: { group: 'four', plan(ps, call, ctx) {
+      const keys = ctx.keys, out = ps.map(d => () => d), a = keys.indexOf(call.active || 'L1');
+      if (a < 0) return out;
+      const side = -Math.sign(ps[a].x - ctx.cx) || 1, two = [0, 1, 2, 3].filter(i => i !== a && Math.sign(ps[i].x - ctx.cx) === side);
+      if (two.length !== 2) return out;
+      const x = (ps[two[0]].x + ps[two[1]].x) / 2, virtual = ps.map((d, i) => (i === a ? { ...d, x, y: (ps[two[0]].y + ps[two[1]].y) / 2 } : d));
+      const three = heyThreeOnSide(virtual, [a, ...two], side, call);
+      for (const i of two) out[i] = three[i];
+      // The crosser takes the first and last quarter to get across and back, easing into and out of the hey.
+      const f = three[a], home = ps[a], p0 = f(0.25), p1 = f(0.75);
+      out[a] = u => {
+        if (u < 0.25) { const k = mj(u / 0.25), go = settle(home.a, angleTo(home, p0), u / 0.25, 0.3);
+          return { x: lerp(home.x, p0.x, k), y: lerp(home.y, p0.y, k), a: u < 0.17 ? go : lerpAngle(go, p0.a, mj((u - 0.17) / 0.08)) }; }
+        if (u > 0.75) { const k = mj((u - 0.75) / 0.25), back = angleTo(p1, home);
+          return { x: lerp(p1.x, home.x, k), y: lerp(p1.y, home.y, k), a: lerpAngle(p1.a, back, mj((u - 0.75) / 0.08)) }; }
+        return f(u);
+      };
+      return out;
+    } },
+    // Crossover mirror hey (English, from the tutorial's animation): in a three-couple set the first couple cross
+    // over at the start, then each side heys for three, the two heys mirror images. The first couple end crossed.
+    crossoverMirrorHey: { group: 'four', any: true, plan(ps, call, ctx) {
+      const keys = ctx.keys, act = call.who === 'twos' ? '2' : call.who === 'threes' ? '3' : '1', out = ps.map(d => () => d);
+      const crossed = ps.map((d, i) => (keys[i] && keys[i][1] === act ? { ...d, x: 2 * ctx.cx - d.x } : d));
+      for (const sideSign of [-1, 1]) {
+        const idx = ps.map((d, i) => i).filter(i => Math.sign(crossed[i].x - ctx.cx) === sideSign);
+        if (idx.length !== 3) continue;
+        const three = heyThreeOnSide(crossed, idx, sideSign, call);
+        for (const i of idx) {
+          if (keys[i][1] !== act) { out[i] = three[i]; continue; }
+          // Crossing over, passing partner by the right in the middle, straight into the hey.
+          const d = ps[i], f = three[i], head = angleTo(d, crossed[i]);
+          out[i] = u => {
+            if (u >= 0.15) return f(u);
+            const p = f(0.15), k = mj(u / 0.15), b = 0.2 * Math.sin(Math.PI * k);
+            return { x: lerp(d.x, p.x, k) + Math.sin(head) * b, y: lerp(d.y, p.y, k) - Math.cos(head) * b, a: settle(d.a, angleTo(d, p), u / 0.15, 0.4) };
+          };
+        }
+      }
+      return out;
     } },
 
     // ---------- English country dance ----------
@@ -1219,21 +1310,8 @@ const Contra = (() => {
     heyThree: { group: 'four', any: true, plan(ps, call, ctx) {
       const out = ps.map(d => () => d);
       for (const sideSign of [-1, 1]) {
-        const idx = ps.map((d, i) => i).filter(i => Math.sign(ps[i].x - ctx.cx) === sideSign).sort((i, j) => ps[j].y - ps[i].y);
-        if (idx.length !== 3) continue;
-        const c = centroid(idx.map(i => ps[i])), A = Math.max(0.6, (ps[idx[0]].y - ps[idx[2]].y) / 2), B = 0.35 * (call.side === 'L' ? -1 : 1) * sideSign;
-        const track = t => ({ x: c.x + B * Math.sin(2 * t), y: c.y + A * Math.cos(t) }), span = (call.turns || 1) * TAU;
-        idx.forEach((i, k) => {
-          const d = ps[i], t0 = [0, 4 * Math.PI / 3, 2 * Math.PI / 3][k], path = s => track(t0 + span * s);
-          const end = call.turns === 0.5 ? { x: d.x, y: 2 * c.y - d.y } : { x: d.x, y: d.y };
-          out[i] = u => {
-            const s = trap(u, 0.1);
-            let p = path(s);
-            if (u < 0.15) { const k2 = mj(u / 0.15); p = { x: lerp(d.x, p.x, k2), y: lerp(d.y, p.y, k2) }; }
-            if (u > 0.85) { const k2 = mj((u - 0.85) / 0.15); p = { x: lerp(p.x, end.x, k2), y: lerp(p.y, end.y, k2) }; }
-            return { x: p.x, y: p.y, a: settle(d.a, heading(path, s), u, 0.1) };
-          };
-        });
+        const idx = ps.map((d, i) => i).filter(i => Math.sign(ps[i].x - ctx.cx) === sideSign);
+        if (idx.length === 3) Object.assign(out, heyThreeOnSide(ps, idx, sideSign, call));
       }
       return out;
     } },
@@ -1388,6 +1466,14 @@ const Contra = (() => {
       }
       return out;
     },
+    castAcross: (ps, call, ctx) => { const lead = call.who === 'larks' ? 'L' : 'R', two = ps.map((d, i) => i).filter(i => roleAt(ctx, i) === lead);
+      return two.length === 2 ? [hold(two[0], 'near', two[1], 'near', 0.08, 0.4)] : []; },
+    castOff: (ps, call, ctx) => {
+      const act = call.who === 'twos' ? '2' : '1', of = k => ps.map((d, i) => i).filter(i => (ctx.keys[i] || '')[1] === k), a = of(act), o = of(act === '1' ? '2' : '1'), out = [];
+      if (call.long && a.length === 2) out.push(hold(a[0], 'near', a[1], 'near', 0.15, 0.3));
+      if (ctx.english && o.length === 2) out.push(hold(o[0], 'near', o[1], 'near', 0.3, 0.75));
+      return out;
+    },
     leadDown: (ps, call, ctx) => { const act = call.who === 'twos' ? '2' : '1', two = ps.map((d, i) => i).filter(i => (ctx.keys[i] || '')[1] === act);
       return two.length === 2 ? [hold(two[0], 'near', two[1], 'near', 0.15, 1)] : []; },
     downHall: ps => { const o = ps.map((d, i) => i).sort((i, j) => ps[j].x - ps[i].x); return o.slice(1).map((i, k) => hold(o[k], 'near', i, 'near', 0.15, 1)); },
@@ -1445,7 +1531,7 @@ const Contra = (() => {
 
   // Typical lengths in beats, for figures built so far: the ContraLab timing chart (contralab.org),
   // and Contrafusion for pull by (4 beats; 2 when done rapidly as a single change).
-  const TYPICAL_BEATS = { dolphinHey: 16, chevron: 8, openChain: 8, doubleFigureEight: 16, longLines: 8, allemande: 8, balance: 4, boxTheGnat: 4, swing: 4, circle: 8, pullBy: 4,
+  const TYPICAL_BEATS = { castAcross: 8, heyThreeSide: 8, crossoverMirrorHey: 16, dolphinHey: 16, chevron: 8, openChain: 8, doubleFigureEight: 16, longLines: 8, allemande: 8, balance: 4, boxTheGnat: 4, swing: 4, circle: 8, pullBy: 4,
     shoulderRound: 8, dosido: 8, seesaw: 8, swatTheFlea: 4, californiaTwirl: 4, starThrough: 4, rollAway: 4, halfSashay: 4,
     passThrough: 4, star: 8, petronella: 4, courtesyTurn: 4, turnAsCouple: 4, chain: 8, rightLeftThrough: 8, flutterwheel: 8,
     hey: k => 16 * (k.turns || 1), figureEight: k => 16 * (k.turns || 1), forwardBack: 8, nextSquare: 8, grandRL: k => 16 * (k.turns || 0.5),
@@ -1548,6 +1634,10 @@ const Contra = (() => {
     if (/flutterwheel/.test(t)) return { fig: 'flutterwheel', who: 'all', reverse: /reverse/.test(t) };
     if (/square (through|thru)/.test(t)) return { fig: 'squareThrough', who: 'all', turns: amount(2) };
     if (/give.and.take/.test(t)) return { fig: 'giveAndTake', who: who === 'larks' ? 'larks' : 'robins' };
+    if (/crossover mirror hey/.test(t)) return { fig: 'crossoverMirrorHey', who: who === 'twos' || who === 'threes' ? who : 'ones', side: /\bleft\b/.test(t) ? 'L' : 'R', turns: 1 };
+    // Hey for three on the side, with one named dancer crossing over ("1st lark ...", "first man crosses ...").
+    if ((m = t.match(/\b(1st|first|2nd|second) (larks?|gents?|men|man|robins?|ladies|lady|women|woman)\b/)) && /hey for (three|3)|reel of three/.test(t))
+      return { fig: 'heyThreeSide', who: 'all', active: (/lark|gent|man|men/.test(m[2]) ? 'L' : 'R') + (/1st|first/.test(m[1]) ? '1' : '2'), side: /\bleft\b/.test(t) ? 'L' : 'R', turns: 1 };
     if (/hey for (three|3)|reel of three/.test(t)) return { fig: 'heyThree', who: 'all', side: /\bleft\b/.test(t) ? 'L' : 'R', turns: /half|1\/2/.test(t) ? 0.5 : 1 };
     if (/\bhey\b/.test(t)) {
       const st = t.match(/(robins|ladies|women|larks|gents|men|partners?|neighbou?rs?)\s+pass\s+(right|left)/);
@@ -1561,7 +1651,8 @@ const Contra = (() => {
     if ((m = t.match(/lead (down|up)/))) return { fig: 'leadDown', who: who === 'twos' ? 'twos' : 'ones', dir: m[1] };
     if (/down the (hall|center)/.test(t)) return { fig: 'downHall', who: 'all' };
     if (/up the (hall|center)|come back/.test(t)) return { fig: 'upHall', who: 'all' };
-    if (/cast (off|down|up)/.test(t)) return { fig: 'castOff', who: who === 'twos' ? 'twos' : 'ones' };
+    if (/cast across|lead (between|through) .*cast/.test(t)) return { fig: 'castAcross', who: who === 'larks' ? 'larks' : 'robins' };
+    if (/cast (off|down|up)/.test(t)) return { fig: 'castOff', who: who === 'twos' ? 'twos' : 'ones', long: /long cast/.test(t) };
     return { fig: null, who };
   }
 
@@ -2111,8 +2202,9 @@ const Contra = (() => {
       const plan = (ids, idmap = g.ids) => ({ ids, frame: null, idmap, p: { ...P, ringOpen: true } });
       if (fig.group === 'four') {
         const whole = WHOLE_SET.has(call.fig) || n <= 2 || /\b(six|eight|ten|twelve|everyone|all)\b/i.test(call.text);
-        if (call.fig === 'heyThree' || (fig.any && (whole || nums.length > 2))) {
-          const cs = call.fig === 'heyThree' ? (nums.length >= 3 ? nums.slice(0, 3) : [1, 2, 3]).filter(ok) : whole ? [...Array(n).keys()].map(i => i + 1) : nums.filter(ok);
+        const three = call.fig === 'heyThree' || call.fig === 'crossoverMirrorHey';
+        if (three || (fig.any && (whole || nums.length > 2))) {
+          const cs = three ? (nums.length >= 3 ? nums.slice(0, 3) : [1, 2, 3]).filter(ok) : whole ? [...Array(n).keys()].map(i => i + 1) : nums.filter(ok);
           return [plan(cs.flatMap(c => [L(c), R(c)]))];
         }
         return pairs.map(([a, b]) => plan([L(a), R(a), L(b), R(b)], { L1: L(a), R1: R(a), L2: L(b), R2: R(b) }));
@@ -2169,9 +2261,9 @@ const Contra = (() => {
           if (fig.group === 'pair' && dist(ps[0], ps[1]) > 2.0) notes.add(`${WHO_LABEL[who] || who} start ${dist(ps[0], ps[1]).toFixed(1)} m apart`);
           const keyOf = id => Object.keys(idmap).find(key => idmap[key] === id);
           if (frame) ps = ps.map(p => toLocal(frame, p));
-          const ctx = { p: planP || (g.center ? ringP(g.ring) : P), cx: frame ? 0 : g.cx, keys: ids.map(keyOf), slot };
+          const ctx = { p: planP || (g.center ? ringP(g.ring) : P), cx: frame ? 0 : g.cx, keys: ids.map(keyOf), slot, english: PROPER };
           if (g.center) ctx.sq = { R: g.ring.R, n: g.ring.n, spacing: g.ring.spacing, hasSlot: q => hasSlot(toWorld(frame, q)) };
-          if (call.fig === 'heyThree' && ids.length < 6) notes.add('a hey for three needs three dancers on each side (a hands-six or a three-couple set); dancers stand still');
+          if ((call.fig === 'heyThree' || call.fig === 'crossoverMirrorHey') && ids.length < 6) notes.add('a hey for three needs three dancers on each side (a hands-six or a three-couple set); dancers stand still');
           fig.plan(ps, call, ctx).forEach((f, i) => (fns[ids[i]] = frame ? u => toWorld(frame, f(u)) : f));
           addHolds(call.fig, ps, ctx, ids);
         }
@@ -2545,7 +2637,7 @@ const POOL = [
   { cat: 2, label: 'Half sashay', fig: 'halfSashay', who: PAIR, d: { who: 'partners' }, beats: 4, say: '{who} half sashay', re: /half sashay/ },
   { cat: 2, label: 'Trade', fig: 'trade', who: ['robins', 'larks'], side: 'pass', d: { who: 'robins', side: 'R' }, beats: 4, say: '{who} trade by {side}', re: /\btrade\b/ },
   { cat: 2, label: 'Cross', fig: 'cross', who: ['robins', 'larks', 'ones', 'twos'], side: 'pass', d: { who: 'robins', side: 'R' }, beats: 4, say: '{who} cross by {side}', re: /\bcross\b/ },
-  { cat: 2, label: 'Hole in the wall cross', fig: 'holeInWall', who: PAIR, d: { who: 'neighbors' }, beats: 4, say: '{who} hole in the wall cross', re: /hole in the wall/, ecd: true },
+  { cat: 2, label: 'Hole in the wall cross', fig: 'holeInWall', who: PAIR, d: { who: 'firstCorners' }, beats: 4, say: '{who} hole in the wall cross', re: /hole in the wall/, ecd: true },
   { cat: 2, label: 'Chevron', fig: 'chevron', who: ['firstCorners', 'secondCorners'], side: 'pass', d: { who: 'firstCorners', side: 'R' }, beats: 8, say: '{who} chevron, crossing by the {side}', re: /chevron/, ecd: true },
   { cat: 3, label: 'Balance', fig: 'balance', who: PAIR, side: 'hands', d: { who: 'neighbors', side: 'R' }, say: '{who} balance {side}' },
   { cat: 3, label: 'Long lines', fig: 'longLines', d: {}, say: 'In long lines, go forward and back' },
@@ -2590,7 +2682,8 @@ const POOL = [
   { cat: 7, label: 'Hey for three', fig: 'heyThree', side: 'pass', amount: 'half', d: { side: 'R', amt: 1 }, beats: 8,
     say: m => `${m.amt === 0.5 ? 'Half hey for three' : 'Hey for three'} on the sides, ${m.side === 'L' ? 'left' : 'right'} shoulders to start`, re: /hey for (three|3)/, setup: 'triplet' },
   { cat: 7, label: 'Dolphin hey', fig: 'dolphinHey', who: ['ones', 'twos'], d: { who: 'ones' }, beats: 16, say: '{who} dolphin hey across the set', re: /dolphin hey/, ecd: true },
-  { cat: 7, label: 'Crossover mirror hey', d: {}, beats: 8, say: 'Crossover mirror hey', re: /crossover mirror hey/, ecd: true },
+  { cat: 7, label: 'Crossover mirror hey', fig: 'crossoverMirrorHey', d: {}, beats: 16, say: 'Ones crossover mirror hey', re: /crossover mirror hey/, ecd: true, setup: 'triplet' },
+  { cat: 7, label: 'Hey for three on the side', fig: 'heyThreeSide', d: {}, beats: 8, say: 'First lark crosses for a hey for three with the robins', re: /(1st|first|2nd|second) \w+ .*hey for (three|3)/, ecd: true },
   { cat: 7, label: 'Double figure eight', fig: 'doubleFigureEight', d: {}, beats: 16, say: 'Double figure eight, 2s cross up as 1s cast down', re: /double (full )?figure.?(8|eight)/, ecd: true },
   { cat: 7, label: 'Figure eight', fig: 'figureEight', who: ['ones', 'twos'], amount: 'half', d: { who: 'ones', amt: 0.5 }, beats: 8,
     say: m => `${WHO_WORD[m.who]} ${m.amt === 0.5 ? 'half figure eight' : 'figure eight'}`, re: /figure (8|eight)/ },
@@ -2599,6 +2692,8 @@ const POOL = [
   { cat: 8, label: 'Down the hall', fig: 'downHall', d: {}, beats: 8, say: 'Down the hall in a line of four', re: /down the (hall|center)/ },
   { cat: 8, label: 'Up the hall', fig: 'upHall', d: {}, beats: 8, say: 'Up the hall in a line of four', re: /up the (hall|center)|come back/ },
   { cat: 8, label: 'Cast off', fig: 'castOff', who: ['ones', 'twos'], d: { who: 'ones' }, beats: 4, say: '{who} cast off', re: /cast off/ },
+  { cat: 8, label: 'Long cast', fig: 'castOff', who: ['ones', 'twos'], d: { who: 'ones' }, beats: 8, say: '{who} long cast down', re: /long cast/, ecd: true },
+  { cat: 3, label: 'Cast across', fig: 'castAcross', who: ['robins', 'larks'], d: { who: 'robins' }, beats: 8, say: '{who} lead between and cast across', re: /cast across|lead (between|through) .*cast/, ecd: true },
   { cat: 8, label: 'Cast down', fig: 'castOff', who: ['ones', 'twos'], d: { who: 'ones' }, beats: 4, say: '{who} cast down', re: /cast down/ },
   { cat: 8, label: 'Shift', fig: 'shift', side: 'way', d: { side: 'L' }, beats: 4, say: 'Shift {side}', re: /^shift\b/ },
   { cat: 8, label: 'Veer', fig: 'veer', side: 'way', d: { side: 'L' }, beats: 2, say: 'Veer {side}', re: /^veer\b/ },
@@ -2881,7 +2976,7 @@ const DESCRIPTIONS = {
   'Down the hall': 'Form a line of four across the set and walk down the hall.',
   'Up the hall': 'Turn to face up, walk back up the hall, and bend the line into two couples facing across: the ends come forward, the centers back up.',
   'Cast off': 'The active couple turn away from each other and go down the outside one place while the others move up.',
-  'Cast down': 'The active couple go down the outside one place while the others move up.',
+  'Cast down': 'The active couple turn out and go down the outside one place while the others move up (in English dances they lead up through the middle, holding hands).',
   'Shift': 'As couples, sidestep along the line one place.',
   'Veer': 'As couples, two steps forward and to the named side.',
   'Forward and back': 'In a square, the named couples (or everyone) walk four steps into the middle and four steps back.',
@@ -2903,7 +2998,10 @@ const DESCRIPTIONS = {
   'Rights and lefts': 'A circular hey for four with hands: pull by your partner right, turn in, pull by your neighbor left, and so on. Four changes bring you home; two take you to your corner\'s place.',
   'Half open ladies chain': 'English: the robins meet in the middle and pull by right, going on to the far side. Each lark walks a small counter-clockwise loop along his side, away from his place and back, and halfway round takes the arriving robin by the left hand to turn her half. Larks end home; robins end diagonally across from where they started.',
   'Dolphin hey': 'English: a hey for three across the set in which the active couple travel together as one unit, robin leading toward the robins\' side and lark leading back; at each end they turn around, so the lead changes. The other couple weave at the ends. Starts with the active couple in the middle of a line across.',
-  'Crossover mirror hey': 'A mirror hey for three in which the first couple cross over at the very start. Not animated yet.',
+  'Crossover mirror hey': 'English, in a three-couple set: the first couple cross over at the very start, then each side heys for three, the two heys mirror images of each other. The first couple end crossed over.',
+  'Hey for three on the side': 'English: one dancer (usually the first lark) crosses between the two dancers on the other side, passing the lower one by the right, and the three weave a figure eight along that side; the crosser loops back home at the end. The partner opposite waits.',
+  'Cast across': 'English: the leaders (usually the robins), holding inside hands, lead across between the two dancers opposite, part, and cast back round the outside of them to their own places.',
+  'Long cast': 'English: the casting couple first come into the middle to meet and touch hands, then turn out and cast down the outside one place, while the others lead up through the middle. Takes twice as long as a short cast.',
   'Double figure eight': 'English: both couples dance a full figure eight at once, out of step: the twos cross up through the middle while the ones cast down around the outside (or the other way round), following the same track. Everyone ends at home.',
   'Contra corners': 'The active couple turn each other and each of their two contra corners in a series of allemandes. Not animated yet.',
 };
@@ -2911,7 +3009,7 @@ const DESCRIPTIONS = {
 const APPROX = new Set(['Hey for four', 'Robins chain', 'Larks chain', 'Right and left through', 'Flutterwheel', 'Star promenade', 'Weathervane',
   'Give and take', 'Figure eight', 'Slice', 'Shift', 'Veer', 'Lead down', 'Down the hall', 'Up the hall', 'Cast off', 'Cast down', 'Petronella',
   'Poussette', 'Half draw poussette', 'California twirl', 'Hey for three', 'Siding', 'Sharp siding', 'Up a double', 'Fall back', 'Honour',
-  'Hole in the wall cross', 'Chevron', 'Dolphin hey', 'Hand turn', 'Bentley allemande', 'Half open ladies chain', 'Double figure eight', 'Star through', 'Roll away', 'Half sashay', 'Balance the wave', 'Cross', 'Turn as a couple', 'Butterfly whirl']);
+  'Hole in the wall cross', 'Chevron', 'Dolphin hey', 'Crossover mirror hey', 'Hey for three on the side', 'Cast across', 'Long cast', 'Hand turn', 'Bentley allemande', 'Half open ladies chain', 'Double figure eight', 'Star through', 'Roll away', 'Half sashay', 'Balance the wave', 'Cross', 'Turn as a couple', 'Butterfly whirl']);
 // Some moves need the dancers set up first: side by side with the chosen person, or couples on the sides.
 const SETUP = {
   californiaTwirl: 'pair', rollAway: 'pair', halfSashay: 'pair', courtesyTurn: 'pair', turnAsCouple: 'pair', butterflyWhirl: 'pair', gate: 'pair',

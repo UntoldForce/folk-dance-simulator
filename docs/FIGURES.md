@@ -15,9 +15,9 @@ roll away, balance the wave (forward and back only), cross (treated as a pass th
 butterfly whirl (half a turn as a couple), and the square figures (promenade, grand right and left, forward and back,
 pass through to the next square) and the English figures (siding, sharp siding, up a double, fall back, honour,
 hole in the wall cross, hand turn, Bentley allemande, half draw poussette, hey for three). Not animated: contra corners,
-Dixie twirl, crossover mirror hey. The double figure eight, half draw poussette, dolphin hey, half open ladies chain,
-chevron and hole in the wall cross were built from or checked against the tutorial's animated GIFs (Ryan
-supplied them).
+Dixie twirl. Built from or checked against the tutorial's animated GIFs (Ryan supplied them; identified by matching
+each GIF's size to the tutorial page's image list): dolphin hey, double figure eight, half draw poussette, half open
+ladies chain, chevron, mad robin, cast down and long cast, cast across, crossover mirror hey, hey for three on the side.
 
 **Neighbour in a proper set** (Ryan's call): English dances are almost always proper, and there your neighbour is the
 dancer beside you on your side (the same role). In improper and other formations it stays the contra meaning, the
@@ -130,3 +130,7 @@ placed in a dance; dancers stand still during them and the checks show a caution
 | Half open ladies chain (English) | Robins, with the larks | 8 | Robins pull by right in the middle and go on to the far lark's place; each lark loops along his side (outside first), and halfway round takes the arriving robin's left hand to turn her half | Larks home; robins diagonally across | built |
 | Chevron (English) | Two couples, proper | 8 | One pair of corners (first by default) cross diagonally by the named shoulder; the other pair cast round the outside of their own side into the crossers' places while the crossers back straight across into theirs | Progressed, still proper | built |
 | Dolphin hey (English) | Active couple as one unit, with the other couple | 16 | A hey for three across the set; the active pair travel together, robin leading toward the robins' side and lark leading back, turning around at each end so the lead changes; the other couple weave at the ends | Ends home (full) or traded (half); the pair in the middle of the line | built |
+| Cast across (English) | Leaders (robins by default) | 8 | Holding inside hands, lead across between the two opposite, part, and cast back round the outside of them | Home | built |
+| Long cast (English) | Active couple | 8 | Come into the middle to touch hands, then turn out and cast down one place; in a proper set the others lead up through the middle holding hands (also in a short cast) | One place down | built |
+| Hey for three on the side (English) | One crosser (first lark by default) and the two opposite | 8 | The crosser goes between the two on the other side, passing the lower one by the right, and the three weave a figure eight along that side; the crosser loops back home | Home | built |
+| Crossover mirror hey (English) | Three-couple set | 16 | The first couple cross over, then each side heys for three, the two heys mirror images | First couple crossed; others home | built |
