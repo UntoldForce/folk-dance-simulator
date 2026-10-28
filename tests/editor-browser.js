@@ -64,7 +64,8 @@ const { chromium } = require('playwright');
   await p.keyboard.press('Escape');
   check(!(await p.evaluate(() => $('explorer').open)), 'Escape closes the explorer');
   const opened = await p.evaluate(() => POOL.filter(d => { openExplorer(d, { ...d.d }, d.beats || 4); const ok = $('explorer').open; $('explorer').close(); return ok; }).length);
-  check(opened === 55, `every move opens in the explorer (${opened} of 55)`);
+  const total = await p.evaluate(() => POOL.length);
+  check(opened === total, `every move opens in the explorer (${opened} of ${total})`);
 
   check(errs.length === 0, `no page errors ${errs.join(' | ')}`);
   await b.close();
