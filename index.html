@@ -2847,7 +2847,9 @@ function previewOf(def, m, beats) {
   const line = sayMove(def, m), key = [setup, line, beats, $('swingRate').value].join('|');
   if (previews.has(key)) return previews.get(key);
   // Square moves are shown in a square (passing to the next square needs two squares of a grid).
-  const base = def.square || (def.setup === 'triplet' ? 'Triplet - Proper' : '');
+  // English moves are shown in a proper set, as English dances almost always are (the half open ladies chain needs
+  // a lark and a robin on each side, so it stays improper, as the tutorial describes it).
+  const base = def.square || (def.setup === 'triplet' ? 'Triplet - Proper' : def.ecd && def.fig !== 'openChain' ? 'Duple Minor - Proper' : '');
   const dance = Contra.parseDance([base ? `FormationBase: ${base}` : '', 'A1', setup, `(${beats}) ${line}`].filter(Boolean).join('\n'));
   const c = Contra.compile(dance, { lines: 1, sets: def.square === 'Grid Square' ? 2 : 1, passes: 1, loop: false, params: { swingBeatsPerTurn: +$('swingRate').value } });
   const t0 = c.calls[c.calls.length - 1].t0, t1 = c.total, b = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity };

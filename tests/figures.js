@@ -49,6 +49,24 @@ for (const [beats, text] of FIGS) {
   if (!ok) failures++;
   rows.push(`${ok ? 'PASS' : 'FAIL'}  ${text.padEnd(42)} ${String(call.fig).padEnd(17)} peak ${peak.toFixed(2)} m/s, turning up to ${Math.round(spin)}°/s${nan ? ', NaN' : ''}${off ? ', leaves the floor' : ''}`);
 }
+// English figures again, in a proper set (as English dances usually are).
+for (const [beats, text] of FIGS.filter(([b, t]) => /side|siding|double|fall back|honour|hole in the wall|hand turn|turn by|bentley|back to back|draw poussette|rights and lefts|corners/i.test(t))) {
+  const dance = Contra.parseDance(`FormationBase: Duple Minor - Proper\nA1\n(8) In long lines, go forward and back\n(${beats}) ${text}`);
+  const call = dance.parts[0].calls[1], c = Contra.compile(dance, { lines: 1, sets: 2, passes: 1 });
+  let peak = 0, spin = 0, nan = false;
+  for (const d of c.dancers) {
+    let prev = Contra.poseAt(c, d.id, 8);
+    for (let t = 8.02; t <= 8 + beats + 1e-9; t += 0.02) {
+      const p = Contra.poseAt(c, d.id, t);
+      if ([p.x, p.y, p.a].some(v => Number.isNaN(v))) nan = true;
+      peak = Math.max(peak, Math.hypot(p.x - prev.x, p.y - prev.y) / 0.01); spin = Math.max(spin, Math.abs(wrap(p.a - prev.a)) / 0.01 * 180 / Math.PI); prev = p;
+    }
+  }
+  const ok = call.fig && !nan && peak < 5 && spin < 1500;
+  if (!ok) failures++;
+  rows.push(`${ok ? 'PASS' : 'FAIL'}  ${('[proper] ' + text).padEnd(42)} ${String(call.fig).padEnd(17)} peak ${peak.toFixed(2)} m/s, turning up to ${Math.round(spin)}°/s`);
+}
+
 // Hey for three, in a three-couple set.
 for (const [beats, text] of [[8, 'Hey for three on the sides, right shoulders to start'], [8, 'Half hey for three on the sides']]) {
   const dance = Contra.parseDance(`FormationBase: Triplet - Proper\nA1\n(8) In long lines, go forward and back\n(${beats}) ${text}`);
