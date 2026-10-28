@@ -177,6 +177,42 @@ Dancers are drawn 0.38 m across; `bodyGap` (0.4 m) is the closest two dancers' m
   `tests/editor-browser.js` runs every move in the list with each choice of who and side, as its preview plays it
   and with three hands-fours.
 
+## Testing against real dances (October 2026)
+
+`tools/fetch-contradb.js` downloads dances from ContraDB (contradb.com, whose robots.txt allows it), one request at a
+time, keeping only those their owner marked "shared everywhere", and writes each in The Caller's Box layout to
+`library/contradb/`. That folder isn't in the repository: the dances belong to their choreographers. (The Caller's Box
+itself can't be reached from the cloud session: its security certificate fails.) `tests/library.js` runs every dance
+there and writes `library/report.txt`: figures not read yet (most common first), dances whose progression goes wrong,
+bumps, hand problems, crashes. It's a to-do list, not a pass/fail test.
+
+What the first 402 dances taught the simulator:
+- **Several figures on one line** ("(16) Neighbors balance & swing", "circle left 3/4 and pass through") are split at
+  "&", "and", "then" or ";" when each part reads as a figure; later parts are danced by the same people unless they
+  name others; each part but the last gets its usual length, the last the rest. Names with "and" in them ("right and
+  left through", "forward and back", "give and take", "1 & 1/2") stay whole.
+- **Other spellings:** do si do, see saw, gyre (shoulder round), right left through, grand right left, pass by,
+  Rory O'More (slide), "slide left along the set" (a shift, not the wave figure), "swing through" (not a swing; not
+  built yet), "pass through to an ocean wave" (pass the ocean).
+- **Who** is the first dancers a line names ("robins do-si-do 1½ to meet partner" is the robins'); couple numbers
+  ("1s and 3s first corners") count only when nothing else is named; "… or …" alternatives are ignored.
+- **"N places"** round a circle or star is N quarters.
+- **"…swing, end facing down (up)"** ends the swing in the middle of the set facing that way; a pair swinging while the
+  others stand finishes in the middle if its side is taken.
+- **An unnamed pass through** goes along the set right after a circle or star (on to new neighbors), otherwise across.
+- **"Promenade"** in a contra is a promenade across; **"grand right and left"** in a hands-four is rights and lefts.
+- **Progressing partway through:** after a figure that takes dancers to new neighbors ("to new neighbors", "along the
+  set", ContraDB's ⁋ mark, outside A1), or before one danced with the "next neighbors", couples form new hands-fours
+  from where they stand. That moment is then the changeover: couples waiting out switch role there, and the
+  progression is checked from one changeover to the next.
+- **The progression check** looks only at where dancers stand (within 0.35 m), not which way they face: by the end of
+  a time through they're already turning toward the next figure.
+
+After these: 75% of the dances have every figure read; 34% are read, progress correctly, and have no bumps or hand
+problems (from 3%). Still to do: Becket and proper dances often finish with couples on the wrong side after a partner
+swing (which side a swing ends on is a guess); figures not built yet (swing through, arch and dive, zig-zag, cross
+trails, rang tang); notes in the figure text ("larks take partners", "look for your partner").
+
 ## Startup decisions
 
 1. **Multiple lines:** always modeled by the engine; figures between lines are rare, so their controls and checks live under **Advanced settings**.

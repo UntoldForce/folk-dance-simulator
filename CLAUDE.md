@@ -21,4 +21,5 @@ Read `docs/DESIGN.md` first; it holds the agreed decisions. The original brief i
 - The page script's editor section (part rows, pool, dragging, settings) edits a parsed dance and writes it back with `Contra.serialize`.
 - `tests/figures.js` runs every figure on its own and checks speeds, turning and continuity; `tests/collisions.js` checks nobody walks into anyone (both share the move list in `tests/cases.js`).
 - `tests/editor-browser.js` drives the editor in a real browser (Playwright); run it after editor changes.
+- `tools/fetch-contradb.js` downloads shared dances from ContraDB into `library/` (not committed); `tests/library.js` runs them all and writes `library/report.txt`, a to-do list.
 - Test dances live in `dances/`. How each figure moves is in `docs/FIGURES.md`; the review of every move and formation against The Caller's Box glossary and the English tutorial is `docs/REVIEW.md`.
