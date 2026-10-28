@@ -101,10 +101,10 @@ the move explorer.
 
 | Move | Source | Verdict | Notes |
 |---|---|---|---|
-| Form a wave of four / long waves | CB | new | Also as the end of any figure: "...; form wave of four (NR,WL)", "...; form long waves (NR, women face in)", "circle to a wave" |
+| Form a wave of four / long waves | CB | new | Also as the end of any figure: "...; form wave of four (NR,WL)", "...; form long waves (NR, women face in)", "circle to a wave". Alternating waves too: "(NR, PL)" = lark, robin, lark, robin, partners in the center |
 | Pass the ocean / pass the sea | CB, CALLERLAB | new | |
 | Balance the wave | CB | fixed | Now in a real wave, hands joined |
-| Trade the wave | CB, CALLERLAB | new | Same-facing dancers trade, passing right shoulders |
+| Trade the wave | CB, CALLERLAB | new | Same-facing dancers trade, passing right shoulders, and end facing exactly the other way |
 | Slide right / left | CB | new | The optional spin isn't drawn |
 | Spin the top | CB, CALLERLAB | new | |
 | Circulate | CB, CALLERLAB | new | Long waves |

@@ -516,19 +516,24 @@ const Contra = (() => {
     }
     const xs = [-1.05, -0.35, 0.35, 1.05].map(v => ctx.cx + v), up = Math.PI / 2;
     const faces = hand > 0 ? [up, -up, up, -up] : [-up, up, -up, up];
-    const centers = ps.map((d, i) => i).filter(i => role(i) === (spec.centers || 'R')), ends = ps.map((d, i) => i).filter(i => !centers.includes(i));
-    if (centers.length !== 2 || ends.length !== 2) return out;
-    const ok = spec.pair || (() => true);
+    // Centers of one role (lark, robin, robin, lark), or spec.centers 'mix': alternating lark, robin, lark, robin
+    // with a mixed pair in the middle (`centerPair` says who may stand together there).
+    if (ps.length !== 4) return out;
+    const ok = spec.pair || (() => true), okC = spec.centerPair || (() => true);
+    const fits = o => (spec.centers === 'mix' ? o.every((i, k) => k === 0 || role(i) !== role(o[k - 1])) : role(o[1]) === (spec.centers || 'R') && role(o[2]) === (spec.centers || 'R'));
+    const perms = a => (a.length < 2 ? [a] : a.flatMap((x, k) => perms(a.filter((y, j) => j !== k)).map(r => [x, ...r])));
     let best = null;
-    for (const [c1, c2] of [[centers[0], centers[1]], [centers[1], centers[0]]]) for (const [e1, e2] of [[ends[0], ends[1]], [ends[1], ends[0]]]) {
-      const order = [e1, c1, c2, e2], cost = order.reduce((sum, i, k) => sum + dist(ps[i], { x: xs[k], y: c.y }), 0) + (ok(e1, c1) && ok(e2, c2) ? 0 : 100);
+    for (const order of perms([0, 1, 2, 3]).filter(fits)) {
+      const cost = order.reduce((sum, i, k) => sum + dist(ps[i], { x: xs[k], y: c.y }), 0) + (ok(order[0], order[1]) && ok(order[3], order[2]) ? 0 : 100) + (okC(order[1], order[2]) ? 0 : 100);
       if (!best || cost < best.cost) best = { cost, order };
     }
+    if (!best) return out;
     best.order.forEach((i, k) => (out[i] = { x: xs[k], y: c.y, a: faces[k] }));
     return out;
   }
   // The wave a call ends in ("; form long waves (NR, women face in)", "; form wave of four (NR,WL)").
-  const waveSpec = (call, ps, keys) => ({ ...call.form, pair: call.form.rel === 'P' ? (e, c) => keys[e].slice(1) === keys[c].slice(1) : call.form.rel === 'N' ? (e, c) => keys[e].slice(1) !== keys[c].slice(1) : null });
+  const relTest = (rel, keys) => (rel === 'P' ? (a, b) => keys[a].slice(1) === keys[b].slice(1) : rel === 'N' ? (a, b) => keys[a].slice(1) !== keys[b].slice(1) : null);
+  const waveSpec = (call, ps, keys) => ({ ...call.form, pair: relTest(call.form.rel, keys), centerPair: relTest(call.form.centerRel, keys) });
   // Dancers in the wave beside each other (for hand holds): pairs of indices about 0.7-1.0 m apart.
   function waveNeighbours(t) {
     const idx = t.map((q, i) => (q ? i : -1)).filter(i => i >= 0), out = [];
@@ -1442,9 +1447,11 @@ const Contra = (() => {
         if (j == null) continue;
         const d = ps[i], e = ps[j], F = d.a || 0, fw = { x: Math.cos(F), y: Math.sin(F) };
         // Passing right shoulders: of the two, the one travelling toward its right goes wide.
-        const goingRight = (e.x - d.x) * Math.sin(F) - (e.y - d.y) * Math.cos(F) > 0, depth = goingRight ? 0.75 : 0.45;
+        const goingRight = (e.x - d.x) * Math.sin(F) - (e.y - d.y) * Math.cos(F) > 0, depth = goingRight ? 0.95 : 0.4;
         const path = s => ({ x: lerp(d.x, e.x, s) + fw.x * depth * Math.sin(Math.PI * s), y: lerp(d.y, e.y, s) + fw.y * depth * Math.sin(Math.PI * s) });
-        out[i] = u => { const s = mj(u), p = path(s); return { ...p, a: settle(d.a, heading(path, Math.min(0.98, Math.max(0.02, s))), u, 0.1) }; };
+        // They finish facing exactly the other way, ready for the new wave.
+        out[i] = u => { const s = mj(u), p = path(s), a = settle(d.a, heading(path, Math.min(0.98, Math.max(0.02, s))), u, 0.1);
+          return { ...p, a: u < 0.8 ? a : lerpAngle(a, F + Math.PI, mj((u - 0.8) / 0.2)) }; };
       }
       return out;
     } },
@@ -1876,11 +1883,12 @@ const Contra = (() => {
     if (!m) return null;
     const paren = (m[2].match(/\(([^)]*)\)/) || [])[1] || '', [a = '', b = ''] = paren.split(/[,;]/).map(x => x.trim().toUpperCase());
     return { kind: /long/i.test(m[1]) ? 'long' : 'short', hand: /L$/.test(a) ? 'L' : 'R', rel: /^N/.test(a) ? 'N' : /^P/.test(a) ? 'P' : null,
-      centers: /^(M|G|L)/.test(b) ? 'L' : 'R', faceIn: /\b(men|gents|larks)\s+face in/i.test(m[2]) ? 'L' : 'R' };
+      // The center pair: a role (WL: robins, ML: larks) or a relationship (PL, NL: alternating lark, robin, lark, robin).
+      centers: /^(P|N)/.test(b) ? 'mix' : /^(M|G|L)/.test(b) ? 'L' : 'R', centerRel: /^P/.test(b) ? 'P' : /^N/.test(b) ? 'N' : null, faceIn: /\b(men|gents|larks)\s+face in/i.test(m[2]) ? 'L' : 'R' };
   }
   function parseFigure(text) {
     const form = parseForm(text), main = form ? text.replace(FORM_RE, '').trim() : text;
-    if (form && !/[a-z]/i.test(main)) return { fig: 'formWave', who: form.kind === 'long' ? (form.faceIn === 'L' ? 'larks' : 'robins') : form.centers === 'L' ? 'larks' : 'robins', side: form.hand, form };
+    if (form && !/[a-z]/i.test(main)) return { fig: 'formWave', who: form.kind === 'long' ? (form.faceIn === 'L' ? 'larks' : 'robins') : form.centers === 'mix' ? 'partners' : form.centers === 'L' ? 'larks' : 'robins', side: form.hand, form };
     const r = parseMain(main);
     return form ? { ...r, form } : r;
   }
@@ -3013,6 +3021,8 @@ const POOL = [
   { cat: 3, label: 'Set', fig: 'set', who: PAIR, d: { who: 'partners' }, beats: 4, say: 'Set to {who_l}', re: /^set\b|\bset to\b/ },
   { cat: 3, label: 'Turn single cloverleaf', fig: 'turnSingle', d: {}, beats: 4, say: 'Turn single cloverleaf', re: /turn single clover/, ecd: true },
   { cat: 3, label: 'Turn single', fig: 'turnSingle', side: 'way', d: { side: 'R' }, beats: 4, say: 'Turn single {side}', re: /turn single/ },
+  { cat: 9, label: 'Form an alternating wave of four', fig: 'formWave', who: ['partners', 'neighbors'], side: 'hand', d: { who: 'partners', side: 'R' }, beats: 4,
+    say: m => `Form a wave of four (${m.who === 'partners' ? 'N' : 'P'}${m.side}, ${m.who === 'partners' ? 'P' : 'N'}${m.side === 'R' ? 'L' : 'R'})`, re: /wave of four \([NP][RL], ?[NP][RL]\)/ },
   { cat: 9, label: 'Form a wave of four', fig: 'formWave', who: ['robins', 'larks'], side: 'hand', d: { who: 'robins', side: 'R' }, beats: 4,
     say: m => `Form a wave of four (N${m.side}, ${m.who === 'larks' ? 'M' : 'W'}${m.side === 'R' ? 'L' : 'R'})`, re: /wave of four|short wave|ocean wave/ },
   { cat: 9, label: 'Form long waves', fig: 'formWave', who: ['robins', 'larks'], side: 'hand', d: { who: 'robins', side: 'R' }, beats: 4,
@@ -3325,6 +3335,7 @@ const DESCRIPTIONS = {
   'Turn single': 'Walk forward round a small circle (about the size of a pizza) off to one side, turning all the way round: right turns clockwise, left counter-clockwise. You end where you started.',
   'Balance the wave': 'In a wave (a wave of four across the set, or long waves on the sides), hands joined with the dancers beside you, balance forward and back.',
   'Form a wave of four': 'Four dancers make a line across the set, each facing the opposite way from the dancer beside them, hands joined: (NR, WL) means the ends hold right hands with their neighbors and the robins hold left hands in the center. Any figure can end this way: "...; form wave of four".',
+  'Form an alternating wave of four': 'A wave of four across the set that alternates lark, robin, lark, robin, with a mixed pair in the center: (NR, PL) means the ends hold right hands with their neighbors and partners hold left hands in the center.',
   'Form long waves': 'Each side of the set becomes one long wave down the hall: dancers alternately face in and out, hands joined with the dancers beside them, e.g. (NR, robins face in). Any figure can end this way: "...; form long waves".',
   'Pass the ocean': 'From couples on the sides: pass through across the set; the right-hand dancers hook left hands in the middle and turn to be the centers, while the others go on across and take right hands with the one they were standing beside. Ends in a right-handed wave of four.',
   'Pass the sea': 'The mirror image of pass the ocean: pass left shoulders, the left-hand dancers become the centers holding right hands, ending in a left-handed wave of four.',

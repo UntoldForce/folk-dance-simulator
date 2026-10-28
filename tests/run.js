@@ -268,6 +268,10 @@ check(made.every(k => { const r = Contra.parseDance('A1\n(8) ' + Contra.callText
   check(line.every(d => H[d.id].L.held || H[d.id].R.held), 'balance the wave: everyone holds hands with the dancers beside them');
   const after = at(14);
   check(after[1].id.endsWith('L') && after[2].id.endsWith('L'), `trade the wave: ends become centers (${after.map(d => d.id).join(' ')})`);
+  const altWave = Contra.compile(Contra.parseDance('A1\n(8) Circle left 3/4; form wave of four (NR, PL)\n(4) Balance the wave'), { lines: 1, sets: 1, passes: 1 });
+  const row = ['0.1L', '0.1R', '0.2L', '0.2R'].map(id => ({ id, ...Contra.poseAt(altWave, id, 8) })).sort((a, b) => a.x - b.x);
+  const alternates = row.every((d, i) => i === 0 || d.id.slice(-1) !== row[i - 1].id.slice(-1)), partnersMid = row[1].id.slice(0, 3) === row[2].id.slice(0, 3);
+  check(alternates && partnersMid && row.every((d, i) => i === 0 || Math.cos(d.a - row[i - 1].a) < -0.9), `alternating wave of four (NR, PL): lark, robin, lark, robin, partners in the center (${row.map(d => d.id).join(' ')})`);
   const lw = Contra.compile(Contra.parseDance('A1\n(8) Neighbor do-si-do; form long waves (NR, women face in)\n(4) Circulate'), { lines: 1, sets: 1, passes: 1 });
   const facesIn = id => { const p = Contra.poseAt(lw, id, 8); return Math.cos(p.a) * -p.x > 0; };
   check(facesIn('0.1R') && facesIn('0.2R') && !facesIn('0.1L') && !facesIn('0.2L'), 'form long waves (women face in): robins face in, larks out');
