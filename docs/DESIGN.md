@@ -280,6 +280,16 @@ Like a video editor (Ryan's example: Adobe Premiere), nothing scrolls on a compu
   **search box** filters the list by name; it understands the other role names ("ladies chain") and older names
   ("gypsy").
 - **Checks** shows labelled counts in the top bar: problems, cautions, passed.
+- **Dances panel** (top bar): the examples ("111" and one dance for each other formation, the same text as the files in
+  `dances/`, which the browser test checks) and **My dances**, saved by title on the device.
+- **Next end effect** jumps to the start of the next time through where who is waiting out changes.
+- **Journey chart:** the timeline's second view (**Parts | Journey**). Each couple in a line is a line on the chart:
+  across, the whole run (bands for each time through); up and down, where the couple stands along the set at the
+  start of each time through, top of the hall at the top. A hollow dot means that couple waits out at an end that
+  time. The couple being followed is bold. Click a line to follow that couple; click anywhere to go to that moment.
+  Shown for dances in lines (contra, English sets, Becket, triple minor, tempest, four facing four); squares and
+  circles get a note instead.
+- Phones start with one line (until a choice is remembered).
 - Narrow or short screens (under 1000 px wide or 560 px tall) fall back to a scrolling page: floor and timeline
   first, the editor below.
 

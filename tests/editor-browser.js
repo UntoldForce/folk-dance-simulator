@@ -110,6 +110,17 @@ const { chromium } = require('playwright');
   check(await p.locator('#myList .dlist:has-text("Simple Square")').count() === 1, 'Save this dance adds it to My dances');
   await p.click('#dancesClose');
 
+  // Journey chart: the timeline's second view; clicking a couple's line follows them and goes to that moment.
+  await p.click('#reset2'); await p.waitForTimeout(150);
+  await p.click('#viewJourney'); await p.waitForTimeout(150);
+  check(await p.locator('#journeyCanvas').isVisible() && !(await p.locator('#rows').isVisible()), 'Journey swaps the part rows for the couple journey chart');
+  const spot = await p.evaluate(() => { const d = journeyData(), v = journeyView($('journeyCanvas')), k = d.couples[2], [t, y] = k.pts[3]; return { id: k.id, x: v.r.left + v.X(t + 0.5 * state.c.perPass) , y: v.r.top + v.Y((y + k.pts[4][1]) / 2), t }; });
+  await p.mouse.click(spot.x, spot.y); await p.waitForTimeout(100);
+  check(await p.evaluate(s => state.highlight === s.id && passAt(state.t) === 3, spot), 'clicking a couple\'s line in the chart follows that couple and goes to that time through');
+  check(await p.evaluate(() => state.journeyChart.couples.some(k => k.pts.some(q => q[2]))), 'the chart knows when couples wait out at the ends');
+  await p.click('#viewParts'); await p.waitForTimeout(100);
+  check(await p.locator('#rows').isVisible(), 'Parts brings the rows back');
+
   // Workspace: nothing scrolls on a computer screen; the timeline sits right under the floor.
   await p.click('#reset2'); await p.waitForTimeout(200);
   for (const [w, h] of [[1440, 900], [1366, 768], [1920, 1080]]) {

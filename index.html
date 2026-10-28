@@ -314,6 +314,14 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
 .dlist { display: block; width: 100%; text-align: left; margin-bottom: 4px; padding: 6px 10px; border-radius: 6px; }
 .drow { display: flex; gap: 4px; } .drow .dlist { flex: 1; } .drow .dx { margin-bottom: 4px; padding: 0 9px; color: var(--muted); }
 #nextEnd { margin-left: auto; }
+
+.seg.viewseg { display: inline-flex; gap: 0; flex-wrap: nowrap; }
+.viewseg button { border-radius: 0; padding: 4px 11px; font-size: 13px; }
+.viewseg button:first-child { border-radius: 7px 0 0 7px; } .viewseg button:last-child { border-radius: 0 7px 7px 0; margin-left: -1px; }
+.viewseg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.journey { display: flex; flex-direction: column; gap: 2px; }
+#journeyCanvas { width: 100%; height: 178px; display: block; cursor: crosshair; touch-action: none; background: var(--bg); border-radius: 6px; }
+.journey .hint { font-size: 12px; }
 </style>
 </head><body><!--wrap-->
 
@@ -362,10 +370,15 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
           <select id="loop"><option value="all">Whole dance</option><option value="pass">This time through</option><option value="part">This part</option><option value="figure">This figure</option></select>
         </div>
         <label class="small"><input id="hands" type="checkbox" checked> Hands</label>
+        <span class="seg viewseg" role="group" aria-label="Timeline view"><button type="button" id="viewParts" aria-pressed="true">Parts</button><button type="button" id="viewJourney" aria-pressed="false">Journey</button></span>
         <button type="button" id="nextEnd" title="Go to the next time a couple goes out at an end or comes back in">Next end effect ⏭</button>
       </div>
       <div class="passes" id="passStrip" role="group" aria-label="Times through"></div>
       <div class="prow rulerrow"><div class="plabel small">Beat</div><div class="ruler" id="ruler" title="Drag along here to move through this part"></div></div>
+      <div class="journey" id="journeyView" hidden>
+        <canvas id="journeyCanvas" aria-label="Where each couple is along the line, through the whole dance. Click to go to that moment; click a line to follow that couple."></canvas>
+        <p class="hint" id="journeyNote"></p>
+      </div>
       <div class="rows" id="rows" title="Drag a figure to move it, drag its right edge to change its length (Shift for single beats), click it to change who dances it. Click an empty space to jump there."></div>
     </div>
   </div>
@@ -3193,6 +3206,7 @@ function store(key, val) { try { localStorage.setItem(key, val); } catch (e) { /
 function recall(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
 
 function build() {
+  state.buildId = (state.buildId || 0) + 1;   // the journey chart is worked out again for each new run
   const dance = Contra.parseDance($('danceText').value);
   ensureParts(dance);
   state.doc = dance;
@@ -4106,6 +4120,99 @@ function renderPasses() {
   state.passShown = null;
 }
 
+// ---------- Couple journey chart ----------
+// Where every couple in a line is along it (top of the hall at the top), through the whole run: couples
+// zigzag down and up the set, wait out at the ends, and come back in. The couple you follow is drawn bold.
+// Click anywhere to go to that moment; click near a couple's line to follow them.
+const JOURNEY_KINDS = new Set(['longways', 'becket', 'triple', 'set', 'tempest', 'f4f']);
+function journeyData() {
+  const c = state.c, hl = c.couples.find(k => k.id === state.highlight), line = hl ? hl.line : 0, key = `${state.buildId}|${line}`;
+  if (state.journeyChart && state.journeyChart.key === key) return state.journeyChart;
+  // One point per time through (where the couple stands as it starts), so the figures' own movement doesn't
+  // blur the picture of how couples travel along the set; and whether they are out at an end that time.
+  const couples = c.couples.filter(k => k.line === line).map(k => {
+    const pts = [];
+    for (let p = 0; p <= c.passes.length; p++) {
+      const t = Math.min(p * c.perPass, c.total), a = Contra.poseAt(c, k.lark, t), b = Contra.poseAt(c, k.robin, t);
+      pts.push([t, (a.y + b.y) / 2, p < c.passes.length && c.passes[p].outs.some(o => o.couple === k.id)]);
+    }
+    return { id: k.id, num: k.num, pts };
+  });
+  const ys = couples.flatMap(k => k.pts.map(p => p[1]));
+  return (state.journeyChart = { key, line, couples, yMin: Math.min(...ys), yMax: Math.max(...ys), lines: new Set(c.couples.map(k => k.line)).size });
+}
+function journeyView(cv) {
+  const r = cv.getBoundingClientRect(), d = state.journeyChart, pad = { l: 46, r: 30, t: 8, b: 16 };
+  const X = t => pad.l + (t / state.c.total) * (r.width - pad.l - pad.r), Y = y => pad.t + ((d.yMax - y) / Math.max(0.5, d.yMax - d.yMin)) * (r.height - pad.t - pad.b);
+  return { r, pad, X, Y, T: x => ((x - pad.l) / (r.width - pad.l - pad.r)) * state.c.total };
+}
+function drawJourney() {
+  const cv = $('journeyCanvas'), c = state.c, dpr = window.devicePixelRatio || 1, r = cv.getBoundingClientRect();
+  if (!r.width) return;
+  if (cv.width !== Math.round(r.width * dpr) || cv.height !== Math.round(r.height * dpr)) { cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr); }
+  const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, r.width, r.height);
+  if (!JOURNEY_KINDS.has(c.kind) || !c.calls.length) {
+    $('journeyNote').textContent = !c.calls.length ? 'Add some figures to see where couples go.' : 'The journey chart is for dances in lines (contras, English sets, Becket, triple minor, tempest, four facing four). In squares and circles, follow a couple by clicking a dancer on the floor.';
+    return;
+  }
+  const d = journeyData(), v = journeyView(cv);
+  $('journeyNote').textContent = `${d.lines > 1 ? `Line ${d.line + 1}. ` : ''}Each line is a couple, at the start of each time through; a hollow dot means waiting out at an end. ${state.highlight ? 'Click another line to follow that couple' : 'Click a line to follow that couple'}, or anywhere to go to that moment.`;
+  g.font = '500 10.5px "JetBrains Mono", monospace'; g.textBaseline = 'middle';
+  // Times through: alternating bands, numbered along the bottom.
+  c.passes.forEach((p, i) => {
+    const x0 = v.X(i * c.perPass), x1 = v.X((i + 1) * c.perPass);
+    if (i % 2) { g.fillStyle = tokens.rule; g.globalAlpha = 0.25; g.fillRect(x0, v.pad.t, x1 - x0, r.height - v.pad.t - v.pad.b); g.globalAlpha = 1; }
+    g.fillStyle = tokens.muted; g.textAlign = 'center'; g.fillText(String(i + 1), (x0 + x1) / 2, r.height - 7);
+  });
+  g.textAlign = 'right'; g.fillStyle = tokens.muted; g.font = '600 11px "Instrument Sans", system-ui, sans-serif';
+  g.fillText('Top', v.pad.l - 8, v.Y(d.yMax)); g.fillText('Bottom', v.pad.l - 8, v.Y(d.yMin));
+  // Every couple's path; the one being followed last, bold, in the accent colour.
+  const order = d.couples.slice().sort((a, b) => (a.id === state.highlight) - (b.id === state.highlight));
+  g.lineJoin = 'round';
+  for (const k of order) {
+    const on = k.id === state.highlight;
+    g.strokeStyle = on ? tokens.accent : tokens.muted; g.globalAlpha = on ? 1 : state.highlight ? 0.3 : 0.6; g.lineWidth = on ? 3 : 1.4;
+    g.beginPath(); k.pts.forEach(([t, y], i) => (i ? g.lineTo(v.X(t), v.Y(y)) : g.moveTo(v.X(t), v.Y(y)))); g.stroke();
+    // A dot where each time through starts: hollow while the couple waits out at an end.
+    for (const [t, y, out] of k.pts.slice(0, -1)) {
+      g.beginPath(); g.arc(v.X(t), v.Y(y), on ? 4 : 2.6, 0, Math.PI * 2);
+      if (out) { g.fillStyle = tokens.panel; g.fill(); g.lineWidth = on ? 2 : 1.2; g.stroke(); g.lineWidth = on ? 3 : 1.4; } else { g.fillStyle = g.strokeStyle; g.fill(); }
+    }
+    const last = k.pts[k.pts.length - 1];
+    g.fillStyle = on ? tokens.accent : tokens.muted; g.textAlign = 'left'; g.font = `${on ? 700 : 500} 11px "JetBrains Mono", monospace`;
+    g.fillText(String(k.num), v.X(last[0]) + 6, v.Y(last[1]));
+  }
+  g.globalAlpha = 1;
+  // The playhead, and where the followed couple is now.
+  const x = v.X(Math.min(state.t, c.total));
+  g.strokeStyle = tokens.accent; g.lineWidth = 2; g.beginPath(); g.moveTo(x, v.pad.t - 4); g.lineTo(x, r.height - v.pad.b); g.stroke();
+  const hk = d.couples.find(k => k.id === state.highlight);
+  if (hk) { const ck = c.couples.find(k => k.id === hk.id), y = (Contra.poseAt(c, ck.lark, state.t).y + Contra.poseAt(c, ck.robin, state.t).y) / 2;
+    g.fillStyle = tokens.accent; g.beginPath(); g.arc(x, v.Y(y), 5, 0, Math.PI * 2); g.fill(); }
+}
+function journeyPointer(e) {
+  const cv = $('journeyCanvas'), c = state.c;
+  if (!JOURNEY_KINDS.has(c.kind) || !c.calls.length) return;
+  e.preventDefault(); setPlaying(false);
+  const d = journeyData(), v = journeyView(cv), at = ev => { const x = ev.clientX - v.r.left; return Math.max(0, Math.min(c.total - 1e-3, v.T(x))); };
+  // A click near a couple's line follows that couple (the nearest within 10 px).
+  const t0 = at(e), y = e.clientY - v.r.top;
+  let best = null, bd = 10;
+  for (const k of d.couples) {
+    const i = Math.min(k.pts.length - 2, Math.floor(t0 / c.perPass)), [ta, ya] = k.pts[i], [tb, yb] = k.pts[i + 1], yy = ya + (yb - ya) * ((t0 - ta) / Math.max(1e-6, tb - ta));
+    const dd = Math.abs(v.Y(yy) - y); if (dd < bd) { bd = dd; best = k; }
+  }
+  if (best && best.id !== state.highlight) { state.highlight = best.id; showJourney(); }
+  seek(t0);
+  const go = ev => seek(at(ev)), up = () => { window.removeEventListener('pointermove', go); window.removeEventListener('pointerup', up); };
+  window.addEventListener('pointermove', go); window.addEventListener('pointerup', up);
+}
+function setTimelineView(journey) {
+  $('journeyView').hidden = !journey; $('rows').hidden = journey; document.querySelector('.rulerrow').hidden = journey;
+  $('viewParts').setAttribute('aria-pressed', String(!journey)); $('viewJourney').setAttribute('aria-pressed', String(journey));
+  store('contra.view', journey ? 'journey' : 'parts');
+}
+
 // The beat ruler over the part rows (16 beats, or the length of a longer part), with the playhead on it.
 function renderRuler(scale) {
   const r = $('ruler');
@@ -4242,6 +4349,7 @@ function view(cv = canvas, b = state.c.bounds, pad) {
 
 function draw() {
   drawFloor(canvas, state.c, state.t, { trail: +$('trailLen').value, focus: state.highlight, full: true, hands: $('hands').checked });
+  if (!$('journeyView').hidden) drawJourney();
 }
 
 // Draw a compiled dance at time t on a canvas. `full` adds the band label, hands-four outlines and "out"
@@ -4444,6 +4552,10 @@ for (const [open, dlg, close] of [['settingsOpen', 'settings', 'settingsClose'],
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') for (const d of DRAWERS) if ($(d).open) $(d).close(); });
 $('saveDance').onclick = saveDance;
+$('viewParts').onclick = () => setTimelineView(false);
+$('viewJourney').onclick = () => setTimelineView(true);
+$('journeyCanvas').addEventListener('pointerdown', journeyPointer);
+if (recall('contra.view') === 'journey') setTimelineView(true);
 // Jump to the start of the next time through where a couple goes out at an end or comes back in.
 $('nextEnd').onclick = () => {
   const c = state.c, p = passAt(state.t), key = q => c.passes[q].outs.map(o => o.couple).sort().join();
