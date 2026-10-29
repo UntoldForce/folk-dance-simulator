@@ -405,3 +405,19 @@ The engine always computes everything; the interface only decides what to show.
 ## Figure vocabulary reference
 
 contradb (github.com/contradb/contra, AGPL) defines these figure types, used here as a checklist for the figure library (vocabulary only; no code copied): allemande, allemande orbit, arch & dive, balance, balance the ring, box circulate, box the gnat, butterfly whirl, California twirl, chain, circle, contra corners, cross trails, do-si-do, dolphin hey, down/up the hall, figure 8, form long waves / a long wave / an ocean wave, gate, give & take, facing star, gyre, hey, long lines, mad robin, pass by, pass through, petronella, poussette, promenade, pull by (dancers / direction), revolving door, right left through, Rory O'More, roll away, slice, slide along set, square through, star, star promenade, stand still, swing, turn alone, zig zag.
+
+## Games (October 2026)
+
+**Dancer Bowling** (`games/dancer-bowling.html`) is a silly side project: its own page with a copy of the engine
+(refreshed by `tools/fork-engine.js`). The pins are one line of three hands-fours dancing "111" in a loop, from
+`Contra.compile` and `poseAt`. You drag anywhere to pull your gold dancer back (curving the drag adds spin, which
+hooks the path) and let go. Rolling into a dancer:
+- too hard (closing faster than 4 m/s): "oof!", −50, and they (and their neighbours, a little) are knocked aside;
+- spinning the same way as a dancer who is turning (a swing or allemande, faster than 0.9 rad/s; a small arrow
+  around them shows which way): "whee!", 100 × how many in a row this throw, and you're flung on in their direction;
+  four in one throw is a STRIKE (+500);
+- spinning the wrong way: "wrong way!", −20; otherwise "hi!", +20.
+Coming to rest within 0.8 m of a dancer joins the dance: your dancer holds on to them for the rest of the game.
+Ten dancers a game; the best score is remembered on the device. The camera follows the throw up the hall, so the
+dancers are big enough to see on a phone.
+
