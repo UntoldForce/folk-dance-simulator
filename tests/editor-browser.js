@@ -204,6 +204,7 @@ const { chromium } = require('playwright');
   check(await p.evaluate(() => !$('music').checked && !$('melody').checked), 'music and melody start off');
   await p.click('#hands'); await p.waitForTimeout(100); await p.click('#hands'); await p.waitForTimeout(100);
   check(await p.evaluate(() => $('hands').checked), 'the hands switch turns off and back on');
+  check(await p.evaluate(() => $('puzzled').checked && typeof drawPuzzled === 'function'), 'confused dancers say so, unless turned off in Settings');
   check(!(await p.locator('#refsDialog').isVisible()), 'references are hidden until asked for');
   await p.click('#refsOpen'); await p.waitForTimeout(150);
   check(await p.locator('#refsDialog').isVisible() && (await p.locator('#refsDialog a').count()) >= 6, 'the References button opens the list of sources');

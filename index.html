@@ -478,6 +478,7 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
     <label class="check"><input id="melody" type="checkbox"> Melody</label>
   </fieldset>
   <fieldset><legend>How it looks</legend>
+    <label class="check"><input id="puzzled" type="checkbox" checked> Confused dancers say so (“?”, “oof!”)</label>
     <label for="trailLen">Trail</label><span class="inline"><input id="trailLen" type="range" min="0" max="8" step="0.5" value="3" aria-describedby="trailVal"><span class="small" id="trailVal">3 beats</span></span>
     <label for="roleNames">Role names</label><span class="inline"><select id="roleNames"><option value="larks">Larks / Robins</option><option value="gents">Gents / Ladies</option><option value="men">Men / Women</option></select>
       <span class="info" id="genderNote" hidden tabindex="0" role="note" aria-label="About gender-free calling">ⓘ<span class="tip">Many dance communities now call gender-free, with Larks and Robins, so anyone can dance either role. Give it a try!</span></span></span>
@@ -2952,7 +2953,7 @@ const Contra = (() => {
     const segs = {}, lineCx = {};
     let pose = { ...start };
     dancers.forEach(d => { segs[d.id] = []; lineCx[d.id] = lines[d.line].cx; });
-    const calls = [], parts = [], warnings = dance.warnings.slice(), passInfo = [];
+    const calls = [], parts = [], warnings = dance.warnings.slice(), passInfo = [], puzzled = [];
     // Each figure as danced: a line with several figures in it becomes its steps, sharing out its beats; `src` is the
     // figure's place in the dance, so the editor can light up the block it came from.
     const danced = part => part.calls.flatMap(call => {
@@ -3287,7 +3288,7 @@ const Contra = (() => {
           // Progressing partway through: this is where couples change neighbors and roles, so the progression is
           // checked from one such moment to the next (each time through's check is made at the next one).
           if (!last && regroupAfter.has(k)) {
-            if (regroupWant) passInfo[p - 1].check = checkPass(regroupWant, ends);
+            if (regroupWant) passInfo[p - 1].check = { ...checkPass(regroupWant, ends), at: t1 };
             endOfWait(pass);
             nextPass = startPass(ends, pass.t0, true);
             regroupWant = expectAfter(nextPass, ends);
@@ -3312,6 +3313,10 @@ const Contra = (() => {
             newPose[d.id] = f(1);
           }
           pose = newPose;
+          // Puzzled dancers (drawn with a speech bubble): everyone, through a figure the simulator can't read (they
+          // stand there); and two dancers who bump, for a moment around when they do.
+          if (!fig) for (const d of dancers) puzzled.push({ id: d.id, t0, t1, why: 'unread' });
+          for (const b of room.bumps) for (const id of [b.a, b.b]) puzzled.push({ id, t0: t0 + b.u * call.beats - 0.75, t1: t0 + b.u * call.beats + 0.75, why: 'bump' });
           if (p === 0) {
             for (const n of notes) warnings.push({ level: 'warn', text: `${part.name}: “${call.text}”: ${n}.` });
             if (room.bumps.length) {
@@ -3332,19 +3337,22 @@ const Contra = (() => {
         }
       }
       if (F.kind === 'square' || F.kind === 'set') passInfo[p].want = squareWant(pose);
-      if (!regroupAfter.size) passInfo[p].check = checkPass(passInfo[p].want, pose);
+      if (!regroupAfter.size) passInfo[p].check = { ...checkPass(passInfo[p].want, pose), at: t };
     }
     // The last time through of a dance that progresses partway through has no next changeover to check it at.
     for (const pi of passInfo) if (!pi.check) { const n = Object.keys(pi.want).length; pi.check = { good: n, total: n, off: [], unchecked: true }; }
     // A time through in which no hands-fours form at all (everyone waiting out) has lost the dance, whatever else says.
     if (F.kind !== 'square' && F.kind !== 'set' && couples.length >= 4) for (const pi of passInfo) if (!pi.groups.length) pi.check = { ...pi.check, good: 0, off: Object.keys(pi.want) };
     if (perPass !== 64) warnings.push({ level: 'warn', text: `The dance is ${perPass} beats long; a contra is usually 64.` });
+    // And dancers who end a time through somewhere the progression didn't mean them to be: lost, for a few beats
+    // either side of it.
+    for (const pi of passInfo) if (pi.check.at != null) for (const id of pi.check.off) puzzled.push({ id, t0: pi.check.at - 4, t1: pi.check.at + 4, why: 'lost' });
     joinHolds(calls);
     warnings.push(...handChecks(calls.filter(k => k.pass === 0), (id, t) => { const i = calls.findIndex(k => k.t1 >= t), sg = segs[id][Math.max(0, i)]; return sg.f(clamp01((t - sg.t0) / (sg.t1 - sg.t0))); }));
 
     const xs = Object.values(start).map(p => p.x), ys = Object.values(start).map(p => p.y);
     return {
-      P, kind: F.kind, dancers, couples, start, segs, calls, parts, passes: passInfo, perPass, total: t, warnings, final: pose,
+      P, kind: F.kind, dancers, couples, start, segs, calls, parts, passes: passInfo, perPass, total: t, warnings, final: pose, puzzled,
       progression: summarize(passInfo, dance.progression),
       bounds: { minX: Math.min(...xs), maxX: Math.max(...xs), minY: Math.min(...ys), maxY: Math.max(...ys) },
     };
@@ -4341,7 +4349,7 @@ function previewOf(def, m, beats) {
 const loopAt = pv => pv.t0 + Math.min(pv.beats, pv.clock % (pv.beats + 1.5));
 
 function drawPreview(cv, pv, t) {
-  drawFloor(cv, pv.c, t, { trailFrom: $('exTrail') && cv.id === 'exCanvas' && !$('exTrail').checked ? t : pv.t0, bounds: pv.bounds, pad: { l: 0.55, r: 0.55, t: 0.55, b: 0.55 }, hands: $('hands').checked });
+  drawFloor(cv, pv.c, t, { trailFrom: $('exTrail') && cv.id === 'exCanvas' && !$('exTrail').checked ? t : pv.t0, bounds: pv.bounds, pad: { l: 0.55, r: 0.55, t: 0.55, b: 0.55 }, hands: $('hands').checked, puzzled: $('puzzled').checked });
 }
 
 // ----- The move explorer: a larger look at one move, with its description -----
@@ -4747,7 +4755,7 @@ function scheduleMusic(beatsPerSec) {
 let tokens = {};
 function readTokens() {
   const cs = getComputedStyle(document.documentElement);
-  for (const k of ['floor', 'ink', 'muted', 'rule', 'accent', 'lark', 'robin', 'panel']) tokens[k] = cs.getPropertyValue('--' + k).trim();
+  for (const k of ['floor', 'ink', 'muted', 'rule', 'accent', 'lark', 'robin', 'panel', 'warn', 'bad']) tokens[k] = cs.getPropertyValue('--' + k).trim();
 }
 
 const rgb = hex => { const h = hex.replace('#', ''); return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)); };
@@ -4763,7 +4771,7 @@ function view(cv = canvas, b = state.c.bounds, pad) {
 }
 
 function draw() {
-  drawFloor(canvas, state.c, state.t, { trail: +$('trailLen').value, focus: state.highlight, full: true, hands: $('hands').checked });
+  drawFloor(canvas, state.c, state.t, { trail: +$('trailLen').value, focus: state.highlight, full: true, hands: $('hands').checked, puzzled: $('puzzled').checked });
   if (!$('journeyView').hidden) drawJourney();
 }
 
@@ -4823,6 +4831,45 @@ function settingShapes(c, p) {
     out.push({ key: `out ${o.couple}`, label: 'out', x: Math.min(a.x, b.x) - 0.35, y: (a.y + b.y) / 2 });
   }
   return (c.shapes[p] = out);
+}
+
+// Puzzled dancers (Contra.compile's c.puzzled) get a speech bubble: "?" when the simulator can't read the figure
+// and they stand there, or when they end a time through in the wrong place; "oof!" when two bump. Each pops up
+// (a little after the others, so a crowd doesn't all pop at once), bobs, and fades.
+const PUZZLED_SAY = { unread: ['?', '??', '?', 'huh?', '?!', '?'], lost: ['?', 'um…?', '??', 'wait, what?', '?'], bump: ['oof!', 'oops!', 'sorry!', 'oof!'] };
+function drawPuzzled(g, v, c, t, rad, focus) {
+  if (!c.puzzled || !c.puzzled.length) return;
+  const fs = Math.max(11, Math.round(rad * 1.05)), byId = Object.fromEntries(c.dancers.map((d, i) => [d.id, [d, i]]));
+  const shown = new Map();
+  for (const q of c.puzzled) {
+    const [d, i] = byId[q.id], late = (i * 0.37) % 0.6;   // a dancer's own small delay, the same every time
+    if (t < q.t0 + late || t > q.t1) continue;
+    // A bump outranks being lost, which outranks an unread figure.
+    const rank = { bump: 3, lost: 2, unread: 1 }[q.why];
+    if (!shown.has(q.id) || rank > shown.get(q.id).rank) shown.set(q.id, { q, d, i, late, rank });
+  }
+  g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = `700 ${fs}px "Instrument Sans", system-ui, sans-serif`;
+  for (const { q, d, i, late } of shown.values()) {
+    const words = PUZZLED_SAY[q.why], text = words[(i * 7 + Math.floor(q.t0 / 16)) % words.length];
+    const a = t - q.t0 - late, pop = Math.min(1, a / 0.35), fade = Math.min(1, (q.t1 - t) / 0.4);
+    const scale = pop < 1 ? 0.4 + 0.6 * pop + 0.35 * Math.sin(pop * Math.PI) : 1;   // pops up with a little overshoot
+    const p = Contra.poseAt(c, d.id, t), bob = Math.sin((t + i) * Math.PI) * 2, tilt = q.why === 'bump' ? 0 : Math.sin((t + i * 0.5) * Math.PI * 0.8) * 0.12;
+    const w = Math.max(fs * 1.3, g.measureText(text).width + fs * 0.8), h = fs * 1.5, ink = q.why === 'bump' ? tokens.warn : tokens.ink;
+    g.save();
+    g.globalAlpha = Math.max(0, fade) * (focus && d.couple !== focus ? 0.35 : 1);
+    // Anchored just above and right of the dancer; the bubble's tail points down at them.
+    g.translate(v.X(p.x) + rad * 0.5, v.Y(p.y) - rad * 1.1 + bob); g.rotate(tilt); g.scale(scale, scale);
+    const bx = -fs * 0.5, by = -h - fs * 0.45;
+    g.beginPath();
+    g.moveTo(bx + h / 2, by); g.lineTo(bx + w - h / 2, by); g.arc(bx + w - h / 2, by + h / 2, h / 2, -Math.PI / 2, Math.PI / 2);
+    g.lineTo(bx + fs * 1.1, by + h); g.lineTo(-fs * 0.35, 0); g.lineTo(bx + fs * 0.55, by + h);   // the tail
+    g.lineTo(bx + h / 2, by + h); g.arc(bx + h / 2, by + h / 2, h / 2, Math.PI / 2, Math.PI * 1.5);
+    g.closePath();
+    g.fillStyle = tokens.panel; g.fill(); g.strokeStyle = ink; g.lineWidth = 1.5; g.stroke();
+    g.fillStyle = ink; g.fillText(text, bx + w / 2, by + h / 2 + 1);
+    g.restore();
+  }
+  g.textBaseline = 'alphabetic';
 }
 
 function drawDancers(g, v, c, t, o) {
@@ -4904,6 +4951,7 @@ function drawDancers(g, v, c, t, o) {
     g.globalAlpha = 1;
   }
   g.globalAlpha = 1;
+  if (o.puzzled) drawPuzzled(g, v, c, t, rad, focus);
 }
 
 function updateReadout() {
@@ -4997,7 +5045,7 @@ $('ruler').addEventListener('pointerdown', e => scrubFrom(e, null));
 // On a phone, start with one line so the dancers aren't tiny (until a choice is remembered).
 if (window.innerWidth < 640 && recall('contra.set.lines') == null) $('lines').value = '1';
 // Remember the settings on this device.
-for (const id of ['lines', 'sets', 'passes', 'tempo', 'swingRate', 'trailLen', 'speed', 'loop', 'music', 'melody']) {
+for (const id of ['lines', 'sets', 'passes', 'tempo', 'swingRate', 'trailLen', 'speed', 'loop', 'music', 'melody', 'puzzled']) {
   const el = $(id), v = recall('contra.set.' + id), box = el.type === 'checkbox';
   if (v != null) { if (box) el.checked = v === 'on'; else el.value = v; }
   el.addEventListener('change', () => store('contra.set.' + id, box ? (el.checked ? 'on' : 'off') : el.value));
@@ -5057,6 +5105,7 @@ $('undo').onclick = () => undoTo(history.at - 1);
 $('redo').onclick = () => undoTo(history.at + 1);
 
 for (const id of ['lines', 'sets', 'swingRate', 'passes']) $(id).onchange = build;
+$('puzzled').addEventListener('change', () => draw());
 $('hands').onchange = () => { store('contra.hands', $('hands').checked ? 'on' : 'off'); draw(); };
 if (recall('contra.hands') === 'off') $('hands').checked = false;
 $('trailLen').oninput = e => { const b = +e.target.value; $('trailVal').textContent = b ? `${b} beat${b === 1 ? '' : 's'}` : 'Off'; };

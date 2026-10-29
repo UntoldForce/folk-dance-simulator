@@ -357,6 +357,12 @@ Like a video editor (Ryan's example: Adobe Premiere), nothing scrolls on a compu
 - **On the floor**, the dashed hands-four outlines cross-fade over the first two beats of a time through when the
   groups change (an outline that stays the same just stays), and the "out" label sits still beside where a waiting
   couple starts that time through instead of following them about.
+- **Confused dancers say so** (for fun, and to point at problems): a speech bubble pops up over a dancer, bobs and
+  fades. "?" (or "??", "huh?") over everyone through a figure the simulator can't read, while they stand there; "?"
+  (or "um…?", "wait, what?") for 4 beats either side of the end of a time through over dancers who aren't where the
+  progression should put them; "oof!" (or "oops!", "sorry!") for a moment over two dancers who bump. The engine
+  lists these as `c.puzzled` ({id, t0, t1, why}); each dancer's bubble pops a little after the others' so a crowd
+  doesn't pop at once. A switch in Settings (How it looks) turns them off.
 - **Formation, progression and formation pictures** fold away under one line saying what they are ("Formation Improper · single progression"), closed by default to leave room for the moves; opening it is remembered. The pictures sit under the two menus: the common formations, grouped Contra (improper, Becket), English
   (proper, three-couple set) and Square & circle (square, circle mixer). Each picture is drawn from where the
   simulator starts everyone (larks as squares, robins as circles, a tick for facing, the band as a dotted line at
