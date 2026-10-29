@@ -4349,7 +4349,7 @@ function previewOf(def, m, beats) {
 const loopAt = pv => pv.t0 + Math.min(pv.beats, pv.clock % (pv.beats + 1.5));
 
 function drawPreview(cv, pv, t) {
-  drawFloor(cv, pv.c, t, { trailFrom: $('exTrail') && cv.id === 'exCanvas' && !$('exTrail').checked ? t : pv.t0, bounds: pv.bounds, pad: { l: 0.55, r: 0.55, t: 0.55, b: 0.55 }, hands: $('hands').checked, puzzled: $('puzzled').checked });
+  drawFloor(cv, pv.c, t, { trailFrom: $('exTrail') && cv.id === 'exCanvas' && !$('exTrail').checked ? t : pv.t0, bounds: pv.bounds, pad: { l: 0.55, r: 0.55, t: 0.55, b: 0.55 }, hands: $('hands').checked });
 }
 
 // ----- The move explorer: a larger look at one move, with its description -----
