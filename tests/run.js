@@ -348,5 +348,30 @@ for (const k of c.calls) {
   check(mid.progression.firstBad === -1, `circle left 3/4, pass through to the next neighbors, do-si-do with them: progresses (${mid.passes.map(p => p.check.good + '/' + p.check.total).join(', ')})`);
 }
 
+// Confused dancers (speech bubbles on the floor): nobody in the test dances; everyone during a figure the simulator
+// can't read; dancers who end a time through in the wrong place.
+{
+  // (Only lost dancers where the progression doesn't work: the tempest test dance has no progressing figure.)
+  const dir = path.join(__dirname, '..', 'dances'), muddled = fs.readdirSync(dir).filter(f => {
+    const c = Contra.compile(Contra.parseDance(fs.readFileSync(path.join(dir, f), 'utf8')), { lines: 1, sets: 3, passes: 3 });
+    return c.puzzled.some(q => q.why !== 'lost' || c.progression.firstBad < 0);
+  });
+  check(!muddled.length, `nobody is confused in the test dances, except lost where the progression doesn't work ${muddled.join(', ')}`);
+  const odd = Contra.compile(Contra.parseDance('A1\n(8) Neighbors swing\n(8) Frobnicate the robins\nA2\n(16) Partners balance & swing'), { lines: 1, sets: 2, passes: 1 });
+  check(odd.dancers.every(d => odd.puzzled.some(q => q.id === d.id && q.why === 'unread' && q.t0 === 8 && q.t1 === 16)), 'everyone is confused during a figure the simulator can\'t read');
+  const lost = Contra.compile(Contra.parseDance('A1\n(16) Neighbors swing\nA2\n(16) Partners swing\nB1\n(16) Circle left\nB2\n(16) Partners swing'), { lines: 1, sets: 3, passes: 2 });
+  check(lost.progression.firstBad === 0 && lost.puzzled.some(q => q.why === 'lost' && q.t0 === 60), 'a dance that doesn\'t progress leaves dancers confused around the end of the time through');
+}
+
+// Checking many dances at once (the Dances panel): splitting a file of dances, and the quick review of each.
+{
+  const fine = fs.readFileSync(path.join(__dirname, '..', 'dances', fs.readdirSync(path.join(__dirname, '..', 'dances'))[0]), 'utf8');
+  const many = Contra.splitDances(`${fine}\n=====\nBroken\nA1\n(8) Frobnicate the robins\n\n  ======== \n\n${fine}`);
+  check(many.length === 3 && many[1].startsWith('Broken'), 'a file with dances separated by lines of ===== is split into each dance');
+  const ok = Contra.review(fine), bad = Contra.review(many[1]);
+  check(ok.ok && ok.title && ok.progression === -1 && !ok.unread.length, `a test dance reviews with no problems (${ok.title})`);
+  check(!bad.ok && bad.title === 'Broken' && bad.unread.join() === 'Frobnicate the robins', 'a dance with a move it can\'t read lists that move');
+}
+
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll checks passed');
 process.exit(failures ? 1 : 0);

@@ -110,6 +110,27 @@ const { chromium } = require('playwright');
   check(await p.locator('#myList .dlist:has-text("Simple Square")').count() === 1, 'Save this dance adds it to My dances');
   await p.click('#dancesClose');
 
+  // Check many dances: load files (one holding two dances), list problems first, step through them with ‹ ›.
+  const tmp = require('os').tmpdir(), broken = 'Broken Reel\nA1\n(8) Frobnicate the robins\n(8) Neighbors swing';
+  fs.writeFileSync(path.join(tmp, 'two.txt'), `${files[0]}\n\n=====\n\n${broken}`);
+  fs.writeFileSync(path.join(tmp, 'one.txt'), fs.readFileSync(path.join(__dirname, '..', 'dances', '111.txt'), 'utf8').replace(/^.*/, 'Second Broken\nA1\n(8) Wibble\n\n=====\n\n$&'));
+  await p.click('#dancesOpen');
+  await p.setInputFiles('#bulkFile', [path.join(tmp, 'two.txt'), path.join(tmp, 'one.txt')]);
+  await p.waitForFunction(() => bulk.items.length === 4 && !bulk.queue.length);
+  check(await p.locator('#bulkList .dlist').count() === 2 && /Can't read: Frobnicate/.test(await p.locator('#bulkList .why').first().textContent()), 'loaded files are checked, and the list shows only the problem dances, saying what is wrong');
+  await p.selectOption('#bulkKind', 'all');
+  check(await p.locator('#bulkList .dlist').count() === 4 && /4 dances checked, 2 with no problems/.test(await p.textContent('#bulkNote')), 'All dances lists every one, with a count');
+  await p.selectOption('#bulkKind', 'problems');
+  await p.click('#bulkList .dlist >> nth=0'); await p.waitForTimeout(150);
+  check(await p.evaluate(() => !$('dances').open && /Frobnicate/.test($('danceText').value) && !$('bulkStep').hidden && $('bulkPos').textContent === '1 of 2'), 'clicking one opens it, with ‹ 1 of 2 › at the top');
+  await p.click('#bulkNext'); await p.waitForTimeout(150);
+  check(await p.evaluate(() => /Wibble/.test($('danceText').value) && $('bulkPos').textContent === '2 of 2' && $('bulkNext').disabled), '› goes to the next problem dance');
+  await p.click('#dancesOpen'); await p.click('#exampleList .dlist >> nth=0'); await p.waitForTimeout(100);
+  check(await p.evaluate(() => $('bulkStep').hidden), 'opening a dance from elsewhere hides ‹ ›');
+  await p.click('#dancesOpen'); await p.click('#bulkClear');
+  check(await p.locator('#bulkList .dlist').count() === 0 && await p.locator('#bulkBar').isHidden(), 'Clear empties the list');
+  await p.click('#dancesClose');
+
   // Journey chart: the timeline's second view; clicking a couple's line follows them and goes to that moment.
   await p.click('#reset2'); await p.waitForTimeout(150);
   await p.click('#viewJourney'); await p.waitForTimeout(150);
@@ -128,14 +149,19 @@ const { chromium } = require('playwright');
     'a balance & swing line is one block (the Balance and swing move), lit during its swing');
   await p.click('#reset2'); await p.waitForTimeout(100);
 
-  // Formation pictures: the common formations, one click each.
-  check(!(await p.locator('.fpick').first().isVisible()), 'the formation pictures start folded away');
-  await p.click('#formPicksBox summary'); await p.waitForTimeout(50);
+  // Formation and progression, with pictures of the common formations: folded under one line saying what they are.
+  check(!(await p.locator('.fpick').first().isVisible()) && !(await p.locator('#formation').isVisible()) && await p.textContent('#setupSum') === 'Improper · single progression',
+    'formation, progression and the pictures start folded away under "Formation Improper · single progression"');
+  await p.click('#setupBox summary'); await p.waitForTimeout(50);
   check(await p.locator('.fpick').count() === 6 && await p.locator('.fpick svg rect').count() > 0, 'six common formations are shown as pictures (larks as squares, robins as circles)');
   await p.click('.fpick[data-key="becketCW"]'); await p.waitForTimeout(100);
   check(await p.evaluate(() => $('formation').value === 'becketCW' && /Becket/.test($('danceText').value) && document.querySelector('.fpick[aria-pressed="true"]').dataset.key === 'becketCW'), 'clicking the Becket picture sets the formation and marks it');
+  check(await p.textContent('#setupSum') === 'Becket (clockwise) · single progression', 'and the folded line says so');
+  await p.selectOption('#progression', '2'); await p.waitForTimeout(100);
+  check(/double progression/.test(await p.textContent('#setupSum')) && /Progression:\s*Double/.test(await p.evaluate(() => $('danceText').value)), 'changing the progression updates the dance and the line');
+  await p.selectOption('#progression', '1');
   await p.click('.fpick[data-key="improper"]'); await p.waitForTimeout(100);
-  await p.click('#formPicksBox summary');
+  await p.click('#setupBox summary');
 
   // Floor outlines: worked out once per time through; "out" labels stay put (they don't follow the couple about).
   check(await p.evaluate(() => { const c = state.c, a = settingShapes(c, 1); return a.some(s => s.corners) && a.some(s => s.label === 'out') && settingShapes(c, 1) === a; }),
@@ -178,6 +204,7 @@ const { chromium } = require('playwright');
   check(await p.evaluate(() => !$('music').checked && !$('melody').checked), 'music and melody start off');
   await p.click('#hands'); await p.waitForTimeout(100); await p.click('#hands'); await p.waitForTimeout(100);
   check(await p.evaluate(() => $('hands').checked), 'the hands switch turns off and back on');
+  check(await p.evaluate(() => $('puzzled').checked && typeof drawPuzzled === 'function'), 'confused dancers say so, unless turned off in Settings');
   check(!(await p.locator('#refsDialog').isVisible()), 'references are hidden until asked for');
   await p.click('#refsOpen'); await p.waitForTimeout(150);
   check(await p.locator('#refsDialog').isVisible() && (await p.locator('#refsDialog a').count()) >= 6, 'the References button opens the list of sources');

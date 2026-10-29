@@ -186,6 +186,14 @@ itself can't be reached from the cloud session: its security certificate fails.)
 there and writes `library/report.txt`: figures not read yet (most common first), dances whose progression goes wrong,
 bumps, hand problems, crashes. It's a to-do list, not a pass/fail test.
 
+**Looking at them in the page.** The Dances panel's "Check many dances" takes text files (picked or dropped) or pasted
+text, each holding one dance or several separated by a line of `=====`. Each dance goes through `Contra.review` (what
+it can't read, the time through its progression first goes wrong, its first bump and hand problem), one at a time so
+the page stays responsive (about 20 seconds for 400). The list shows problem dances first, with what's wrong, and can
+be narrowed by kind of problem and by formation; opening one puts ‹ 3 of 41 › at the top to step through the rest.
+The list lasts until the page closes. `tools/bundle-library.js` puts the whole library in one file
+(`library/all-dances.txt`) to load this way.
+
 What the first 402 dances taught the simulator:
 - **Several figures on one line** ("(16) Neighbors balance & swing", "circle left 3/4 and pass through") stay one
   figure in the dance and one block in the editor, written as they were (Ryan: balance and swing is so common it
@@ -349,7 +357,13 @@ Like a video editor (Ryan's example: Adobe Premiere), nothing scrolls on a compu
 - **On the floor**, the dashed hands-four outlines cross-fade over the first two beats of a time through when the
   groups change (an outline that stays the same just stays), and the "out" label sits still beside where a waiting
   couple starts that time through instead of following them about.
-- **Formation pictures** above the Formation menu, folded away by default ("Common formations, as pictures") to leave room for the moves; opening them is remembered: the common formations, grouped Contra (improper, Becket), English
+- **Confused dancers say so** (for fun, and to point at problems): a speech bubble pops up over a dancer, bobs and
+  fades. "?" (or "??", "huh?") over everyone through a figure the simulator can't read, while they stand there; "?"
+  (or "um…?", "wait, what?") for 4 beats either side of the end of a time through over dancers who aren't where the
+  progression should put them; "oof!" (or "oops!", "sorry!") for a moment over two dancers who bump. The engine
+  lists these as `c.puzzled` ({id, t0, t1, why}); each dancer's bubble pops a little after the others' so a crowd
+  doesn't pop at once. A switch in Settings (How it looks) turns them off.
+- **Formation, progression and formation pictures** fold away under one line saying what they are ("Formation Improper · single progression"), closed by default to leave room for the moves; opening it is remembered. The pictures sit under the two menus: the common formations, grouped Contra (improper, Becket), English
   (proper, three-couple set) and Square & circle (square, circle mixer). Each picture is drawn from where the
   simulator starts everyone (larks as squares, robins as circles, a tick for facing, the band as a dotted line at
   the top), so it always matches the floor. The menu still holds every formation.

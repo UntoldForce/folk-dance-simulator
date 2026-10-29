@@ -9,7 +9,7 @@ const { Contra } = sandbox;
 const verbose = process.argv.includes('-v');
 
 const root = path.join(__dirname, '..', 'library');
-const files = fs.existsSync(root) ? fs.readdirSync(root, { recursive: true }).filter(f => f.endsWith('.txt') && !f.endsWith('report.txt')).map(f => path.join(root, f)) : [];
+const files = fs.existsSync(root) ? fs.readdirSync(root, { recursive: true }).filter(f => f.endsWith('.txt') && !/report\.txt$|all-dances\.txt$/.test(f)).map(f => path.join(root, f)) : [];
 if (!files.length) { console.log('No dances in library/. Run: node tools/fetch-contradb.js'); process.exit(0); }
 
 const unread = new Map(), formations = new Map(), problems = { crash: [], progression: [], bump: [], hands: [], length: [] };
