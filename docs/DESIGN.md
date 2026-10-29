@@ -195,15 +195,22 @@ The list lasts until the page closes. `tools/bundle-library.js` puts the whole l
 (`library/all-dances.txt`) to load this way.
 
 **A 60th Birthday Dance (for Chris Deephouse), reviewed with Ryan.** What it taught the simulator:
-- "Partners promenade counterclockwise around set one place to meet new neighbors" is a quarter of the way round
-  the hands-four, couples side by side (FIGURES.promenadeAround). They end at the top and bottom of the old
-  hands-four, facing out, half a set from the next couple; regrouping partway through pairs couples facing up or
-  down the hall with the couple they face. "Meet new neighbors" marks the progression, like ⁋. Couples waiting at
-  the ends turn round as a couple to face back in, ready for the couple promenading their way.
+- "Partners promenade counterclockwise around set one place to meet new neighbors": in a Becket set (Ryan: "the
+  progression is on a diagonal") each couple goes half a place along its own side, the right side up and the left
+  side down, leaning into the walk and straightening up again side by side; they turn to face their new neighbors
+  on the diagonal, and stay on the diagonal until they form the wave (the robins of the two couples end level, so
+  they step straight into the middle). Elsewhere (partners not on one side) it is a quarter round the hands-four,
+  ending at its top and bottom facing out. Regrouping after it pairs each couple with the couple they face
+  (`byFacing`). "Meet new neighbors" marks the progression, like ⁋. A couple waiting at an end crosses over to the
+  other side half a place further out (from the moment it starts waiting), and promenades its half place back in
+  with everyone else next time, meeting its new neighbors on the diagonal.
 - "Becket" with no direction is read as counter-clockwise when the dance moves that way.
 - A wave "robins by left hands and partners by right hands" is (PR, WL) in words. The two in the middle step
   forward into it keeping the way they face (a wave sees each dancer's facing). Formed the other way (the robins
   passing and turning round) the dance never progresses: couples end on the wrong side.
+- The animation loop asks for its next frame first and draws each part separately: an error drawing one moment
+  is logged once and shown as a note on the floor, instead of stopping the animation with a blank floor (Ryan saw
+  the floor and preview go blank and stay blank). The builder's preview reuses one canvas.
 - A bare "balance" right after forming a short wave balances the wave; in a ring (or before a petronella), the ring.
 - "Down the hall and thread the needle": the center two make an arch, the ends go under it, everyone ends facing
   up. Couples waiting at the ends walk down the hall and back with the lines (when the lines come straight back up),

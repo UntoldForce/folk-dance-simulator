@@ -1622,6 +1622,23 @@ const Contra = (() => {
       for (const [i, j] of promenadePairs(ps, ctx)) {
         const m0 = mid(ps[i], ps[j]), r0 = Math.max(0.3, dist(c, m0)), phi0 = angleTo(c, m0), w0 = dist(ps[i], ps[j]);
         const F0 = facingOf(ps[i], ps[j], ctx), Fend = phi0 + th + (call.meet === false ? Math.PI : 0);
+        // In a Becket set (partners side by side on one side) "one place" is half a place along their own side:
+        // couples on the right go up and on the left down (counter-clockwise), so new neighbors stand on the
+        // diagonal, and turn a little to face them. (The robins of the two couples end level with each other.)
+        if (Math.abs(ps[i].x - ps[j].x) < 0.4 && Math.abs(m0.x - ctx.cx) > 0.3) {
+          const sgn = dir * Math.sign(m0.x - ctx.cx), m1 = { x: m0.x, y: m0.y + sgn * (call.turns || 0.25) * 4 * P.neighborGap / 2 };
+          const F1 = call.meet === false ? F0 : angleTo(m1, { x: 2 * ctx.cx - m1.x, y: m1.y + sgn * P.neighborGap });
+          const Fmid = lerpAngle(F0, sgn > 0 ? Math.PI / 2 : -Math.PI / 2, 0.5), w1 = 0.6;
+          // The couple leans into the walk (turning part way toward where they're going, closer together) and
+          // straightens up again, side by side along their side of the set; only their faces turn to the diagonal.
+          const face = u => (u < 0.5 ? lerpAngle(F0, Fmid, mj(u / 0.5)) : lerpAngle(Fmid, F1, mj((u - 0.5) / 0.5)));
+          const lean = u => lerpAngle(F0, Fmid, bump(u)), width = u => lerp(w0, w1, bump(u));
+          for (const [k, side] of [[i, -1], [j, 1]]) out[k] = u => {
+            const p = lean(u) - Math.PI / 2, s = mj(u), h = (side * width(u)) / 2, mx = m0.x, my = lerp(m0.y, m1.y, s);
+            return { x: mx + h * Math.cos(p), y: my + h * Math.sin(p), a: face(u) };
+          };
+          continue;
+        }
         // The couple's middle goes round the arc; its heading is the way round (with a little turn in at each end).
         // Out at the start's distance while walking round (side by side, the inside dancers of the two couples are
         // then well clear of each other), stepping in to the end's distance only while turning to face out.
@@ -2807,7 +2824,7 @@ const Contra = (() => {
   }
 
   // Form this time through's groups from where couples stand. Anyone left over is out (at an end).
-  function formGroups(couples, lines, pose, P, F, midway) {
+  function formGroups(couples, lines, pose, P, F, midway, byFacing) {
     const groups = [], outs = [], used = new Set(), gap = P.neighborGap;
     const midOf = c => ({ x: (pose[c.lark].x + pose[c.robin].x) / 2, y: (pose[c.lark].y + pose[c.robin].y) / 2 });
     const group = (members, frame, lineK) => {
@@ -2907,10 +2924,10 @@ const Contra = (() => {
       for (const c of couples) {
         if (c.role !== 'ones') continue;
         const m = midOf(c), cx = lines[c.line].cx;
-        // Partners side by side in the middle of the set, facing up or down the hall (after a promenade around the
-        // set to new neighbors): they take hands with the twos couple they face.
+        // After promenading round the set to new neighbors (byFacing), partners side by side take hands with the
+        // twos couple they face: on the diagonal in a Becket set, or up or down the hall.
         const la = pose[c.lark].a, ra = pose[c.robin].a;
-        if (Math.abs(m.x - cx) < 0.3 && la != null && ra != null && Math.abs(wrap(la - ra)) < 0.6 && Math.abs(Math.sin(la)) > 0.8) {
+        if (byFacing && la != null && ra != null && Math.abs(wrap(la - ra)) < 0.6) {
           const fx = Math.cos(la), fy = Math.sin(la);
           const ahead = couples.filter(q => q.role === 'twos' && lineOf(q) === lineOf(c) && !used.has(q)).map(q => ({ q, d: dist(midOf(q), m), dot: (midOf(q).x - m.x) * fx + (midOf(q).y - m.y) * fy }))
             .filter(o => o.dot > 0.7 * o.d && o.d < 1.6 * P.partnerGap).sort((a, b) => a.d - b.d)[0];
@@ -3119,7 +3136,7 @@ const Contra = (() => {
     // - four facing four: a line at the end turns around (each couple turning as a couple) and comes back in.
     const roundTheSet = flat.some(q => q.call.fig === 'promenadeAround');
     const startPass = (from, t0, midway) => {
-      const { groups, outs } = formGroups(couples, lines, from, P, F, midway);
+      const { groups, outs } = formGroups(couples, lines, from, P, F, midway, midway && roundTheSet);
       const cross = {}, inFn = {};
       for (const g of groups) for (const id of Object.values(g.ids)) {
         if (g.faceIn) inFn[id] = () => g.faceIn[id];
@@ -3156,7 +3173,21 @@ const Contra = (() => {
         }
         // A dance that progresses by promenading round the set: the waiting couple turns round where they stand
         // when the others promenade (see planCall), to face back into the set.
-        if (roundTheSet && (F.kind === 'longways' || F.kind === 'becket')) {
+        const onSide = Math.abs((from[lark].x + from[robin].x) / 2 - o.cx) > 0.3;
+        if (roundTheSet && F.kind === 'becket' && midway && onSide) {
+          // In a Becket set after promenading half a place along the side to new neighbors: the waiting couple
+          // crosses over to the other side, half a place further out, ready to promenade back in on the diagonal.
+          const m = mid(from[lark], from[robin]), ln = dancers.filter(q => q.line === c.line);
+          const away = ln.reduce((sum, q) => sum + from[q.id].y, 0) / ln.length > m.y ? -1 : 1, dy = away * P.neighborGap / 2;
+          to = couplePlaces(F, next, o.cx, m.y + dy, P);
+          // (They're checked where the next promenade takes them, on the diagonal.)
+          const prom = flat.find(q => q.call.fig === 'promenadeAround').call, mirror = q => ({ x: 2 * o.cx - q.x, y: q.y, a: q.a == null ? null : Math.PI - q.a });
+          const fs = FIGURES.promenadeAround.plan([to.lark, to.robin, mirror(to.lark), mirror(to.robin)], prom, { p: P, cx: o.cx, keys: ['L1', 'R1', 'L2', 'R2'] });
+          o.wantAfter = { lark: fs[0](1), robin: fs[1](1) };
+        } else if (roundTheSet && F.kind === 'becket' && onSide) {
+          o.to = { lark: { ...from[lark] }, robin: { ...from[robin] } };   // already waiting where they should be
+          continue;
+        } else if (roundTheSet && (F.kind === 'longways' || F.kind === 'becket')) {
           const m = mid(from[lark], from[robin]), w = dist(from[lark], from[robin]) / 2, ln = dancers.filter(q => q.line === c.line);
           const F1 = ln.reduce((sum, q) => sum + from[q.id].y, 0) / ln.length > m.y ? Math.PI / 2 : -Math.PI / 2, r = F1 - Math.PI / 2;
           o.to = { lark: { x: m.x - w * Math.cos(r), y: m.y - w * Math.sin(r), a: F1 }, robin: { x: m.x + w * Math.cos(r), y: m.y + w * Math.sin(r), a: F1 } };
@@ -3307,14 +3338,23 @@ const Contra = (() => {
         });
         for (const [i, j] of waveNeighbours(t)) holds.push({ fig: 'wave', a: ids[i], ah: 'near', b: ids[j], bh: 'near', t0: t0 + 0.85 * call.beats, t1: t0 + call.beats });
       }
-      const local0 = t0 - pass.t0, local1 = local0 + call.beats;
+      // (A couple who starts waiting partway through, at a regroup, crosses over from then.)
+      const local0 = t0 - (pass.crossFrom != null ? pass.crossFrom : pass.t0), local1 = local0 + call.beats;
       for (const o of pass.outs) {
         const { lark, robin } = o.couple;
-        if (local0 < crossBeats && pass.cross[lark] && call.fig !== 'promenadeAround') {
+        if (local0 >= 0 && local0 < crossBeats && pass.cross[lark] && call.fig !== 'promenadeAround') {
           for (const id of [lark, robin]) {
             const f = pass.cross[id];
             fns[id] = u => f(clamp01(lerp(local0, local1, u) / crossBeats));
           }
+        } else if (call.fig === 'promenadeAround' && (F.kind === 'longways' || F.kind === 'becket') && Math.abs((from[lark].x + from[robin].x) / 2 - o.cx) > 0.3) {
+          // In a Becket set a couple waiting at an end promenades its half place along its side like everyone else
+          // (as if a couple stood across from them), and so meets the couple coming to them on the diagonal.
+          const mirror = q => ({ x: 2 * o.cx - q.x, y: q.y, a: q.a == null ? null : Math.PI - q.a });
+          const places = [from[lark], from[robin], mirror(from[lark]), mirror(from[robin])], kctx = { p: P, cx: o.cx, keys: ['L1', 'R1', 'L2', 'R2'] };
+          const fs = FIGURES.promenadeAround.plan(places, call, kctx);
+          fns[lark] = fs[0]; fns[robin] = fs[1];
+          addHolds('promenadeAround', places.slice(0, 2), { ...kctx, keys: ['L1', 'R1'] }, [lark, robin]);
         } else if (call.fig === 'promenadeAround' && (F.kind === 'longways' || F.kind === 'becket')) {
           // Promenading round the set to new neighbors: a couple waiting at an end turns round as a couple
           // (counter-clockwise, like a courtesy turn) to face back into the set, where a couple promenading their
@@ -3368,7 +3408,7 @@ const Contra = (() => {
       }
       for (const o of pass.outs) {
         for (const r of ['lark', 'robin']) {
-          const e = o.to[r], id = o.couple[r];
+          const e = (o.wantAfter || o.to)[r], id = o.couple[r];
           want[id] = { x: e.x, y: e.y, a: e.a != null ? e.a : e.x > o.cx ? Math.PI : 0 };   // facing in across the set
         }
       }
@@ -3430,6 +3470,7 @@ const Contra = (() => {
             if (regroupWant) passInfo[p - 1].check = { ...checkPass(regroupWant, ends), at: t1 };
             endOfWait(pass);
             nextPass = startPass(roundTheSet ? facing : ends, pass.t0, true);
+            if (roundTheSet) nextPass.crossFrom = t1;
             regroupWant = expectAfter(nextPass, ends);
           }
           if (last) {
@@ -4551,6 +4592,9 @@ function dial(def, m) {
 }
 const spinIcon = s => (s > 0 ? '↺' : s < 0 ? '↻' : '');
 
+// The builder's preview canvas: one, moved into each new builder (some browsers, Safari especially, are slow to
+// give back the memory of a canvas thrown away, and blank every canvas on the page when it runs out).
+const bPrevCanvas = Object.assign(document.createElement('canvas'), { id: 'bPrev' });
 function renderBuilder() {
   const box = $('builder'), sel = state.sel, k = sel && state.doc.parts[sel.part] && state.doc.parts[sel.part].calls[sel.index];
   let def, m, beats, editing = !!k;
@@ -4562,7 +4606,7 @@ function renderBuilder() {
   let html = `<div class="bhead cat${cat}">${icon(cat)}<strong>${def ? def.label : 'Unknown figure'}</strong>${k ? `<span class="small">in ${partName}</span>` : '<span class="small">new</span>'}
     ${def ? '<button type="button" class="bexplore" id="bExplore" title="A closer look at this move">⤢ Explore</button>' : ''}<button type="button" class="bclose" id="bClose" aria-label="Close">✕</button></div>`;
   state.preview = def ? previewOf(def, m, beats) : null;
-  if (state.preview) html += `<div class="bpreview"><canvas id="bPrev" aria-label="Preview of ${def.label}"></canvas></div>`;
+  if (state.preview) html += `<div class="bpreview" id="bPrevBox"></div>`;
   if (def && !def.fig) html += `<p class="soonnote">Not animated yet: dancers stand still during it.</p>`;
   if (def) {
     html += `<div class="bgrid">`;
@@ -4583,6 +4627,7 @@ function renderBuilder() {
   html += editing ? `<div class="bactions"><button type="button" id="bRemove">Remove</button></div>`
     : `<div class="bactions"><span class="bdrag" id="bDrag" title="Drag into a part">⠿ Drag into a part</span><span>or</span><select id="bPart" aria-label="Part">${state.doc.parts.map((p, i) => `<option value="${i}"${i === playingPart() ? ' selected' : ''}>${p.name}</option>`).join('')}</select><button type="button" class="primary" id="bAdd">Add</button></div>`;
   box.innerHTML = html;
+  if ($('bPrevBox')) { bPrevCanvas.setAttribute('aria-label', `Preview of ${def.label}`); $('bPrevBox').appendChild(bPrevCanvas); }
   box.querySelector('.bhead').className = `bhead cat${cat}`;
   $('bLine').textContent = `(${beats}) ${def ? sayMove(def, m) : roleWords(k.text)}`;
 
@@ -5120,7 +5165,30 @@ function updateReadout() {
   if (state.followPass !== p) { state.followPass = p; updateFollowNow(); }
 }
 
+// Each frame asks for the next one first, and each part is drawn on its own: a mistake drawing one moment
+// can't stop the animation (or leave the floor blank for good), and is reported once in the console.
+function guarded(what, fn) {
+  try { fn(); } catch (e) {
+    if (!guarded.seen.has(what + e.message)) { guarded.seen.add(what + e.message); console.error(`Drawing ${what} failed:`, e); }
+    if (what === 'the floor') try { showDrawError(e); } catch (e2) { /* nothing more we can do this frame */ }
+  }
+}
+guarded.seen = new Set();
+// After a failed drawing: put the canvas's settings back and say something went wrong, rather than a blank floor.
+function showDrawError(e) {
+  const g = canvas.getContext('2d'), dpr = window.devicePixelRatio || 1;
+  // No canvas to draw on at all: the browser has run out of memory for drawing (Safari can, with many pages open).
+  if (!g) { $('what').textContent = 'The browser has run out of memory for drawing. Reloading the page should bring the dancers back.'; return; }
+  if (g.reset) g.reset(); else { g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1; g.setLineDash([]); }
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.fillStyle = tokens.muted; g.font = '500 13px "Instrument Sans", system-ui, sans-serif'; g.textAlign = 'center';
+  g.fillText(`Something went wrong drawing this moment (${e.message}). Try another beat.`, canvas.width / dpr / 2, canvas.height / dpr / 2);
+}
 function frame(now) {
+  requestAnimationFrame(frame);
+  guarded('the dance', () => frameSteps(now));
+}
+function frameSteps(now) {
   if (state.playing && state.c.total > 0) {  // an empty dance has nothing to play
     const dt = Math.min(0.1, (now - state.last) / 1000), bps = (+$('tempo').value || 120) / 60 * +$('speed').value;
     const [from, to] = loopSpan();
@@ -5131,11 +5199,10 @@ function frame(now) {
   }
   const pdt = Math.min(0.1, (now - (state.plast || now)) / 1000), pbps = (+$('tempo').value || 120) / 60;
   state.plast = now;
-  if (state.preview && !$('builder').hidden && $('bPrev')) { state.preview.clock += pdt * pbps * 0.75; drawPreview($('bPrev'), state.preview, loopAt(state.preview)); }
-  stepExplorer(pdt, pbps);
+  if (state.preview && !$('builder').hidden && $('bPrev')) { state.preview.clock += pdt * pbps * 0.75; guarded('the move preview', () => drawPreview($('bPrev'), state.preview, loopAt(state.preview))); }
+  guarded('the move explorer', () => stepExplorer(pdt, pbps));
   state.last = now;
-  draw(); updateReadout();
-  requestAnimationFrame(frame);
+  guarded('the floor', draw); guarded('the readout', updateReadout);
 }
 
 // ---------- Controls ----------

@@ -356,12 +356,14 @@ for (const k of c.calls) {
   check(Contra.parseDance('A1\n(8) down the hall and thread the needle').parts[0].calls[0].thread === true, '"down the hall and thread the needle" is read');
   const w = Contra.parseDance('A1\n(4) form an ocean wave & balance - robins by left hands and partners by right hands').parts[0].calls[0].form;
   check(w.rel === 'P' && w.hand === 'R' && w.centers === 'R', '"robins by left hands and partners by right hands" is a wave with partners on the ends by right hands, robins in the middle');
-  // Couples promenading a quarter round their hands-four end facing new neighbors: in a Becket CCW set (couple 1
-  // on the left) each couple on the left goes down and each on the right up, so couple 1 faces couple 4.
+  // In a Becket set, promenading one place is half a place along your own side (counter-clockwise: the right side
+  // up, the left side down), so new neighbors stand on the diagonal: couple 1 (on the left, Becket CCW) faces couple 4.
   const c = Contra.compile(Contra.parseDance('FormationBase: Becket - CCW\nA1\n(8) Partners promenade counterclockwise around the set one place to meet new neighbors\n(8) Neighbors do-si-do'), { lines: 1, sets: 3, passes: 1 });
-  const at = (num, t) => { const k = c.couples.find(q => q.num === num), a = Contra.poseAt(c, k.lark, t), b = Contra.poseAt(c, k.robin, t); return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, a: a.a, b: b.a }; };
-  const one = at(1, 8), four = at(4, 8), down = q => Math.abs(Math.sin(q.a) + 1) < 0.1 && Math.abs(Math.sin(q.b) + 1) < 0.1, up = q => Math.abs(Math.sin(q.a) - 1) < 0.1 && Math.abs(Math.sin(q.b) - 1) < 0.1;
-  check(down(one) && up(four) && Math.abs(one.x - four.x) < 0.1 && Math.abs(one.y - four.y - 1.2) < 0.15, `after promenading one place, couple 1 faces down to couple 4 facing up, 1.2 m apart (${(one.y - four.y).toFixed(2)} m)`);
+  const at = (num, t) => { const k = c.couples.find(q => q.num === num), a = Contra.poseAt(c, k.lark, t), b = Contra.poseAt(c, k.robin, t); return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, a: a.a }; };
+  const one0 = at(1, 0), one = at(1, 8), four = at(4, 8), toward = Math.atan2(four.y - one.y, four.x - one.x);
+  check(Math.abs(one.x - one0.x) < 0.05 && Math.abs(one0.y - one.y - 0.5) < 0.05 && Math.abs(Math.atan2(Math.sin(one.a - toward), Math.cos(one.a - toward))) < 0.15 && Math.abs(Math.abs(four.x - one.x) - 1.2) < 0.1,
+    `after promenading one place, couple 1 has moved half a place down its side and faces couple 4 on the diagonal`);
+  check(c.passes[0].groups.length > 0 && c.puzzled.length === 0, 'and nobody is left confused');
   check(Contra.parseDance('FormationBase: becket\nA1\n(8) Partners promenade counterclockwise around the set one place').formation === 'becketCCW', 'a plain "Becket" dance that promenades counterclockwise is read as Becket CCW');
 }
 
