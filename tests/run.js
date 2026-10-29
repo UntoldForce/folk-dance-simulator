@@ -348,6 +348,23 @@ for (const k of c.calls) {
   check(mid.progression.firstBad === -1, `circle left 3/4, pass through to the next neighbors, do-si-do with them: progresses (${mid.passes.map(p => p.check.good + '/' + p.check.total).join(', ')})`);
 }
 
+// Promenading round the set to new neighbors (a Becket progression), threading the needle, and a wave in words.
+{
+  const k = Contra.parseDance('A1\n(8) partners promenade counterclockwise around set one place to meet new neighbors').parts[0].calls[0];
+  check(k.fig === 'promenadeAround' && k.dir === 1 && k.turns === 0.25 && k.meet, '"promenade counterclockwise around the set one place to meet new neighbors" is a quarter round the hands-four');
+  check(Contra.parseDance('A1\n(8) promenade single file around the circle 3 places').parts[0].calls[0].fig !== 'promenadeAround', 'a single-file promenade is something else');
+  check(Contra.parseDance('A1\n(8) down the hall and thread the needle').parts[0].calls[0].thread === true, '"down the hall and thread the needle" is read');
+  const w = Contra.parseDance('A1\n(4) form an ocean wave & balance - robins by left hands and partners by right hands').parts[0].calls[0].form;
+  check(w.rel === 'P' && w.hand === 'R' && w.centers === 'R', '"robins by left hands and partners by right hands" is a wave with partners on the ends by right hands, robins in the middle');
+  // Couples promenading a quarter round their hands-four end facing new neighbors: in a Becket CCW set (couple 1
+  // on the left) each couple on the left goes down and each on the right up, so couple 1 faces couple 4.
+  const c = Contra.compile(Contra.parseDance('FormationBase: Becket - CCW\nA1\n(8) Partners promenade counterclockwise around the set one place to meet new neighbors\n(8) Neighbors do-si-do'), { lines: 1, sets: 3, passes: 1 });
+  const at = (num, t) => { const k = c.couples.find(q => q.num === num), a = Contra.poseAt(c, k.lark, t), b = Contra.poseAt(c, k.robin, t); return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, a: a.a, b: b.a }; };
+  const one = at(1, 8), four = at(4, 8), down = q => Math.abs(Math.sin(q.a) + 1) < 0.1 && Math.abs(Math.sin(q.b) + 1) < 0.1, up = q => Math.abs(Math.sin(q.a) - 1) < 0.1 && Math.abs(Math.sin(q.b) - 1) < 0.1;
+  check(down(one) && up(four) && Math.abs(one.x - four.x) < 0.1 && Math.abs(one.y - four.y - 1.2) < 0.15, `after promenading one place, couple 1 faces down to couple 4 facing up, 1.2 m apart (${(one.y - four.y).toFixed(2)} m)`);
+  check(Contra.parseDance('FormationBase: becket\nA1\n(8) Partners promenade counterclockwise around the set one place').formation === 'becketCCW', 'a plain "Becket" dance that promenades counterclockwise is read as Becket CCW');
+}
+
 // Confused dancers (speech bubbles on the floor): nobody in the test dances; everyone during a figure the simulator
 // can't read; dancers who end a time through in the wrong place.
 {
