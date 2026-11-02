@@ -809,11 +809,12 @@ const Contra = (() => {
       return { x: p.x, y: p.y, a: settle(ps[i].a, heading(path, s), u, 0.1) }; };
   }
   // Promenade partners: each lark with the robin beside him, or his partner when two robins are about as close.
-  function promenadePairs(ps, ctx) {
+  // ("Neighbors promenade": each lark with his neighbor, the robin beside him who isn't his partner.)
+  function promenadePairs(ps, ctx, who) {
     const taken = new Set(), out = [];
     ctx.keys.forEach((key, i) => {
       if (key[0] !== 'L') return;
-      const pref = n => dist(ps[i], ps[n]) - (ctx.keys[n] === 'R' + key.slice(1) ? 0.4 : 0);
+      const own = n => ctx.keys[n] === 'R' + key.slice(1), pref = n => dist(ps[i], ps[n]) + (who === 'neighbors' ? (own(n) ? 0.6 : 0) : own(n) ? -0.4 : 0);
       const j = ctx.keys.map((k, n) => n).filter(n => ctx.keys[n][0] === 'R' && !taken.has(n)).sort((a, b) => pref(a) - pref(b))[0];
       if (j != null) { taken.add(j); out.push([i, j]); }
     });
@@ -1654,7 +1655,7 @@ const Contra = (() => {
     // in, ending directly across from where they started.
     promenadeAcross: { group: 'four', plan(ps, call, ctx) {
       const c = centroid(ps), out = ps.map(d => () => d);
-      for (const [i, j] of promenadePairs(ps, ctx)) {
+      for (const [i, j] of promenadePairs(ps, ctx, call.who)) {
         const m0 = mid(ps[i], ps[j]), m1 = { x: 2 * ctx.cx - m0.x, y: m0.y }, bow = (Math.sign(m0.y - c.y) || (m0.x > ctx.cx ? 1 : -1)) * 0.35;
         const F = angleTo(m0, m1);
         for (const k of [i, j]) {
@@ -1679,7 +1680,7 @@ const Contra = (() => {
       if (ctx.sq) return FIGURES.promenade.plan(ps, call, ctx);
       const c = centroid(ps), out = ps.map(d => () => d), P = ctx.p, dir = call.dir || 1, th = dir * (call.turns || 0.25) * TAU;
       const r1 = Math.max(0.35, P.neighborGap - P.partnerGap / 2), close = 0.5;
-      for (const [i, j] of promenadePairs(ps, ctx)) {
+      for (const [i, j] of promenadePairs(ps, ctx, call.who)) {
         const m0 = mid(ps[i], ps[j]), r0 = Math.max(0.3, dist(c, m0)), phi0 = angleTo(c, m0), w0 = dist(ps[i], ps[j]);
         const F0 = facingOf(ps[i], ps[j], ctx), Fend = phi0 + th + (call.meet === false ? Math.PI : 0);
         // In a Becket set (partners side by side on one side) "one place" is half a place along their own side:
@@ -2043,7 +2044,7 @@ const Contra = (() => {
     promenade: { group: 'four', square: true, plan(ps, call, ctx) {
       // In a contra "promenade" means promenading across the set.
       if (!ctx.sq) return FIGURES.promenadeAcross.plan(ps, call, ctx);
-      const R = ctx.sq.R, n = ctx.sq.n, h = ctx.p.neighborGap / 2, out = [], q = TAU / n, taken = new Set(), pairs = promenadePairs(ps, ctx), s1 = slotAngle(1, n);
+      const R = ctx.sq.R, n = ctx.sq.n, h = ctx.p.neighborGap / 2, out = [], q = TAU / n, taken = new Set(), pairs = promenadePairs(ps, ctx, call.who), s1 = slotAngle(1, n);
       // Couples may stand between places (after a swing, say); they all keep the same spacing, so each is snapped
       // to its place by the same amount, and no two couples end in one place.
       const phis = pairs.map(([i, j]) => { const m = mid(ps[i], ps[j]); return Math.atan2(m.y, m.x); });
@@ -2249,8 +2250,8 @@ const Contra = (() => {
     scootBack: (ps, call, ctx) => waveHolds('scootBack', 0.9)(ps, call, ctx),
     spinTop: (ps, call, ctx) => waveHolds('spinTop', 0.9)(ps, call, ctx),
     balanceWave: ps => waveNeighbours(ps).map(([i, j]) => hold(i, 'near', j, 'near')),
-    promenadeAcross: (ps, call, ctx) => promenadePairs(ps, ctx).flatMap(([l, r]) => [hold(l, 'R', r, 'R', 0.05, 1), hold(l, 'L', r, 'L', 0.05, 1)]),
-    promenadeAround: (ps, call, ctx) => ctx.sq ? HOLDS.promenade(ps, call, ctx) : promenadePairs(ps, ctx).flatMap(([l, r]) => [hold(l, 'R', r, 'R', 0.15, 0.85), hold(l, 'L', r, 'L', 0.15, 0.85)]),
+    promenadeAcross: (ps, call, ctx) => promenadePairs(ps, ctx, call.who).flatMap(([l, r]) => [hold(l, 'R', r, 'R', 0.05, 1), hold(l, 'L', r, 'L', 0.05, 1)]),
+    promenadeAround: (ps, call, ctx) => ctx.sq ? HOLDS.promenade(ps, call, ctx) : promenadePairs(ps, ctx, call.who).flatMap(([l, r]) => [hold(l, 'R', r, 'R', 0.15, 0.85), hold(l, 'L', r, 'L', 0.15, 0.85)]),
     dixieTwirl: ps => lineHolds(ps, ps[0].a != null ? ps[0].a : -Math.PI / 2, 0, 1),
     castAcross: (ps, call, ctx) => { const lead = call.who === 'larks' ? 'L' : 'R', two = ps.map((d, i) => i).filter(i => roleAt(ctx, i) === lead);
       return two.length === 2 ? [hold(two[0], 'near', two[1], 'near', 0.08, 0.4)] : []; },
@@ -2268,7 +2269,7 @@ const Contra = (() => {
     upHall: ps => lineHolds(ps, Math.PI / 2, 0.12, 0.75),
     upDouble: (ps, call, ctx) => partnerPairs(ctx).map(([l, r]) => hold(l, 'near', r, 'near')),
     // Promenade: the skating hold, right hands and left hands joined.
-    promenade: (ps, call, ctx) => !ctx.sq ? HOLDS.promenadeAcross(ps, call, ctx) : promenadePairs(ps, ctx).flatMap(([l, r]) => [hold(l, 'R', r, 'R', 0.15, 0.85), hold(l, 'L', r, 'L', 0.15, 0.85)]),
+    promenade: (ps, call, ctx) => !ctx.sq ? HOLDS.promenadeAcross(ps, call, ctx) : promenadePairs(ps, ctx, call.who).flatMap(([l, r]) => [hold(l, 'R', r, 'R', 0.15, 0.85), hold(l, 'L', r, 'L', 0.15, 0.85)]),
     // Grand right and left: a hand with each person met, right then left, as they pass.
     grandRL: (ps, call, ctx) => {
       if (!ctx.sq) return HOLDS.squareThrough(ps, { ...call, turns: Math.max(1, Math.round((call.turns || 0.5) * 4)) }, ctx);
@@ -2479,7 +2480,7 @@ const Contra = (() => {
       return { fig: 'promenadeAround', who: who || 'partners', dir: /counter|anti|\bccw\b/.test(t) || !/clockwise|\bcw\b/.test(t) ? 1 : -1,
         turns: places ? places / 4 : 0.25, meet: /\b(new|next) neighbou?rs?\b|\bmeet\b/.test(t) };
     }
-    if (/promenade/.test(t) && !/star promenade/.test(t)) return { fig: 'promenade', who: who === 'heads' || who === 'sides' ? who : 'partners', turns: /home/.test(t) ? null : amount(null) };
+    if (/promenade/.test(t) && !/star promenade/.test(t)) return { fig: 'promenade', who: who === 'heads' || who === 'sides' || who === 'neighbors' ? who : 'partners', turns: /home/.test(t) ? null : amount(null) };
     if (/bentley/.test(t)) return { fig: 'bentleyAllemande', who: who || 'partners', side: lr() };
     if ((m = t.match(/allemande\s+(left|right)(.*)/))) return { fig: 'allemande', who, hand: m[1][0].toUpperCase(), turns: parseTurns(m[2], 1) };
     if (/shoulder a?round|gyps(y|ie)/.test(t)) return { fig: 'shoulderRound', who, side: lr(), turns: amount(1) };
@@ -3224,7 +3225,12 @@ const Contra = (() => {
         const next = o.flips ? (c.role === 'ones' ? 'twos' : 'ones') : c.role;
         const y0 = (from[lark].y + from[robin].y) / 2;
         let to;
-        if (F.kind === 'square') {
+        if (F.kind === 'sicilian' && lines[c.line].center) {
+          // A Sicilian circle has no ends either: a couple not facing another couple waits where they are, facing
+          // into the circle (rather than being sent to the end of a line that isn't there).
+          const ctr = lines[c.line].center;
+          to = { lark: { ...from[lark], a: angleTo(from[lark], ctr) }, robin: { ...from[robin], a: angleTo(from[robin], ctr) } };
+        } else if (F.kind === 'square') {
           // Squares have no ends: a couple not in a place just waits where they are, facing the nearest square.
           const sq = lines.reduce((b, q) => (dist(q.center, from[lark]) < dist(b.center, from[lark]) ? q : b));
           to = { lark: { ...from[lark], a: angleTo(from[lark], sq.center) }, robin: { ...from[robin], a: angleTo(from[robin], sq.center) } };

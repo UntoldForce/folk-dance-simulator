@@ -400,6 +400,18 @@ for (const k of c.calls) {
   }
 }
 
+// "Neighbors promenade" pairs each lark with his neighbor (not his partner across the set); a Sicilian circle whose
+// couples can't find another couple keeps them where they are (it used to lose them: positions became NaN).
+{
+  const k = Contra.parseDance('A1\n(8) neighbors promenade').parts[0].calls[0];
+  check(k.who === 'neighbors', '"neighbors promenade" is read as neighbors');
+  const c = Contra.compile(Contra.parseDance('A1\n(8) Neighbors swing\n(8) Neighbors promenade\n(8) Neighbors do-si-do\n(8) Partners swing'), { lines: 1, sets: 2, passes: 1 });
+  const across = c.calls[1], l = c.couples[0].lark, sw = c.dancers.find(d => d.id !== l && d.role === 'robin' && d.couple !== c.couples[0].id);
+  check(across.holds.some(h => (h.a === l && h.b === sw.id) || (h.b === l && h.a === sw.id)), 'a neighbors promenade holds hands with the neighbor');
+  const s = Contra.compile(Contra.parseDance('FormationBase: Sicilian Circle\nA1\n(8) Circle left 3 places\n(8) Partners California twirl\n(16) Partners balance & swing'), { lines: 1, sets: 4, passes: 3 });
+  check(s.dancers.every(d => [0, 40, 70, 100].every(t => Number.isFinite(Contra.poseAt(s, d.id, t).x))), 'a Sicilian circle never loses its dancers, even when couples can\'t pair up');
+}
+
 // Confused dancers (speech bubbles on the floor): nobody in the test dances; everyone during a figure the simulator
 // can't read; dancers who end a time through in the wrong place.
 {
