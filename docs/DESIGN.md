@@ -241,9 +241,10 @@ the test: a reading that makes more real dances progress is the better one. Fixe
   the hands-four ends as an evenly spaced line of four.
 - "Neighbors promenade" is with neighbors; "right left through (with courtesy turn)" is a right left through;
   "down the hall and turn as a couple / turn alone" on one line.
-Clean dances: 97 -> 112. Still to settle (questions for Ryan): the gate in contra ("twos gate ones to face down",
-which taken literally sends both ones into the middle from opposite sides), contra corners, the long wave in the
-middle, the figure eight, the mad robin.
+- Gate (Ryan): a hinge, the pair turning round the middle of their joined hands, one walking forward and the other
+  backing up, until they face the way the call says, usually into the set. "Twos gate ones": the ones walk forward.
+  "Larks gate neighbors": each lark with his neighbor. Ending facing up or down, the hands-four is a line of four.
+Clean dances: 97 -> 114. Still to settle: contra corners, the long wave in the middle, the figure eight, the mad robin.
 
 **Lines (Ryan, November 2026).** Long lines are everyone along each side: hands are held with whoever is beside
 you all the way along the line, across hands-fours, and couples waiting at the ends step forward and back with

@@ -1269,6 +1269,23 @@ const Contra = (() => {
     // default, the two sides mirror images: the dancers being gated (the ones, unless "1s gate the 2s") walk
     // forward into the middle while the gaters back up. Elsewhere, half a turn counter-clockwise by default.
     gate: { group: 'pair', plan(ps, call, ctx) {
+      // Contra (Ryan): a hinge. The pair turn round the middle of their joined hands, the one being gated walking
+      // forward and the gater backing up, until they face the way the call says (into the set unless it says up or
+      // down). Ending facing up or down, the hands-four is a line of four across the set.
+      if (!ctx.english && ctx.keys && !call.side && call.turns == null) {
+        const keys = ctx.keys, gated = keys.findIndex(k => k && (/[12]/.test(call.gaters) ? k[1] !== call.gaters : k[0] !== call.gaters));
+        if (gated >= 0) {
+          const c = mid(ps[0], ps[1]), F0 = facingOf(ps[0], ps[1], ctx), right = { x: Math.sin(F0), y: -Math.cos(F0) };
+          const dir = (ps[gated].x - c.x) * right.x + (ps[gated].y - c.y) * right.y > 0 ? 1 : -1;   // gated on the right: counter-clockwise
+          const T = call.face === 'down' ? -Math.PI / 2 : call.face === 'up' ? Math.PI / 2 : (c.x > ctx.cx ? Math.PI : 0);
+          let th = dir > 0 ? ((T - F0) % TAU + TAU) % TAU : -(((F0 - T) % TAU + TAU) % TAU);
+          if (Math.abs(th) < 0.05) th = dir * TAU;
+          const line = call.face === 'up' || call.face === 'down', c1 = line ? { x: ctx.cx + (c.x > ctx.cx ? 0.7 : -0.7), y: c.y } : c;
+          return ps.map(d => { const a0 = angleTo(c, d), r0 = dist(c, d), r1 = line ? 0.35 : r0;
+            return u => { const s = trap(u, 0.25), ang = a0 + th * s, r = tuckR(lerp(r0, r1, mj(u)), th * s, ctx.p), m = { x: lerp(c.x, c1.x, mj(u)), y: lerp(c.y, c1.y, mj(u)) };
+              return { x: m.x + r * Math.cos(ang), y: m.y + r * Math.sin(ang), a: settle(d.a, F0, u, 0.15) + th * s }; }; });
+        }
+      }
       const turns = call.turns != null ? call.turns : ctx.english ? 1 : 0.5;
       let dir = call.side ? (call.side === 'L' ? 1 : -1) : 1;
       if (!call.side && ctx.english && ctx.keys) {
@@ -2556,8 +2573,16 @@ const Contra = (() => {
     if (/courtesy turn/.test(t) && !/right and left (through|thru)/.test(t)) return { fig: 'courtesyTurn', who };
     if (/turn as (a )?couples?|wheel around/.test(t)) return { fig: 'turnAsCouple', who };
     if (/butterfly whirl/.test(t)) return { fig: 'butterflyWhirl', who };
-    if (/\bgate\b/.test(t)) return { fig: 'gate', who: who === 'ones' || who === 'twos' || !who ? 'neighbors' : who, side: /clockwise|\bcw\b|\bccw\b/.test(t) ? rot('L') : null,
-      turns: amount(null), gaters: /\b(1s|ones) gate/.test(t) ? '1' : '2' };
+    // "Twos gate ones (to face down)", "larks gate neighbors to face into the set": the first named do the gating
+    // with whoever the second names (neighbors unless said); the call says which way the pair ends up facing.
+    if (/\bgate\b/.test(t)) {
+      const g = t.match(/\b(larks?|robins?|gents|ladies|men|women|ones|twos|1s|2s)\s+gate\s+(?:the\s+|their\s+|your\s+)?(next\s+)?(partners?|neighbou?rs?|shadows?|ones|twos|1s|2s)?/);
+      const by = g ? g[1] : '', rel = g && g[3] ? g[3] : '';
+      const face = /face (up|down)/.test(t) ? t.match(/face (up|down)/)[1] : /face (in|into|across)|into the (set|center|centre)/.test(t) ? 'in' : null;
+      return { fig: 'gate', who: /^p/.test(rel) ? 'partners' : /^s/.test(rel) ? 'shadows' : who === 'larks' || who === 'robins' || who === 'partners' ? (/^n/.test(rel) || !rel ? 'neighbors' : who) : who === 'ones' || who === 'twos' || !who ? 'neighbors' : who,
+        side: /clockwise|\bcw\b|\bccw\b/.test(t) ? rot('L') : null, turns: amount(null), face,
+        gaters: /^(1s|ones)$/.test(by) ? '1' : /^(lark|gent|men)/.test(by) ? 'L' : /^(robin|lad|wom)/.test(by) ? 'R' : '2' };
+    }
     if (/dolphin hey/.test(t)) return { fig: 'dolphinHey', who: who === 'twos' ? 'twos' : 'ones', side: /\bleft\b/.test(t) ? 'L' : 'R', turns: /half|1\/2/.test(t) ? 0.5 : 1 };
     if (/chevron/.test(t)) return { fig: 'chevron', who: who === 'secondCorners' ? 'secondCorners' : 'firstCorners', side: lr() };
     if ((m = t.match(/open (robins|ladies|women|larks|gents|men)'? chain/))) return { fig: 'openChain', who: /robins|ladies|women/.test(m[1]) ? 'robins' : 'larks' };

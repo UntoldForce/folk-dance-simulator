@@ -424,6 +424,13 @@ for (const k of c.calls) {
   const ok = w.couples.every(k => { const l = Contra.poseAt(w, k.lark, 12), nb = w.couples.find(q => q.num === (k.num % 2 ? k.num + 1 : k.num - 1)), rb = Contra.poseAt(w, nb.robin, 12);
     return ((rb.x - l.x) * Math.sin(l.a) - (rb.y - l.y) * Math.cos(l.a)) > 0; });
   check(ok, 'in long waves holding right hands, each lark has the robin beside him on his right');
+  // A contra gate (Ryan): a hinge, the gated walking forward and the gater backing up, until facing as the call says.
+  const gr = read('(8) twos gate ones to face down the set');
+  check(gr.fig === 'gate' && gr.who === 'neighbors' && gr.gaters === '2' && gr.face === 'down', '"twos gate ones to face down the set" is read: the twos gate their neighbors, ending facing down');
+  check(read('(8) larks gate neighbors to face into the set').who === 'neighbors' && read('(8) larks gate neighbors to face into the set').gaters === 'L', '"larks gate neighbors": the larks gate their neighbors (not each other)');
+  const gt = Contra.compile(Contra.parseDance('A1\n(8) Long lines forward & back\n(8) Twos gate ones to face down the set\n(8) Down the hall\n(8) Up the hall and bend into a ring'), { lines: 1, sets: 2, passes: 1 });
+  const g4 = gt.dancers.slice(0, 4).map(d => ({ d, p: Contra.poseAt(gt, d.id, 16) })).sort((a, b) => a.p.x - b.p.x);
+  check(g4.every(q => Math.abs(q.p.y - g4[0].p.y) < 0.05 && Math.abs(Math.sin(q.p.a) + 1) < 0.05) && g4[1].d.ones && g4[2].d.ones && !g4[0].d.ones, 'twos gate ones to face down: a line of four across the set facing down, the ones in the middle');
   // Neighbors swing to face down: the hands-four ends as an evenly spaced line of four across the set.
   const s = Contra.compile(Contra.parseDance('A1\n(16) Neighbors balance & swing, end facing down the hall\n(8) Down the hall\n(8) Up the hall and bend into a ring'), { lines: 1, sets: 2, passes: 1 });
   const xs = s.dancers.slice(0, 4).map(d => Contra.poseAt(s, d.id, 16).x).sort((a, b) => a - b);
