@@ -367,6 +367,19 @@ for (const k of c.calls) {
   check(Contra.parseDance('FormationBase: becket\nA1\n(8) Partners promenade counterclockwise around the set one place').formation === 'becketCCW', 'a plain "Becket" dance that promenades counterclockwise is read as Becket CCW');
 }
 
+// Long lines hold hands all along each side, across hands-fours; short lines and short wavy lines (Ryan).
+{
+  const c = Contra.compile(Contra.parseDance('A1\n(8) In long lines, go forward and back\n(8) Neighbors swing'), { lines: 1, sets: 3, passes: 2 });
+  for (const p of [0, 1]) { const k = c.calls.find(q => q.pass === p && q.fig === 'longLines');
+    check(k.holds.length === 10 && new Set(k.holds.flatMap(h => [h.a, h.b])).size === 12, `long lines: everyone on each side holds hands with those beside them, across hands-fours (time ${p + 1}: ${k.holds.length} holds)`); }
+  const read = t => Contra.parseDance('A1\n' + t).parts[0].calls[0];
+  check(read('(8) In short lines, go forward and back').fig === 'shortLines' && read('(8) In short lines, go forward and back').fb, '"in short lines, go forward and back" is a line of four across the set, forward and back');
+  check(read('(4) Short wavy lines').fig === 'formWave' && read('(4) In short wavy lines, balance').fig === 'balanceWave', '"short wavy lines" forms a wave of four; "in short wavy lines, balance" balances it');
+  const s = Contra.compile(Contra.parseDance('A1\n(8) Neighbors swing, end facing down\n(8) In short lines, go forward and back'), { lines: 1, sets: 2, passes: 1 }), k = s.calls[1];
+  const ys = s.dancers.map(d => Contra.poseAt(s, d.id, k.t0 + 2.5).y);
+  check(k.holds.length === 6 && Math.max(...ys.slice(0, 4)) - Math.min(...ys.slice(0, 4)) < 0.05, 'short lines: each hands-four makes one line across the set, hands joined');
+}
+
 // Confused dancers (speech bubbles on the floor): nobody in the test dances; everyone during a figure the simulator
 // can't read; dancers who end a time through in the wrong place.
 {

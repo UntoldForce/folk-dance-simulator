@@ -687,7 +687,7 @@ const Contra = (() => {
     // with a mixed pair in the middle (`centerPair` says who may stand together there).
     if (ps.length !== 4) return out;
     const ok = spec.pair || (() => true), okC = spec.centerPair || (() => true);
-    const fits = o => (spec.centers === 'mix' ? o.every((i, k) => k === 0 || role(i) !== role(o[k - 1])) : role(o[1]) === (spec.centers || 'R') && role(o[2]) === (spec.centers || 'R'));
+    const fits = o => (spec.centers === 'any' ? true : spec.centers === 'mix' ? o.every((i, k) => k === 0 || role(i) !== role(o[k - 1])) : role(o[1]) === (spec.centers || 'R') && role(o[2]) === (spec.centers || 'R'));
     const perms = a => (a.length < 2 ? [a] : a.flatMap((x, k) => perms(a.filter((y, j) => j !== k)).map(r => [x, ...r])));
     let best = null;
     for (const order of perms([0, 1, 2, 3]).filter(fits)) {
@@ -807,6 +807,12 @@ const Contra = (() => {
     });
     return out;
   }
+  // Which way a short line faces: as the call says, else the way its dancers mostly face (up or down), else down.
+  const shortLineFacing = (ps, call) => {
+    if (call.face) return call.face === 'up' ? Math.PI / 2 : -Math.PI / 2;
+    const s = ps.reduce((sum, d) => sum + (d.a == null ? 0 : Math.sin(d.a)), 0);
+    return s > 0.5 ? Math.PI / 2 : -Math.PI / 2;
+  };
   const centroid = ps => ({ x: ps.reduce((s, d) => s + d.x, 0) / ps.length, y: ps.reduce((s, d) => s + d.y, 0) / ps.length });
   // A smooth path through points (Catmull-Rom), and the direction of travel along it.
   function spline(pts) {
@@ -992,6 +998,16 @@ const Contra = (() => {
         const dir = Math.sign(ctx.cx - d.x) || 1, face = dir > 0 ? 0 : Math.PI;
         return u => ({ x: d.x + dir * ctx.p.linesStep * bump(u), y: d.y, a: settle(d.a, face, u) });
       });
+    } },
+
+    // Short lines (Ryan: "the set, typically four people, join in a line"): the hands-four takes hands in a line
+    // across the set, facing up or down the hall (as the call says, else the way they mostly face, else down), and
+    // with "forward and back" goes a few steps that way and back.
+    shortLines: { group: 'four', plan(ps, call, ctx) {
+      const c = centroid(ps), F = shortLineFacing(ps, call), order = ps.map((d, i) => i).sort((i, j) => ps[j].x - ps[i].x), slot = {}, form = call.fb ? 0.3 : 1;
+      order.forEach((i, k) => (slot[i] = ctx.cx + (1.5 - k) * 0.7));
+      return ps.map((d, i) => u => { const s = mj(clamp01(u / form)), f = call.fb ? bump(clamp01((u - form) / (1 - form))) : 0;
+        return { x: lerp(d.x, slot[i], s), y: lerp(d.y, c.y, s) + Math.sin(F) * ctx.p.linesStep * f, a: settle(d.a, F, u, 0.2) }; });
     } },
 
     allemande: { group: 'pair', plan([p, q], call, ctx) {
@@ -2139,9 +2155,10 @@ const Contra = (() => {
     halfSashay: () => [hold(0, 'near', 1, 'near', 0, 0.9)],
     poussette: (ps, call) => whoSets(call.who === 'neighbors' ? 'neighbors' : 'partners', { L1: 0, R1: 1, L2: 2, R2: 3 })
       .flatMap(([i, j]) => [hold(i, 'R', j, 'L'), hold(i, 'L', j, 'R')]),
-    // Long lines: hands along each side of the hands-four.
-    longLines: (ps, call, ctx) => [-1, 1].flatMap(side => { const on = ps.map((d, i) => i).filter(i => Math.sign(ps[i].x - ctx.cx) === side);
-      return on.length === 2 ? [hold(on[0], 'near', on[1], 'near')] : []; }),
+    // Long lines: hands along each side, with whoever is beside you (across hands-fours too: see linesAcross).
+    longLines: (ps, call, ctx) => [-1, 1].flatMap(side => { const on = ps.map((d, i) => i).filter(i => Math.sign(ps[i].x - ctx.cx) === side).sort((i, j) => ps[i].y - ps[j].y);
+      return on.slice(1).filter((j, k) => Math.abs(ps[j].y - ps[on[k]].y) < 1.6 * ctx.p.neighborGap).map((j, k) => hold(on[k], 'near', j, 'near')); }),
+    shortLines: (ps, call) => lineHolds(ps, shortLineFacing(ps, call), call.fb ? 0.25 : 0.6, 1),
     circle: ps => ringHolds(ps, 0.08, 0.92),
     balanceRing: ps => ringHolds(ps, 0, 1),
     star: (ps, call) => ps.map((d, i) => ({ a: i, ah: call.side === 'L' ? 'L' : 'R', center: true, u0: 0.1, u1: 0.9 })),
@@ -2307,7 +2324,7 @@ const Contra = (() => {
 
   // Typical lengths in beats, for figures built so far: the ContraLab timing chart (contralab.org),
   // and Contrafusion for pull by (4 beats; 2 when done rapidly as a single change).
-  const TYPICAL_BEATS = { centerWave: 4, swingThrough: 8, boxCirculate: 4, archDive: 4, crossTrails: 4, passOcean: 4, tradeWave: 6, spinTop: 8, scootBack: 6, circulate: 4, walkDodge: 4, contraCorners: 16, promenadeAcross: 8, promenadeAround: 8, turnAlone: 2, dixieTwirl: 4, castAcross: 8, heyThreeSide: 8, crossoverMirrorHey: 16, dolphinHey: 16, chevron: 8, openChain: 8, doubleFigureEight: 16, longLines: 8, allemande: 8, balance: 4, boxTheGnat: 4, swing: 4, circle: 8, pullBy: 4,
+  const TYPICAL_BEATS = { centerWave: 4, swingThrough: 8, boxCirculate: 4, archDive: 4, crossTrails: 4, passOcean: 4, tradeWave: 6, spinTop: 8, scootBack: 6, circulate: 4, walkDodge: 4, contraCorners: 16, shortLines: k => (k.fb ? 8 : 4), promenadeAcross: 8, promenadeAround: 8, turnAlone: 2, dixieTwirl: 4, castAcross: 8, heyThreeSide: 8, crossoverMirrorHey: 16, dolphinHey: 16, chevron: 8, openChain: 8, doubleFigureEight: 16, longLines: 8, allemande: 8, balance: 4, boxTheGnat: 4, swing: 4, circle: 8, pullBy: 4,
     shoulderRound: 8, dosido: 8, seesaw: 8, swatTheFlea: 4, californiaTwirl: 4, starThrough: 4, rollAway: 4, halfSashay: 4,
     passThrough: 4, star: 8, petronella: 4, courtesyTurn: 4, turnAsCouple: 4, chain: 8, rightLeftThrough: 8, flutterwheel: 8,
     hey: k => 16 * (k.turns || 1), figureEight: k => 16 * (k.turns || 1), forwardBack: 8, nextSquare: 8, grandRL: k => 16 * (k.turns || 0.5),
@@ -2347,7 +2364,7 @@ const Contra = (() => {
   // A figure can end in a wave: "...; form wave of four (NR,WL)", "...; form long waves (NR, women face in)",
   // "circle to a wave". The parentheses give the ends' relationship and hand, and who is in the center (short wave)
   // or who faces in (long waves).
-  const FORM_RE = /[;,]?\s*(?:\band\s+)?(?:form|make|step to|to)\s+(?:an?\s+)?(long waves?|short waves?|waves? of four|ocean wave|wave)\b(.*)$/i;
+  const FORM_RE = /[;,]?\s*(?:\band\s+)?(?:form|make|step to|to)\s+(?:an?\s+)?(long waves?|long wavy lines?|short waves?|short wavy lines?|wavy lines?|waves? of four|ocean wave|wave)\b(.*)$/i;
   function parseForm(t) {
     const m = t.match(FORM_RE);
     if (!m) return null;
@@ -2360,6 +2377,8 @@ const Contra = (() => {
       if (ends || mids) paren = `${ends ? (/^p/i.test(ends[1]) ? 'P' : 'N') + H(ends[2]) : 'X' + other(H(mids[2]))},${mids ? (/^(l|g|m)/i.test(mids[1]) ? 'M' : 'W') + H(mids[2]) : ''}`;
     }
     const [a = '', b = ''] = paren.split(/[,;]/).map(x => x.trim().toUpperCase());
+    // Plain "short wavy lines": everyone keeps their place in the line and every other dancer faces the other way.
+    if (!paren && /^(short )?wavy lines?$/i.test(m[1])) return { kind: 'short', hand: 'R', rel: null, centers: 'any', centerRel: null, faceIn: 'R' };
     return { kind: /long/i.test(m[1]) ? 'long' : 'short', hand: /L$/.test(a) ? 'L' : 'R', rel: /^N/.test(a) ? 'N' : /^P/.test(a) ? 'P' : null,
       // The center pair: a role (WL: robins, ML: larks) or a relationship (PL, NL: alternating lark, robin, lark, robin).
       centers: /^(P|N)/.test(b) ? 'mix' : /^(M|G|L)/.test(b) ? 'L' : 'R', centerRel: /^P/.test(b) ? 'P' : /^N/.test(b) ? 'N' : null, faceIn: /\b(men|gents|larks)\s+face in/i.test(m[2]) ? 'L' : 'R' };
@@ -2367,10 +2386,12 @@ const Contra = (() => {
   function parseFigure(text) {
     // "Robins dance in to a long wave in the center": they step into the middle of the set, a wave down the center
     // (read before "…to a long wave", which forms waves on the sides).
-    const cw = text.toLowerCase().match(/\b(larks?|robins?|gents|ladies|men|women)\s+(dance|step|come|walk)\s+in\b.*\blong wave\b|\b(larks?|robins?|gents|ladies|men|women)\s+form a long wave in the (center|centre|middle)/);
+    const cw = text.toLowerCase().match(/\b(larks?|robins?|gents|ladies|men|women)\s+(?:(?:dance|step|come|walk)\s+in|to the (?:center|centre|middle))\b.*\blong wav(?:e|y lines?)\b|\b(larks?|robins?|gents|ladies|men|women)\s+form a long wave in the (center|centre|middle)/);
     if (cw) return { fig: 'centerWave', who: /robin|lad|wom/.test(cw[1] || cw[3]) ? 'robins' : 'larks' };
+    // "(In) short wavy lines" on its own is forming a wave of four across the set ("…, balance" balances it).
+    if (/^\s*(in(to)?\s+)?(short\s+)?wavy lines?\b/i.test(text) && !/balance/i.test(text)) text = 'form ' + text.replace(/^\s*in(to)?\s+/i, '');
     const form = parseForm(text), main = form ? text.replace(FORM_RE, '').trim() : text;
-    if (form && !/[a-z]/i.test(main)) return { fig: 'formWave', who: form.kind === 'long' ? (form.faceIn === 'L' ? 'larks' : 'robins') : form.centers === 'mix' ? 'partners' : form.centers === 'L' ? 'larks' : 'robins', side: form.hand, form };
+    if (form && !/[a-z]/i.test(main)) return { fig: 'formWave', who: form.kind === 'long' ? (form.faceIn === 'L' ? 'larks' : 'robins') : form.centers === 'any' ? 'all' : form.centers === 'mix' ? 'partners' : form.centers === 'L' ? 'larks' : 'robins', side: form.hand, form };
     const r = parseMain(main);
     // "…swing, end facing down (up)": the couple finishes in the middle of the set facing down (up) the hall.
     const ef = main.toLowerCase().match(/\b(end|ending|finish(ing)?)( up)? (facing|to face) (up|down)\b/);
@@ -2401,6 +2422,8 @@ const Contra = (() => {
     const amount = fallback => parseTurns(t.replace(/\s+or\s+.*$/, '').replace(/two-hand/g, '').replace(/\(.*?\)/g, '').replace(/\b\d(s|st|nd|rd|th)\b/g, ''), fallback);
     let m;
     if (/long lines/.test(t)) return { fig: 'longLines', who: 'all' };
+    if (/short lines|lines? of four/.test(t) && !/wavy|down the|up the/.test(t))
+      return { fig: 'shortLines', who: 'all', ...(/forward (and|&) back/.test(t) ? { fb: true } : {}), ...(/facing (up|down)/.test(t) ? { face: t.match(/facing (up|down)/)[1] } : {}) };
     // Wave figures (checked before trade, pass through and the like).
     // "Swing through" (a wave figure: trade by the right, then the centers by the left) isn't built yet, and isn't a swing.
     if (/swing th(r)?(ough|u)\b/.test(t)) return { fig: 'swingThrough', who: 'all' };
@@ -2475,7 +2498,7 @@ const Contra = (() => {
     if (/^set\b|\bset to\b/.test(t)) return { fig: 'set', who };
     if (/turn single/.test(t)) return { fig: 'turnSingle', who: 'all', side: lr(), cloverleaf: /clover/.test(t), toward: (t.match(/turn single (up|down)/) || [])[1] };
     if (/\b(right|left)[- ]hands? turn|\bturn (by the )?(right|left)( hand)?\b|\bhand turn\b/.test(t)) return { fig: 'handTurn', who, side: lr(), turns: amount(1) };
-    if (/balance (the )?(long |short )?wave|wavy line/.test(t)) return { fig: 'balanceWave', who: 'all' };
+    if (/balance (the )?(long |short )?wave|balance.*wavy line|wavy lines?,? balance/.test(t)) return { fig: 'balanceWave', who: 'all' };
     if (/balance (the )?ring/.test(t)) return { fig: 'balanceRing', who: 'all' };
     if (/balance/.test(t)) return { fig: 'balance', who, hand: handTag ? handTag[0].toUpperCase() : null };
     if (/swing/.test(t)) return { fig: 'swing', who };
@@ -2619,6 +2642,7 @@ const Contra = (() => {
     const who = WHO_TEXT[k.who] ? WHO_TEXT[k.who] + ' ' : '', side = h => (h === 'L' ? 'left' : 'right');
     switch (k.fig) {
       case 'longLines': return 'In long lines, go forward and back';
+      case 'shortLines': return k.fb ? 'In short lines, go forward and back' : 'Form short lines';
       case 'allemande': return `${who}allemande ${side(k.hand)} ${turnsText(k.turns)}`;
       case 'balance': return `${who}balance${k.hand ? ` (${k.hand}H)` : ''}`;
       case 'pullBy': return `${who}pull by ${side(k.hand)}`;
@@ -3415,6 +3439,25 @@ const Contra = (() => {
           addHolds('swing', places, { keys: ['L', 'R'] }, [lark, robin]);
         }
       }
+      // Long lines are everyone along each side: couples waiting at the ends step forward and back too, and hands
+      // are held with whoever is beside you all the way along the line, across hands-fours (Ryan).
+      if (call.fig === 'longLines' && F.kind !== 'square' && F.kind !== 'set') {
+        for (const o of pass.outs) {
+          const { lark, robin } = o.couple;
+          if (fns[lark] || fns[robin]) continue;
+          FIGURES.longLines.plan([from[lark], from[robin]], call, { p: P, cx: o.cx }).forEach((f, i) => (fns[[lark, robin][i]] = f));
+        }
+        for (let i = holds.length - 1; i >= 0; i--) if (holds[i].fig === 'longLines') holds.splice(i, 1);
+        for (const L of lines) for (const side of [-1, 1]) {
+          const on = dancers.map(d => d.id).filter(id => { const q = from[id], near = lines.reduce((b, M) => (Math.abs(M.cx - q.x) < Math.abs(b.cx - q.x) ? M : b));
+            return near === L && Math.sign(q.x - L.cx) === side && Math.abs(q.x - L.cx) > 0.2; }).sort((a, b) => from[a].y - from[b].y);
+          for (let j = 1; j < on.length; j++) {
+            const a = from[on[j - 1]], b = from[on[j]];
+            // (Only dancers standing in line, a sensible distance apart: not two on one spot, or far apart.)
+            if (b.y - a.y > 0.4 * P.neighborGap && b.y - a.y < 1.2 * P.neighborGap && Math.abs(a.x - b.x) < 0.3) holds.push({ fig: 'longLines', a: on[j - 1], ah: 'near', b: on[j], bh: 'near', t0, t1: t0 + call.beats });
+          }
+        }
+      }
       for (const d of dancers) if (!fns[d.id]) fns[d.id] = standStill(from[d.id]);
       return { fns, notes, holds };
     };
@@ -3860,6 +3903,7 @@ const POOL = [
   { cat: 2, label: 'Chevron', fig: 'chevron', who: ['firstCorners', 'secondCorners'], side: 'pass', d: { who: 'firstCorners', side: 'R' }, beats: 8, say: '{who} chevron, crossing by the {side}', re: /chevron/, ecd: true },
   { cat: 3, label: 'Balance', fig: 'balance', who: PAIR, side: 'hands', d: { who: 'neighbors', side: 'R' }, say: '{who} balance {side}' },
   { cat: 3, label: 'Long lines', fig: 'longLines', d: {}, say: 'In long lines, go forward and back' },
+  { cat: 3, label: 'Short lines', fig: 'shortLines', d: {}, beats: 8, say: 'In short lines, go forward and back', re: /short lines|lines? of four/ },
   { cat: 3, label: 'Back to back', fig: 'dosido', who: PAIR, d: { who: 'partners' }, beats: 8, say: '{who} back to back', re: /back to back/, ecd: true },
   { cat: 3, label: 'Siding', fig: 'siding', who: PAIR, side: 'shoulder', d: { who: 'partners', side: 'R' }, beats: 8, say: '{who} side {side}', re: /\bsid(e|ing)\b/, ecd: true },
   { cat: 3, label: 'Sharp siding', fig: 'sharpSiding', who: PAIR, d: { who: 'partners' }, beats: 8, say: '{who} sharp siding', re: /sharp siding|swirly/, ecd: true },
@@ -3878,6 +3922,7 @@ const POOL = [
     say: m => `Form a wave of four (${m.who === 'partners' ? 'N' : 'P'}${m.side}, ${m.who === 'partners' ? 'P' : 'N'}${m.side === 'R' ? 'L' : 'R'})`, re: /wave of four \([NP][RL], ?[NP][RL]\)/ },
   { cat: 9, label: 'Form a wave of four', fig: 'formWave', who: ['robins', 'larks'], side: 'hand', d: { who: 'robins', side: 'R' }, beats: 4,
     say: m => `Form a wave of four (N${m.side}, ${m.who === 'larks' ? 'M' : 'W'}${m.side === 'R' ? 'L' : 'R'})`, re: /wave of four|short wave|ocean wave/ },
+  { cat: 9, label: 'Short wavy lines', fig: 'formWave', d: {}, beats: 4, say: 'Short wavy lines', re: /^(in(to)? )?(short )?wavy lines?$/, setup: '(8) In short lines, go forward and back' },
   { cat: 9, label: 'Form long waves', fig: 'formWave', who: ['robins', 'larks'], side: 'hand', d: { who: 'robins', side: 'R' }, beats: 4,
     say: m => `Form long waves (N${m.side}, ${m.who === 'larks' ? 'larks' : 'robins'} face in)`, re: /long waves?/ },
   { cat: 9, label: 'Pass the ocean', fig: 'passOcean', d: {}, beats: 4, say: 'Pass the ocean', re: /pass the ocean/, setup: '(8) Neighbor swing' },
@@ -4448,7 +4493,9 @@ const DESCRIPTIONS = {
   'Trade': 'Two people on a diagonal cross to each other\'s places, passing by the named shoulder.',
   'Cross': 'Cross the set on a straight path, passing by the named shoulder (usually partners crossing over). Two dancers of the same role on a diagonal is really a trade.',
   'Balance': 'Step forward and back in place, usually toward someone, with hands joined if named.',
-  'Long lines': 'Holding hands along each side, take four small steps toward the other line and four back. Partners meet close enough to clap.',
+  'Long lines': 'Everyone on each side of the set holds hands with the people beside them, all the way along the line (across hands-fours too), takes four small steps toward the other line and four back. Partners meet close enough to clap.',
+  'Short lines': 'Each hands-four takes hands in a line of four across the set, facing up or down the hall, and goes forward a few steps and back.',
+  'Short wavy lines': 'Each hands-four makes a short line across the set, each dancer facing the opposite way from the one beside them, hands joined: a wave of four.',
   'Do-si-do': 'Face someone, walk forward passing right shoulders, slide right back to back, and fall back to place, always facing the same way.',
   'Seesaw': 'A do-si-do by the left shoulder.',
   'Mad robin': 'Facing across the set, travel an oval around the person beside you, a sideways do-si-do, keeping eye contact with the person across.',

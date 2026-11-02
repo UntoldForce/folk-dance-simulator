@@ -216,6 +216,13 @@ The list lasts until the page closes. `tools/bundle-library.js` puts the whole l
   up. Couples waiting at the ends walk down the hall and back with the lines (when the lines come straight back up),
   so the lines don't walk through them.
 
+**Lines (Ryan, November 2026).** Long lines are everyone along each side: hands are held with whoever is beside
+you all the way along the line, across hands-fours, and couples waiting at the ends step forward and back with
+everyone (only dancers standing in line, about a place apart, join hands). Short lines: each hands-four takes hands
+in a line of four across the set, facing up or down the hall. Short wavy lines: from a line of four, every other
+dancer turns to face the other way (a wave of four, everyone in place); "long wavy line" is long waves, and
+"robins to the center to a long wavy line" the long wave in the middle.
+
 What the first 402 dances taught the simulator:
 - **Several figures on one line** ("(16) Neighbors balance & swing", "circle left 3/4 and pass through") stay one
   figure in the dance and one block in the editor, written as they were (Ryan: balance and swing is so common it
