@@ -27,6 +27,9 @@ const { chromium } = require('playwright');
 
   // Builder: robins allemande left once and a half, added to A2.
   await p.click('.chip:has-text("Allemande")');
+  await p.evaluate(() => { const f = drawPuzzled; window.puzzledOn = new Set(); drawPuzzled = (g, ...a) => { puzzledOn.add(g.canvas.id); return f(g, ...a); }; });
+  await p.waitForTimeout(600);
+  check(await p.evaluate(() => [...puzzledOn].every(id => id === 'floor')), 'confused-dancer bubbles are only drawn on the main floor, not in move previews');
   await p.selectOption('#bWho', 'robins'); await p.click('.seg button[data-side="L"]'); await p.selectOption('#bAmt', '1.5');
   check((await p.locator('#bLine').innerText()) === '(8) Robins allemande left 1 & 1/2', 'the builder previews the line with its modifiers');
   await p.selectOption('#bPart', '1'); await p.click('#bAdd');
