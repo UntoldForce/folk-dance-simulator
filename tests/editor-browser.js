@@ -155,6 +155,7 @@ const { chromium } = require('playwright');
   // Formation and progression, with pictures of the common formations: folded under one line saying what they are.
   check(!(await p.locator('.fpick').first().isVisible()) && !(await p.locator('#formation').isVisible()) && await p.textContent('#setupSum') === 'Improper · single progression',
     'formation, progression and the pictures start folded away under "Formation Improper · single progression"');
+  check(await p.locator('#setupPic svg').count() === 1 && /Change/.test(await p.evaluate(() => getComputedStyle(document.querySelector('.sumchange'), '::before').content)), 'the folded line looks like a button: a picture of the formation and "Change ▾"');
   await p.click('#setupBox summary'); await p.waitForTimeout(50);
   check(await p.locator('.fpick').count() === 6 && await p.locator('.fpick svg rect').count() > 0, 'six common formations are shown as pictures (larks as squares, robins as circles)');
   await p.click('.fpick[data-key="becketCW"]'); await p.waitForTimeout(100);

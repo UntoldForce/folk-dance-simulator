@@ -379,11 +379,23 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
 .fpick svg .band { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 2 2; }
 .fpick[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1.5px var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--panel)); }
 
-.fpbox summary { cursor: pointer; font: 500 13px var(--font-body); color: var(--accent); list-style: none; }
+/* The formation line looks like what it is, a button: a picture of the formation, its name, and "Change ▾". */
+.fpbox summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 10px; padding: 6px 10px 6px 6px;
+  border: 1px solid var(--rule); border-radius: 10px; background: var(--panel); transition: border-color 0.15s, box-shadow 0.15s; }
+.fpbox summary:hover { border-color: var(--accent); box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08); }
+.fpbox summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .fpbox summary::-webkit-details-marker { display: none; }
-.fpbox summary::before { content: "▸ "; } .fpbox[open] summary::before { content: "▾ "; }
-.fpbox[open] summary { margin-bottom: 8px; }
-.fpbox summary .sumlabel { color: var(--muted); } .fpbox summary #setupSum { color: var(--ink); font-weight: 600; }
+.fpbox[open] summary { margin-bottom: 8px; border-color: var(--accent); }
+.sumpic { width: 34px; height: 34px; flex: none; border-radius: 6px; background: var(--floor); display: grid; place-items: center; }
+.sumpic svg { width: 30px; height: 30px; }
+.sumpic svg .lk { fill: var(--lark); } .sumpic svg .rb { fill: var(--robin); } .sumpic svg .lks { stroke: var(--lark); } .sumpic svg .rbs { stroke: var(--robin); }
+.sumpic svg .band { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 2 2; }
+.sumtext { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+.fpbox summary .sumlabel { color: var(--muted); font: 600 11px var(--font-display); text-transform: uppercase; letter-spacing: 0.04em; }
+.fpbox summary #setupSum { color: var(--ink); font: 600 14px var(--font-body); }
+.sumchange { margin-left: auto; flex: none; color: var(--accent); font: 600 13px var(--font-body); border: 1px solid var(--accent); border-radius: 999px; padding: 3px 10px; }
+.sumchange::before { content: "Change ▾"; } .fpbox[open] .sumchange::before { content: "Done ▴"; }
+.fpbox summary:hover .sumchange { background: var(--accent); color: var(--accent-ink); }
 .fpbox .dsettings { margin-bottom: 10px; }
 </style>
 </head><body><!--wrap-->
@@ -456,7 +468,7 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
       </div>
       <div id="panelEditor" class="tabpanel" role="tabpanel" aria-labelledby="tabEditor">
         <div class="row"><button id="newDance" class="primary">＋ New dance</button><button id="reset2">Load “111”</button></div>
-        <details class="fpbox" id="setupBox"><summary><span class="sumlabel">Formation</span> <span id="setupSum"></span></summary>
+        <details class="fpbox" id="setupBox"><summary title="Change the formation or progression"><span class="sumpic" id="setupPic" aria-hidden="true"></span><span class="sumtext"><span class="sumlabel">Formation</span><span id="setupSum"></span></span><span class="sumchange" aria-hidden="true"></span></summary>
         <div class="dsettings">
           <label for="formation">Formation</label>
           <select id="formation">
@@ -5453,6 +5465,7 @@ renderFormPicks();
 function setupSummary() {
   const f = $('formation'), prog = $('progression');
   $('setupSum').textContent = `${f.options[f.selectedIndex] ? f.options[f.selectedIndex].text : 'Unknown'} · ${prog.options[prog.selectedIndex].text.toLowerCase()} progression`;
+  if (f.value && Contra.FORMATIONS[f.value] && setupSummary.shown !== f.value) { setupSummary.shown = f.value; $('setupPic').innerHTML = formationIcon(f.value); }
 }
 $('setupBox').open = recall('contra.setupBox') === 'open';
 $('setupBox').addEventListener('toggle', () => store('contra.setupBox', $('setupBox').open ? 'open' : 'closed'));
