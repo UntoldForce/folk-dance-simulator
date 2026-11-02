@@ -26,6 +26,9 @@ const ENGLISH = /side|siding|double|fall back|honour|hole in the wall|hand turn|
 const LEADINS = [
   ['Triple Minor - Proper', '(4) Ones cast off', 16, 'Ones turn contra corners'],
   ['Duple Minor - Improper', '(8) Partner swing', 8, 'Partner promenade across the set'],
+  ['Duple Minor - Becket CCW', '(8) Partner swing', 8, 'Partners promenade counterclockwise around the set one place to meet new neighbors'],
+  ['Duple Minor - Becket CW', '(8) Partner swing', 8, 'Partners promenade clockwise around the set one place'],
+  ['Duple Minor - Improper', '(8) Long lines forward & back', 8, 'Down the hall and thread the needle'],
   ['Duple Minor - Improper', '(8) Down the hall in a line of four', 4, 'Dixie twirl'],
   ['Duple Minor - Improper', '(8) Down the hall in a line of four', 2, 'Turn alone'],
   ['Duple Minor - Improper', '(4) Form a wave of four (NR, WL)', 4, 'Balance the wave'],
