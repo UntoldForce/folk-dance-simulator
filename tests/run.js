@@ -380,6 +380,15 @@ for (const k of c.calls) {
   check(k.holds.length === 6 && Math.max(...ys.slice(0, 4)) - Math.min(...ys.slice(0, 4)) < 0.05, 'short lines: each hands-four makes one line across the set, hands joined');
 }
 
+// Spin the top ends in a true wave at right angles to the first: everyone faces straight across it, alternately,
+// all four holding hands, so a balance goes straight forward and back.
+{
+  const c = Contra.compile(Contra.parseDance('A1\n(4) Form a wave of four (NR, WL)\n(8) Spin the top\n(4) Balance the wave'), { lines: 1, sets: 1, passes: 1 });
+  const ps = c.dancers.map(d => Contra.poseAt(c, d.id, 12)).sort((a, b) => a.y - b.y), across = q => Math.abs(Math.sin(q.a)) < 0.05;
+  check(ps.every(q => Math.abs(q.x - ps[0].x) < 0.05) && ps.every(across) && ps.every((q, i) => i === 0 || Math.cos(q.a) * Math.cos(ps[i - 1].a) < 0) && c.calls[1].holds.length === 3,
+    'spin the top ends in a wave along the set, everyone facing straight across it alternately, all four holding hands');
+}
+
 // Confused dancers (speech bubbles on the floor): nobody in the test dances; everyone during a figure the simulator
 // can't read; dancers who end a time through in the wrong place.
 {

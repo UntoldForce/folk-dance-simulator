@@ -1844,7 +1844,12 @@ const Contra = (() => {
       for (const i of ends) { const d = cur[i], a0 = angleTo(c, d), r = dist(c, d), sw = (rightHanded ? -1 : 1) * Math.PI / 2;
         second[i] = u => { const ang = a0 + sw * mj(u), rr = lerp(r, Math.min(r, fit), mj(u)); return { x: c.x + rr * Math.cos(ang), y: c.y + rr * Math.sin(ang), a: (d.a || 0) + sw * mj(u) }; }; }
       run(0.4, 1, second);
-      return ps.map((d, i) => u => { let st = d; for (const sg of segs) { if (!sg.fns[i]) continue; if (u < sg.u0) return st; if (u <= sg.u1) return sg.fns[i]((u - sg.u0) / (sg.u1 - sg.u0)); st = sg.fns[i](1); } return st; });
+      // Everyone squares up to the new wave at the end: facing straight across it, alternately, so it balances true.
+      const axis = angleTo(cur[ends[0]], cur[ends[1]]), square = cur.map(q => { const a1 = axis + Math.PI / 2, a2 = axis - Math.PI / 2;
+        return Math.abs(wrap((q.a || 0) - a1)) < Math.abs(wrap((q.a || 0) - a2)) ? a1 : a2; });
+      return ps.map((d, i) => u => { let st = d;
+        for (const sg of segs) { if (!sg.fns[i]) continue; if (u < sg.u0) return st; if (u <= sg.u1) { st = sg.fns[i]((u - sg.u0) / (sg.u1 - sg.u0)); break; } st = sg.fns[i](1); }
+        return u > 0.85 ? { ...st, a: lerpAngle(st.a, square[i], mj((u - 0.85) / 0.15)) } : st; });
     } },
 
     // Swing through (CALLERLAB): from a wave, the ends and the centers beside them turn half by the right (by the

@@ -153,7 +153,7 @@ placed in a dance; dancers stand still during them and the checks show a caution
 | Balance the wave | A wave | 4 | Hands joined in the wave, balance forward and back | Same wave | built |
 | Trade the wave | Wave of four | 6 | Those facing the same way trade, curving round toward each other, passing right shoulders | Ends and centers swapped, facing the other way, other hand | built |
 | Slide right / left | A wave | 4 | Let go, sidestep to your right (left) in front of the dancer there into their place | Same facing | built |
-| Spin the top | Wave of four | 8 | Ends and adjacent centers turn ½; new centers turn ¾ while the ends walk a quarter round | Wave turned a quarter | built |
+| Spin the top | Wave of four | 8 | Ends and adjacent centers turn ½; new centers turn ¾ while the ends walk a quarter round | Wave turned a quarter | built (squares up at the end: everyone faces straight across the new wave, all four holding hands) |
 | Circulate | Long waves | 4 | Facing in: walk across. Facing out: loop into the place beside you | Long waves again | built |
 | Walk and dodge | Long waves | 4 | Facing in: walk across. Facing out: sidestep into the place beside you | All facing out | built |
 | Scoot back | Long waves | 6–8 | Facing out: loop into the place beside you. Facing in: walk to the middle, allemande right ½, walk on out to the far side | Long waves again | built |
