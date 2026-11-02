@@ -227,6 +227,24 @@ library: 101 are fully read, 19 progress right; in every one of the others the c
 before any waiting couple matters (39 end in the middle of the set, 23 don't progress at all, 16 end on the other
 side, 3 other), each from a figure read or danced wrongly. That is the work still to do for Becket.
 
+**Moves checked against their definitions (November 2026).** The moves that almost never appear in a dance that
+passes were looked up (search results from caller glossaries, Colin Hume, Paul Balliet, the UMD figures page,
+CALLERLAB definitions; The Caller's Box itself can't be reached from the cloud session) and the 402 dances used as
+the test: a reading that makes more real dances progress is the better one. Fixed:
+- Roll away: "larks roll away partners (neighbors, shadows)": the larks roll them, who cross in front; the pair is
+  the larks with their partners, not the larks with each other. 40 dances say it this way.
+- Long waves holding right hands: each dancer has the other on their right (it was mirrored).
+- Rory O'More: a slide (or spin) to your right in the wave into the next place, never a slide along the set.
+- "(0) form long waves": how the figure before it ends. A bare balance after any wave balances the wave.
+- Swings: both couples of a hands-four swinging at once finish level, facing across; from diagonally across a ring
+  (after a circle) each couple goes to the side that is nearer for both; swinging to face down (or up) the hall
+  the hands-four ends as an evenly spaced line of four.
+- "Neighbors promenade" is with neighbors; "right left through (with courtesy turn)" is a right left through;
+  "down the hall and turn as a couple / turn alone" on one line.
+Clean dances: 97 -> 112. Still to settle (questions for Ryan): the gate in contra ("twos gate ones to face down",
+which taken literally sends both ones into the middle from opposite sides), contra corners, the long wave in the
+middle, the figure eight, the mad robin.
+
 **Lines (Ryan, November 2026).** Long lines are everyone along each side: hands are held with whoever is beside
 you all the way along the line, across hands-fours, and couples waiting at the ends step forward and back with
 everyone (only dancers standing in line, about a place apart, join hands). Short lines: each hands-four takes hands

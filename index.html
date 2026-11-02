@@ -1071,7 +1071,11 @@ const Contra = (() => {
       const P = ctx.p, m0 = mid(lark, robin);
       // Unless told otherwise, a swing ends facing across into the set, robin on the lark's right, on the side the
       // couple is nearer (from straight across the set, the lark's side).
-      const onRight = Math.abs(m0.x - ctx.cx) > 0.1 ? m0.x > ctx.cx : lark.x > ctx.cx;
+      // (From diagonally across the middle of the set, as partners are after a circle, the side where both have least
+      // far to go: robin on the lark's right facing in puts the lark nearer the foot on the right side, the head on the left.)
+      const half0 = ctx.p.partnerGap / 2, gy = ctx.gc && ctx.everyone ? ctx.gc.y : mid(lark, robin).y, hn = ctx.p.neighborGap / 2;
+      const cost = r => dist(lark, { x: ctx.cx + (r ? half0 : -half0), y: gy + (r ? -hn : hn) }) + dist(robin, { x: ctx.cx + (r ? half0 : -half0), y: gy + (r ? hn : -hn) });
+      const onRight = Math.abs(m0.x - ctx.cx) > 0.1 ? m0.x > ctx.cx : Math.abs(lark.y - robin.y) > 0.3 ? cost(true) < cost(false) : lark.x > ctx.cx;
       const F = call.end != null ? call.end : (onRight ? Math.PI : 0);
       const half = P.partnerGap / 2, places = call.places;
       // Ending facing across, the couple drifts back to its side of the set while swinging.
@@ -1081,7 +1085,9 @@ const Contra = (() => {
       const across = Math.abs(m0.x - ctx.cx) <= 0.1 && ctx.gc && ctx.everyone;
       // (Both couples of a hands-four swinging at once finish level with each other, facing across, as dancers do.)
       const level = across || (ctx.gc && ctx.everyone);
-      let m1 = places ? mid(places[0], places[1]) : ctx.slot ? ctx.slot : call.end != null ? m0 : { x: ctx.cx + (onRight ? half : -half), y: level ? ctx.gc.y : m0.y };
+      // (Both pairs swinging to end facing up or down the hall finish as a line of four across the set, evenly spaced.)
+      const line4 = call.end != null && ctx.gc && ctx.everyone && Math.abs(m0.x - ctx.cx) > 0.1;
+      let m1 = places ? mid(places[0], places[1]) : ctx.slot ? ctx.slot : line4 ? { x: ctx.cx + (onRight ? 0.7 : -0.7), y: ctx.gc.y } : call.end != null ? m0 : { x: ctx.cx + (onRight ? half : -half), y: level ? ctx.gc.y : m0.y };
       // A pair swinging while the others stand (the ones swing) finishes where nobody stands: in the middle of the
       // set if their side is taken, facing the others.
       let Fend = F;
@@ -1090,7 +1096,7 @@ const Contra = (() => {
       }
       const a0 = angleTo(robin, lark), af = places ? angleTo(places[1], places[0]) : Fend + Math.PI / 2;  // lark ends on the left of the facing direction
       const sameSide = places && Math.sign(places[0].x - ctx.cx) === Math.sign(places[1].x - ctx.cx), Fin = places && places[0].x > ctx.cx ? Math.PI : 0;
-      const rEnd = places ? dist(places[0], places[1]) / 2 : Fend !== F ? P.bodyGap / 2 + 0.05 : P.neighborGap / 2;
+      const rEnd = places ? dist(places[0], places[1]) / 2 : line4 ? 0.35 : Fend !== F ? P.bodyGap / 2 + 0.05 : P.neighborGap / 2;
       const faceEnd = places ? (sameSide ? [Fin, Fin] : [af + Math.PI, af]) : [Fend, Fend];
       const nominal = -(call.beats / P.swingBeatsPerTurn) * TAU; // swings turn clockwise
       const base = wrap(af - a0);
@@ -1520,10 +1526,23 @@ const Contra = (() => {
     // each other to face up the hall, while the ends walk forward, curl in and come back up under the arch (the
     // right-hand end first, the other just behind) and out to their places, facing up.
     downHall: { group: 'four', plan(ps, call, ctx) {
-      const c = centroid(ps), order = [0, 1, 2, 3].sort((i, j) => ps[j].x - ps[i].x), slot = {}, walk = call.thread ? 0.5 : 1;
+      const c = centroid(ps), order = [0, 1, 2, 3].sort((i, j) => ps[j].x - ps[i].x), slot = {}, walk = call.thread ? 0.5 : call.turn ? 0.65 : 1;
       order.forEach((i, k) => (slot[i] = ctx.cx + (1.5 - k) * 0.7));
       const down = (d, i) => u => { const s = mj(u / 0.2), t = trap(clamp01((u - 0.1) / (walk - 0.1)), 0.2);
         return { x: lerp(d.x, slot[i], s), y: lerp(d.y, c.y, s) - ctx.p.hallWalk * t, a: settle(d.a, -Math.PI / 2, u, 0.15) }; };
+      // "...and turn as a couple": at the bottom each couple in the line wheels round together, so the two of them
+      // trade places and face up; "...and turn alone": each turns round where they are (toward the middle of the line).
+      if (call.turn) {
+        const yb = c.y - ctx.p.hallWalk;
+        return ps.map((d, i) => {
+          const first = down(d, i), k = order.indexOf(i), pair = k < 2 ? [order[0], order[1]] : [order[2], order[3]];
+          const mx = (slot[pair[0]] + slot[pair[1]]) / 2, off = slot[i] - mx, toward = Math.sign(ctx.cx - slot[i]) || 1;
+          return u => { if (u <= walk) return first(u); const v = mj((u - walk) / (1 - walk));
+            if (call.turn === 'alone') return { x: slot[i], y: yb, a: -Math.PI / 2 + toward * Math.PI * v };
+            const th = Math.PI * v;   // the couple wheels counter-clockwise, like a courtesy turn
+            return { x: mx + off * Math.cos(th), y: yb + off * Math.sin(th), a: -Math.PI / 2 + th }; };
+        });
+      }
       if (!call.thread) return ps.map(down);
       const yb = c.y - ctx.p.hallWalk, wide = ctx.p.bodyGap + 0.05;
       return ps.map((d, i) => {
@@ -2562,7 +2581,7 @@ const Contra = (() => {
     if (/^shift\b/.test(t)) return { fig: 'shift', who: 'all', side: lr('L') };
     if (/^veer\b/.test(t)) return { fig: 'veer', who: 'all', side: lr('L') };
     if ((m = t.match(/lead (down|up)/))) return { fig: 'leadDown', who: who === 'twos' ? 'twos' : 'ones', dir: m[1] };
-    if (/down the (hall|center)/.test(t)) return { fig: 'downHall', who: 'all', ...(/thread the needle/.test(t) ? { thread: true } : {}) };
+    if (/down the (hall|center)/.test(t)) return { fig: 'downHall', who: 'all', ...(/thread the needle/.test(t) ? { thread: true } : /turn as (a )?couples?/.test(t) ? { turn: 'couple' } : /turn alone/.test(t) ? { turn: 'alone' } : {}) };
     if (/up the (hall|center)|come back/.test(t)) return { fig: 'upHall', who: 'all' };
     if (/cast across|lead (between|through) .*cast/.test(t)) return { fig: 'castAcross', who: who === 'larks' ? 'larks' : 'robins' };
     if (/cast (off|down|up)/.test(t)) return { fig: 'castOff', who: who === 'twos' ? 'twos' : 'ones', long: /long cast/.test(t) };

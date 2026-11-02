@@ -412,6 +412,24 @@ for (const k of c.calls) {
   check(s.dancers.every(d => [0, 40, 70, 100].every(t => Number.isFinite(Contra.poseAt(s, d.id, t).x))), 'a Sicilian circle never loses its dancers, even when couples can\'t pair up');
 }
 
+// Fixes from checking moves against their definitions (November 2026).
+{
+  const read = t => Contra.parseDance('A1\n' + t).parts[0].calls[0];
+  const r = read('(4) larks roll away neighbors with a half sashay');
+  check(r.fig === 'rollAway' && r.who === 'neighbors' && r.roller === 'larks', '"larks roll away neighbors": the larks roll their neighbors (not each other)');
+  check(read('(8) right left through (with courtesy turn)').fig === 'rightLeftThrough', '"right left through (with courtesy turn)" is a right left through');
+  check(read("(4) Rory O'More left to new neighbors").fig === 'slideWave', "Rory O'More is a slide in the wave, never a slide along the set");
+  // Long waves holding right hands: each has the other on their right.
+  const w = Contra.compile(Contra.parseDance('A1\n(8) In long lines, go forward and back\n(4) Form long waves (NR, women face in)\n(4) Balance the wave'), { lines: 1, sets: 2, passes: 1 });
+  const ok = w.couples.every(k => { const l = Contra.poseAt(w, k.lark, 12), nb = w.couples.find(q => q.num === (k.num % 2 ? k.num + 1 : k.num - 1)), rb = Contra.poseAt(w, nb.robin, 12);
+    return ((rb.x - l.x) * Math.sin(l.a) - (rb.y - l.y) * Math.cos(l.a)) > 0; });
+  check(ok, 'in long waves holding right hands, each lark has the robin beside him on his right');
+  // Neighbors swing to face down: the hands-four ends as an evenly spaced line of four across the set.
+  const s = Contra.compile(Contra.parseDance('A1\n(16) Neighbors balance & swing, end facing down the hall\n(8) Down the hall\n(8) Up the hall and bend into a ring'), { lines: 1, sets: 2, passes: 1 });
+  const xs = s.dancers.slice(0, 4).map(d => Contra.poseAt(s, d.id, 16).x).sort((a, b) => a - b);
+  check(xs.every((x, i) => i === 0 || Math.abs(x - xs[i - 1] - 0.7) < 0.1) && !s.warnings.some(w => w.bump), 'swinging to face down the hall ends in an evenly spaced line of four, nobody bumping');
+}
+
 // Confused dancers (speech bubbles on the floor): nobody in the test dances; everyone during a figure the simulator
 // can't read; dancers who end a time through in the wrong place.
 {
