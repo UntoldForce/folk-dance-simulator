@@ -389,6 +389,17 @@ for (const k of c.calls) {
     'spin the top ends in a wave along the set, everyone facing straight across it alternately, all four holding hands');
 }
 
+// Becket couples waiting out work out where to be from the dancers in the middle (Ryan: "often on a diagonal, but
+// not always"): a dance that progresses on the diagonal partway through (slice) comes out right at odd and even
+// sizes, where couples wait out at both ends, with nobody bumping.
+{
+  const t = 'FormationBase: Becket - CW\nA1\n(8) Slice left and straight back ⁋\n(8) Neighbors do-si-do\nA2\n(16) Neighbors balance & swing\nB1\n(8) Long lines forward & back\n(8) Robins chain\nB2\n(16) Partners balance & swing';
+  for (const [lines, sets] of [[1, 3], [1, 4], [2, 3]]) {
+    const c = Contra.compile(Contra.parseDance(t), { lines, sets, passes: 6 });
+    check(c.progression.firstBad === -1 && !c.warnings.some(w => w.bump), `Becket, progressing on the diagonal partway through, ${lines} line(s) of ${sets}: every time through right (${c.passes.map(p => p.check.good + '/' + p.check.total).join(' ')}), nobody bumps`);
+  }
+}
+
 // Confused dancers (speech bubbles on the floor): nobody in the test dances; everyone during a figure the simulator
 // can't read; dancers who end a time through in the wrong place.
 {

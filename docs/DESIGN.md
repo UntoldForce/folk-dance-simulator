@@ -216,6 +216,17 @@ The list lasts until the page closes. `tools/bundle-library.js` puts the whole l
   up. Couples waiting at the ends walk down the hall and back with the lines (when the lines come straight back up),
   so the lines don't walk through them.
 
+**Becket couples waiting out (Ryan, November 2026: "often on a diagonal, but not always").** Rather than assume
+where a waiting couple should be, they look at the dance: they take the place of the couple of their new role in
+the hands-four nearest them, one place further toward the end (where the couple arriving at that end, moving one
+place, will look for them), standing and facing as the dancers in the middle do at that moment. In a dance that
+changes neighbors partway through this is worked out at the changeover; if their spot is free they go straight
+there, and if dancers still stand in it they go during the next progression, arriving as their new neighbors do.
+This replaced the special rules written for A 60th Birthday Dance. Analysis of the 130 Becket dances in the
+library: 101 are fully read, 19 progress right; in every one of the others the couples in the middle go wrong
+before any waiting couple matters (39 end in the middle of the set, 23 don't progress at all, 16 end on the other
+side, 3 other), each from a figure read or danced wrongly. That is the work still to do for Becket.
+
 **Lines (Ryan, November 2026).** Long lines are everyone along each side: hands are held with whoever is beside
 you all the way along the line, across hands-fours, and couples waiting at the ends step forward and back with
 everyone (only dancers standing in line, about a place apart, join hands). Short lines: each hands-four takes hands
