@@ -214,6 +214,39 @@ const { chromium } = require('playwright');
   await p.click('#refsClose');
   check(!(await p.locator('#refsDialog').isVisible()), 'and it closes again');
 
+  // The move card on a computer: pinned at the top of the editor, nothing dimmed; Add keeps it open (to add more).
+  await p.click('#reset2'); await p.waitForTimeout(100);
+  await p.click('.chip:has-text("Swing") >> nth=0'); await p.waitForTimeout(200);
+  check(await p.evaluate(() => getComputedStyle($('builder')).position === 'sticky' && $('cardScrim').hidden), 'on a computer the move card is pinned above the move list, with nothing dimmed');
+  await p.click('.seg button[data-who="neighbors"]'); await p.waitForTimeout(100);
+  check(/Neighbor/.test(await p.textContent('#bLine')) && await p.getAttribute('.seg button[data-who="neighbors"]', 'aria-pressed') === 'true', 'Partners and Neighbors are big buttons on the card');
+  const n0 = await p.evaluate(() => state.doc.parts[0].calls.length);
+  await p.selectOption('#bPart', '0'); await p.click('#bAdd'); await p.waitForTimeout(150);
+  check(await p.evaluate(n => state.doc.parts[0].calls.length === n + 1, n0) && await p.isVisible('#builder') && /Added to A1/.test(await p.textContent('.bnote')), 'Add puts it in the part and keeps the card open, saying so');
+  const name0 = await p.textContent('.bhead strong'); await p.click('#bNextMove'); await p.waitForTimeout(100);
+  check((await p.textContent('.bhead strong')) !== name0 && await p.locator('#pool .chip.cur').count() >= 1, '› shows the next move in the list, marked in the list');
+  await p.keyboard.press('Escape'); await p.waitForTimeout(100);
+  check(await p.isHidden('#builder'), 'Escape closes the card');
+
+  // The move card on a phone: slides up in front, the rest dimmed; Add closes it, back where you were in the list.
+  {
+    const { devices } = require('playwright'), ctx = await b.newContext({ ...devices['iPhone 13'] }), q = await ctx.newPage();
+    q.on('pageerror', e => errs.push(e.message));
+    await q.goto('file://' + path.join(__dirname, '..', 'index.html')); await q.evaluate(() => localStorage.clear()); await q.reload(); await q.waitForTimeout(300);
+    const chip = q.locator('.chip:has-text("Petronella")').first(); await chip.scrollIntoViewIfNeeded(); const y0 = await q.evaluate(() => scrollY);
+    await chip.tap(); await q.waitForTimeout(300);
+    const box = await q.locator('#builder').boundingBox(), vh = await q.evaluate(() => innerHeight);
+    check(await q.isVisible('#cardScrim') && Math.abs(box.y + box.height - vh) < 2 && await q.evaluate(y => scrollY === y, y0), 'on a phone, tapping a move slides the card up from the bottom, dims the rest, and keeps your place in the list');
+    const n = await q.evaluate(() => state.doc.parts.reduce((s, x) => s + x.calls.length, 0));
+    await q.tap('#bAdd'); await q.waitForTimeout(200);
+    check(await q.isHidden('#builder') && await q.isHidden('#cardScrim') && await q.evaluate(n => state.doc.parts.reduce((s, x) => s + x.calls.length, 0) === n + 1, n), 'Add puts the move in and closes the card');
+    await chip.tap(); await q.waitForTimeout(300); await q.mouse.click(200, 40); await q.waitForTimeout(200);
+    check(await q.isHidden('#builder'), 'tapping the dimmed page closes the card');
+    await q.locator('.fblk').first().scrollIntoViewIfNeeded(); await q.locator('.fblk').first().tap(); await q.waitForTimeout(300);
+    check(await q.isVisible('#bDone') && await q.isVisible('#bRemove'), 'tapping a figure in the rows opens the same card to change it, with Done and Remove');
+    await ctx.close();
+  }
+
   check(errs.length === 0, `no page errors ${errs.join(' | ')}`);
   await b.close();
   console.log(failures ? `\n${failures} check(s) failed` : '\nAll checks passed');

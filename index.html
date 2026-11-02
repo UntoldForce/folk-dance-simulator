@@ -162,6 +162,8 @@ label.small { font-size: 13px; color: var(--muted); display: inline-flex; align-
 .seg button { flex: 1 1 0; padding: 5px 6px; font-size: 12.5px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
 .seg button[aria-pressed="true"] { background: var(--cat, var(--accent)); border-color: var(--cat, var(--accent)); color: var(--panel); }
 .seg .spin { font-size: 15px; line-height: 1; }
+.seg select { flex: 1 1 0; min-width: 0; }
+.seg select.on { background: var(--cat, var(--accent)); border-color: var(--cat, var(--accent)); color: var(--panel); }
 .amtrow { display: flex; align-items: center; gap: 8px; }
 .amtrow select { flex: 1; min-width: 0; }
 .dial { width: 46px; height: 46px; flex: none; color: var(--cat, var(--accent)); }
@@ -177,6 +179,34 @@ label.small { font-size: 13px; color: var(--muted); display: inline-flex; align-
 .bexplore { margin-left: auto; padding: 3px 9px; font-size: 12.5px; }
 .bexplore + .bclose { margin-left: 0; }
 .bpreview { background: var(--floor); border: 1px solid var(--rule); border-radius: 8px; height: 170px; }
+/* The move card. On a computer it stays pinned at the top of the editor while the move list scrolls under it (nothing
+   is dimmed: you can keep clicking moves, and the floor stays in view). On a phone (or wherever the whole page
+   scrolls) it slides up from the bottom in front of everything, the rest dimmed behind it. */
+.builder { position: sticky; top: 0; z-index: 5; max-height: 72vh; overflow-y: auto; box-shadow: 0 8px 18px rgba(0, 0, 0, 0.1); }
+.bsub { font: 12px var(--font-mono); color: var(--muted); margin-top: -5px; }
+.bnav { display: inline-flex; gap: 2px; }
+.bnav button { padding: 2px 8px; font-size: 14px; line-height: 1.2; }
+.bnote { font-size: 13px; color: var(--ok); }
+.bhandle { display: none; }
+.chip.cur { border-color: var(--cat, var(--accent)); box-shadow: inset 0 0 0 1.5px var(--cat, var(--accent)); }
+.searchrow { display: flex; gap: 6px; align-items: center; }
+.searchrow #poolSearch { flex: 1; min-width: 0; }
+.qbtn { width: 30px; height: 30px; padding: 0; border-radius: 50%; flex: none; color: var(--muted); }
+#cardScrim { position: fixed; inset: 0; background: rgba(10, 16, 14, 0.38); z-index: 40; }
+@keyframes sheetUp { from { transform: translateY(40%); opacity: 0.4; } to { transform: none; opacity: 1; } }
+@media (max-width: 1000px), (max-height: 560px) {
+  .builder { position: fixed; left: 0; right: 0; bottom: 0; top: auto; z-index: 41; max-height: 84dvh; margin: 0 auto; max-width: 640px;
+    border-radius: 16px 16px 0 0; border-bottom: 0; padding: 4px 16px calc(16px + env(safe-area-inset-bottom)); box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.2);
+    animation: sheetUp 0.22s ease-out; overscroll-behavior: contain; }
+  .bhandle { display: block; width: 44px; height: 5px; border-radius: 3px; background: var(--rule); margin: 4px auto 2px; flex: none; }
+  .bhead { font-size: 18px; }
+  .bpreview { height: min(32vh, 240px); }
+  .seg button, .bactions button, .bactions select, .builder select { padding: 9px 10px; font-size: 15px; }
+  .stepper button { width: 40px; padding: 7px 0; }
+  .bactions .primary { flex: 1; }
+  .bdrag { display: none; }
+  .chip { touch-action: pan-y; }   /* a swipe on a move scrolls the list; a tap opens it */
+}
 .bpreview canvas { width: 100%; height: 100%; display: block; }
 #explorer { width: min(900px, 94vw); max-height: 92vh; padding: 0; border: 1px solid var(--rule); border-radius: 12px; background: var(--panel); color: var(--ink); }
 #explorer::backdrop { background: rgba(10, 16, 14, 0.45); }
@@ -449,9 +479,10 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
         </div>
         <div class="formpicks" id="formPicks" role="group" aria-label="Common formations, as pictures"></div>
         </details>
-        <p class="hint">Click a move to set it up (who, side, how far), then add it to a part or drag it into the rows under the floor. Click a figure in the rows to change it.</p>
-        <div class="builder" id="builder" hidden></div>
-        <input id="poolSearch" type="search" placeholder="Search moves: chain, hey, gypsy…" aria-label="Search moves" autocomplete="off">
+        <div class="builder" id="builder" hidden role="dialog" aria-label="Move"></div>
+        <div class="searchrow"><input id="poolSearch" type="search" placeholder="Search moves: chain, hey, gypsy…" aria-label="Search moves" autocomplete="off">
+          <button type="button" id="poolHelpBtn" class="qbtn" aria-expanded="false" aria-controls="poolHelp" title="How to add and change moves">?</button></div>
+        <p class="hint" id="poolHelp" hidden>Tap a move to see it danced and set it up (who, which hand, how far), then add it to a part (on a computer you can also drag it into the rows under the floor). Tap a figure in the rows to change it.</p>
         <div class="pool" id="pool"></div>
       </div>
       <div id="panelText" class="tabpanel" role="tabpanel" aria-labelledby="tabText" hidden>
@@ -489,6 +520,7 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
   <p class="hint">Settings are remembered on this device.</p>
 </dialog>
 
+<div id="cardScrim" hidden></div>
 <dialog id="dances" class="drawer" aria-labelledby="dancesTitle">
   <div class="refshead"><h2 id="dancesTitle">Dances</h2><button type="button" id="dancesClose" aria-label="Close">✕</button></div>
   <div class="row"><button type="button" id="saveDance" class="primary">Save this dance</button><span class="small" id="saveNote"></span></div>
@@ -4274,6 +4306,7 @@ function renderPool() {
     chip.className = 'chip' + (def.fig ? '' : ' soon') + cls;
     chip.title = def.fig ? `${roleWords(def.label)}: click to set it up, or drag into a part` : `${def.label}: not animated yet. You can still place it; dancers stand still during it.`;
     chip.innerHTML = `${roleWords(def.label)}<small>${def.beats || Contra.TYPICAL_BEATS[def.fig] || 4}</small>`;
+    chip.dataset.label = def.label;
     chip.addEventListener('pointerdown', e => startDrag(e, 'pool', { def, el: chip }));
     return chip;
   };
@@ -4352,9 +4385,16 @@ function dropTarget(x, y) {
   return { part: +track.dataset.part, index, track, x: mx };
 }
 
-function onDragEnd() {
+function onDragEnd(e) {
   if (!drag) return;
   const d = drag;
+  if (e && e.type === 'pointercancel') {
+    drag = null;
+    window.removeEventListener('pointermove', onDragMove); window.removeEventListener('pointerup', onDragEnd); window.removeEventListener('pointercancel', onDragEnd);
+    if (d.ghost) { d.ghost.remove(); renderRows(); }
+    document.querySelectorAll('.dropmark').forEach(m => m.remove());
+    return;
+  }
   drag = null;
   window.removeEventListener('pointermove', onDragMove);
   window.removeEventListener('pointerup', onDragEnd);
@@ -4601,16 +4641,30 @@ function renderBuilder() {
   if (k) { def = moveOf(k); beats = k.beats; m = def ? readMods(def, k) : null; }
   else if (state.build) ({ def, m, beats } = state.build);
   box.hidden = !k && !state.build;
+  const phone = cardIsSheet();
+  $('cardScrim').hidden = box.hidden || !phone;
+  document.querySelectorAll('#pool .chip').forEach(c => c.classList.toggle('cur', !box.hidden && !!def && c.dataset.label === def.label));
   if (box.hidden) return;
   const cat = def ? def.cat : 0, partName = k ? state.doc.parts[sel.part].name : '';
-  let html = `<div class="bhead cat${cat}">${icon(cat)}<strong>${def ? def.label : 'Unknown figure'}</strong>${k ? `<span class="small">in ${partName}</span>` : '<span class="small">new</span>'}
-    ${def ? '<button type="button" class="bexplore" id="bExplore" title="A closer look at this move">⤢ Explore</button>' : ''}<button type="button" class="bclose" id="bClose" aria-label="Close">✕</button></div>`;
+  // (‹ › flip to the move before or after this one in the list, without closing the card.)
+  let html = `<div class="bhandle" id="bHandle" aria-hidden="true"></div><div class="bhead cat${cat}">${icon(cat)}<strong>${def ? def.label : 'Unknown figure'}</strong>${k ? `<span class="small">in ${partName}</span>` : '<span class="small">new</span>'}
+    ${!k && def ? '<span class="bnav"><button type="button" id="bPrevMove" aria-label="Previous move in the list" title="Previous move">‹</button><button type="button" id="bNextMove" aria-label="Next move in the list" title="Next move">›</button></span>' : ''}
+    ${def ? '<button type="button" class="bexplore" id="bExplore" title="A closer look at this move">⤢ Explore</button>' : ''}<button type="button" class="bclose" id="bClose" aria-label="Close">✕</button></div>
+    <div class="bsub" id="bLine"></div>`;
   state.preview = def ? previewOf(def, m, beats) : null;
   if (state.preview) html += `<div class="bpreview" id="bPrevBox"></div>`;
   if (def && !def.fig) html += `<p class="soonnote">Not animated yet: dancers stand still during it.</p>`;
   if (def) {
     html += `<div class="bgrid">`;
-    if (def.who) html += `<label for="bWho">Who</label><select id="bWho">${def.who.map(w => `<option value="${w}"${m.who === w ? ' selected' : ''}>${w === 'larks' ? roleSet()[0] : w === 'robins' ? roleSet()[1] : WHO_LABEL[w]}</option>`).join('')}</select>`;
+    // Who: big buttons when there are only a few choices (partners / neighbors), a menu when there are many.
+    const whoName = w => (w === 'larks' ? roleSet()[0] : w === 'robins' ? roleSet()[1] : WHO_LABEL[w]);
+    if (def.who && def.who.length <= 4) html += `<span class="blabel">Who</span><div class="seg" role="group" aria-label="Who">${def.who.map(w => `<button type="button" data-who="${w}" aria-pressed="${m.who === w}">${whoName(w)}</button>`).join('')}</div>`;
+    else if (def.who) {
+      // Many choices: the everyday ones (partners, neighbors) as buttons, everyone else in a menu beside them.
+      const big = ['partners', 'neighbors'].filter(w => def.who.includes(w)), other = def.who.filter(w => !big.includes(w));
+      html += `<span class="blabel">Who</span><div class="seg" role="group" aria-label="Who">${big.map(w => `<button type="button" data-who="${w}" aria-pressed="${m.who === w}">${whoName(w)}</button>`).join('')}
+        <select id="bWho" aria-label="Someone else"${big.includes(m.who) ? '' : ' class="on"'}><option value=""${big.includes(m.who) ? ' selected' : ''}>Other…</option>${other.map(w => `<option value="${w}"${m.who === w ? ' selected' : ''}>${whoName(w)}</option>`).join('')}</select></div>`;
+    }
     if (def.side) {
       const S = SIDES[def.side], opts = [...(S.none ? [[null, S.none, 0]] : []), ['L', S.labels[0], S.spin[0]], ['R', S.labels[1], S.spin[1]]];
       html += `<span class="blabel">Side</span><div class="seg" role="group" aria-label="Side">${opts.map(([v, label, spin]) =>
@@ -4623,9 +4677,11 @@ function renderBuilder() {
     html += `<div class="bgrid"><label for="bText">Line</label><input id="bText" type="text"></div>`;
   }
   html += `<div class="bgrid"><span class="blabel">Beats</span><div class="stepper"><button type="button" id="bLess" aria-label="Two beats fewer">−</button><span id="bBeats">${beats}</span><button type="button" id="bMore" aria-label="Two beats more">+</button></div></div>`;
-  html += `<div class="bline" id="bLine"></div>`;
-  html += editing ? `<div class="bactions"><button type="button" id="bRemove">Remove</button></div>`
-    : `<div class="bactions"><span class="bdrag" id="bDrag" title="Drag into a part">⠿ Drag into a part</span><span>or</span><select id="bPart" aria-label="Part">${state.doc.parts.map((p, i) => `<option value="${i}"${i === playingPart() ? ' selected' : ''}>${p.name}</option>`).join('')}</select><button type="button" class="primary" id="bAdd">Add</button></div>`;
+  const into = state.addTo != null && state.doc.parts[state.addTo] ? state.addTo : playingPart();
+  html += editing ? `<div class="bactions"><button type="button" id="bRemove">Remove</button><button type="button" class="primary" id="bDone">Done</button></div>`
+    : `<div class="bactions"><span class="bdrag" id="bDrag" title="Drag into a part">⠿ Drag into a part</span><select id="bPart" aria-label="Part to add it to">${state.doc.parts.map((p, i) => `<option value="${i}"${i === into ? ' selected' : ''}>${p.name}</option>`).join('')}</select><button type="button" class="primary" id="bAdd">Add to ${state.doc.parts[into] ? state.doc.parts[into].name : ''}</button></div>
+       ${state.added ? `<div class="bnote" role="status">${state.added}</div>` : ''}`;
+  state.added = null;
   box.innerHTML = html;
   if ($('bPrevBox')) { bPrevCanvas.setAttribute('aria-label', `Preview of ${def.label}`); $('bPrevBox').appendChild(bPrevCanvas); }
   box.querySelector('.bhead').className = `bhead cat${cat}`;
@@ -4639,17 +4695,22 @@ function renderBuilder() {
       commit(true);
     } else { state.build = { def, m: nm, beats: nb }; renderBuilder(); }
   };
-  if ($('bWho')) $('bWho').onchange = e => apply({ ...m, who: e.target.value }, beats);
-  box.querySelectorAll('.seg button').forEach(b => (b.onclick = () => apply({ ...m, side: b.dataset.side === 'null' ? null : b.dataset.side }, beats)));
+  if ($('bWho')) $('bWho').onchange = e => { if (e.target.value) apply({ ...m, who: e.target.value }, beats); };
+  box.querySelectorAll('.seg button[data-who]').forEach(b => (b.onclick = () => apply({ ...m, who: b.dataset.who }, beats)));
+  box.querySelectorAll('.seg button[data-side]').forEach(b => (b.onclick = () => apply({ ...m, side: b.dataset.side === 'null' ? null : b.dataset.side }, beats)));
   if ($('bAmt')) $('bAmt').onchange = e => apply({ ...m, amt: +e.target.value }, beats);
   if ($('bText')) { $('bText').value = roleWords(k.text); $('bText').onchange = () => { k.text = $('bText').value.trim() || k.text; commit(true); }; }
   $('bLess').onclick = () => apply(m, Math.max(1, beats - 2));
   $('bMore').onclick = () => apply(m, Math.min(32, beats + 2));
-  $('bClose').onclick = () => { state.sel = null; state.build = null; renderRows(); };
+  $('bClose').onclick = closeCard;
+  if ($('bPrevMove')) { $('bPrevMove').onclick = () => flipMove(def, -1); $('bNextMove').onclick = () => flipMove(def, 1); }
+  if ($('bDone')) $('bDone').onclick = closeCard;
+  if ($('bPart')) $('bPart').onchange = e => { state.addTo = +e.target.value; $('bAdd').textContent = `Add to ${state.doc.parts[state.addTo].name}`; };
+  dragToClose($('bHandle'), box);
   if ($('bExplore')) $('bExplore').onclick = () => openExplorer(def, m, beats);
   if (editing) $('bRemove').onclick = () => { state.doc.parts[sel.part].calls.splice(sel.index, 1); state.sel = null; commit(true); };
   else {
-    $('bAdd').onclick = () => addMove(+$('bPart').value, newCall(def, m, beats));
+    $('bAdd').onclick = () => addMove(+$('bPart').value, newCall(def, m, beats), !phone);
     $('bDrag').addEventListener('pointerdown', e => startDrag(e, 'pool', { def, m, beats, el: $('bDrag') }));
   }
 }
@@ -4658,12 +4719,46 @@ function playingPart() {
   const c = state.c, local = c.perPass ? state.t - passAt(state.t) * c.perPass : 0;
   return Math.max(0, c.parts.findIndex(p => local >= p.t0 && local < p.t1));
 }
-function addMove(pi, k) {
+// Add a move to the end of a part. On a computer the card stays open on the same move (to add more); on a phone
+// it closes, back to where you were in the list.
+function addMove(pi, k, keepOpen) {
   const calls = state.doc.parts[pi].calls;
   calls.push(k);
-  state.sel = { part: pi, index: calls.length - 1 }; state.build = null;
+  state.sel = null; state.addTo = pi;
+  if (keepOpen) state.added = `Added to ${state.doc.parts[pi].name} ✓`; else state.build = null;
   commit(true);
 }
+// The card is a sheet from the bottom wherever the whole page scrolls (phones, narrow windows).
+const SHEET = matchMedia('(max-width: 1000px), (max-height: 560px)');
+const cardIsSheet = () => SHEET.matches;
+SHEET.addEventListener('change', () => renderBuilder());
+function closeCard() { state.sel = null; state.build = null; renderRows(); }
+// The move before or after this one in the list as it's shown (search included), skipping repeats.
+function flipMove(def, step) {
+  const labels = [...new Set([...document.querySelectorAll('#pool .chip')].map(c => c.dataset.label))], i = labels.indexOf(def.label);
+  const next = POOL.find(d => d.label === labels[(i + step + labels.length) % labels.length]);
+  if (!next) return;
+  state.build = { def: next, m: { ...next.d }, beats: next.beats || Contra.TYPICAL_BEATS[next.fig] || 4 };
+  renderBuilder();
+  const chip = document.querySelector(`#pool .chip.cur`);
+  if (chip && !cardIsSheet()) chip.scrollIntoView({ block: 'nearest' });
+}
+// On a phone, pull the card down by its handle (or its title) to close it.
+function dragToClose(handle, box) {
+  if (!handle || !cardIsSheet()) return;
+  for (const el of [handle, box.querySelector('.bhead strong')]) el.addEventListener('pointerdown', e => {
+    const y0 = e.clientY; let dy = 0;
+    const move = ev => { dy = Math.max(0, ev.clientY - y0); box.style.transform = `translateY(${dy}px)`; };
+    const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up);
+      box.style.transform = ''; if (dy > 70) closeCard(); };
+    window.addEventListener('pointermove', move); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
+  });
+}
+// (Only a tap that starts on the dimmed page closes the card: the click that follows the tap opening it lands there too.)
+let scrimDown = false;
+$('cardScrim').onpointerdown = () => { scrimDown = true; };
+$('cardScrim').onclick = () => { if (scrimDown) closeCard(); scrimDown = false; };
+$('poolHelpBtn').onclick = () => { const h = $('poolHelp'); h.hidden = !h.hidden; $('poolHelpBtn').setAttribute('aria-expanded', String(!h.hidden)); };
 
 // Checks: a red / yellow / green count on the summary line; open it to see what failed.
 function showChecks() {

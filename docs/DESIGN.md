@@ -392,6 +392,19 @@ Like a video editor (Ryan's example: Adobe Premiere), nothing scrolls on a compu
 - Narrow or short screens (under 1000 px wide or 560 px tall) fall back to a scrolling page: floor and timeline
   first, the editor below.
 
+
+**The move card (November 2026).** One card for setting up a move and for changing one already placed (tap a move
+in the list, or a figure in the rows). It shows the move's name, its line in small print, the demo playing, the
+choices (Partners and Neighbors as big buttons, anyone else in an "Other…" menu; which hand; how far), beats, and
+"Add to A1" (the part can be changed) or Done / Remove. ‹ › flip to the move before or after in the list as shown.
+- On a computer it is pinned at the top of the editor while the move list scrolls under it; nothing is dimmed, so
+  you can keep clicking moves and watch the floor. Add keeps it open on the same move ("Added to A1 ✓").
+- On a phone (wherever the whole page scrolls, under about 1000 px wide) it slides up from the bottom in front of
+  everything, the rest dimmed; Add closes it, back where you were in the list. Pull it down by its handle or tap
+  the dimmed page to close it (only a tap that starts on the dimmed page: the click after the tap that opened it
+  lands there too). A swipe on a move in the list scrolls the list; a tap opens it.
+- The help text is behind a "?" beside the search box.
+
 ## Dance editor (decisions)
 
 - The timeline is the editor: four rows (A1, A2, B1, B2), each 16 beats wide; each figure is a block as wide as its length.
