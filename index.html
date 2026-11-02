@@ -162,6 +162,8 @@ label.small { font-size: 13px; color: var(--muted); display: inline-flex; align-
 .seg button { flex: 1 1 0; padding: 5px 6px; font-size: 12.5px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
 .seg button[aria-pressed="true"] { background: var(--cat, var(--accent)); border-color: var(--cat, var(--accent)); color: var(--panel); }
 .seg .spin { font-size: 15px; line-height: 1; }
+.seg select { flex: 1 1 0; min-width: 0; }
+.seg select.on { background: var(--cat, var(--accent)); border-color: var(--cat, var(--accent)); color: var(--panel); }
 .amtrow { display: flex; align-items: center; gap: 8px; }
 .amtrow select { flex: 1; min-width: 0; }
 .dial { width: 46px; height: 46px; flex: none; color: var(--cat, var(--accent)); }
@@ -177,6 +179,34 @@ label.small { font-size: 13px; color: var(--muted); display: inline-flex; align-
 .bexplore { margin-left: auto; padding: 3px 9px; font-size: 12.5px; }
 .bexplore + .bclose { margin-left: 0; }
 .bpreview { background: var(--floor); border: 1px solid var(--rule); border-radius: 8px; height: 170px; }
+/* The move card. On a computer it stays pinned at the top of the editor while the move list scrolls under it (nothing
+   is dimmed: you can keep clicking moves, and the floor stays in view). On a phone (or wherever the whole page
+   scrolls) it slides up from the bottom in front of everything, the rest dimmed behind it. */
+.builder { position: sticky; top: 0; z-index: 5; max-height: 72vh; overflow-y: auto; box-shadow: 0 8px 18px rgba(0, 0, 0, 0.1); }
+.bsub { font: 12px var(--font-mono); color: var(--muted); margin-top: -5px; }
+.bnav { display: inline-flex; gap: 2px; }
+.bnav button { padding: 2px 8px; font-size: 14px; line-height: 1.2; }
+.bnote { font-size: 13px; color: var(--ok); }
+.bhandle { display: none; }
+.chip.cur { border-color: var(--cat, var(--accent)); box-shadow: inset 0 0 0 1.5px var(--cat, var(--accent)); }
+.searchrow { display: flex; gap: 6px; align-items: center; }
+.searchrow #poolSearch { flex: 1; min-width: 0; }
+.qbtn { width: 30px; height: 30px; padding: 0; border-radius: 50%; flex: none; color: var(--muted); }
+#cardScrim { position: fixed; inset: 0; background: rgba(10, 16, 14, 0.38); z-index: 40; }
+@keyframes sheetUp { from { transform: translateY(40%); opacity: 0.4; } to { transform: none; opacity: 1; } }
+@media (max-width: 1000px), (max-height: 560px) {
+  .builder { position: fixed; left: 0; right: 0; bottom: 0; top: auto; z-index: 41; max-height: 84dvh; margin: 0 auto; max-width: 640px;
+    border-radius: 16px 16px 0 0; border-bottom: 0; padding: 4px 16px calc(16px + env(safe-area-inset-bottom)); box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.2);
+    animation: sheetUp 0.22s ease-out; overscroll-behavior: contain; }
+  .bhandle { display: block; width: 44px; height: 5px; border-radius: 3px; background: var(--rule); margin: 4px auto 2px; flex: none; }
+  .bhead { font-size: 18px; }
+  .bpreview { height: min(32vh, 240px); }
+  .seg button, .bactions button, .bactions select, .builder select { padding: 9px 10px; font-size: 15px; }
+  .stepper button { width: 40px; padding: 7px 0; }
+  .bactions .primary { flex: 1; }
+  .bdrag { display: none; }
+  .chip { touch-action: pan-y; }   /* a swipe on a move scrolls the list; a tap opens it */
+}
 .bpreview canvas { width: 100%; height: 100%; display: block; }
 #explorer { width: min(900px, 94vw); max-height: 92vh; padding: 0; border: 1px solid var(--rule); border-radius: 12px; background: var(--panel); color: var(--ink); }
 #explorer::backdrop { background: rgba(10, 16, 14, 0.45); }
@@ -349,11 +379,23 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
 .fpick svg .band { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 2 2; }
 .fpick[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1.5px var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--panel)); }
 
-.fpbox summary { cursor: pointer; font: 500 13px var(--font-body); color: var(--accent); list-style: none; }
+/* The formation line looks like what it is, a button: a picture of the formation, its name, and "Change ▾". */
+.fpbox summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 10px; padding: 6px 10px 6px 6px;
+  border: 1px solid var(--rule); border-radius: 10px; background: var(--panel); transition: border-color 0.15s, box-shadow 0.15s; }
+.fpbox summary:hover { border-color: var(--accent); box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08); }
+.fpbox summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .fpbox summary::-webkit-details-marker { display: none; }
-.fpbox summary::before { content: "▸ "; } .fpbox[open] summary::before { content: "▾ "; }
-.fpbox[open] summary { margin-bottom: 8px; }
-.fpbox summary .sumlabel { color: var(--muted); } .fpbox summary #setupSum { color: var(--ink); font-weight: 600; }
+.fpbox[open] summary { margin-bottom: 8px; border-color: var(--accent); }
+.sumpic { width: 34px; height: 34px; flex: none; border-radius: 6px; background: var(--floor); display: grid; place-items: center; }
+.sumpic svg { width: 30px; height: 30px; }
+.sumpic svg .lk { fill: var(--lark); } .sumpic svg .rb { fill: var(--robin); } .sumpic svg .lks { stroke: var(--lark); } .sumpic svg .rbs { stroke: var(--robin); }
+.sumpic svg .band { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 2 2; }
+.sumtext { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+.fpbox summary .sumlabel { color: var(--muted); font: 600 11px var(--font-display); text-transform: uppercase; letter-spacing: 0.04em; }
+.fpbox summary #setupSum { color: var(--ink); font: 600 14px var(--font-body); }
+.sumchange { margin-left: auto; flex: none; color: var(--accent); font: 600 13px var(--font-body); border: 1px solid var(--accent); border-radius: 999px; padding: 3px 10px; }
+.sumchange::before { content: "Change ▾"; } .fpbox[open] .sumchange::before { content: "Done ▴"; }
+.fpbox summary:hover .sumchange { background: var(--accent); color: var(--accent-ink); }
 .fpbox .dsettings { margin-bottom: 10px; }
 </style>
 </head><body><!--wrap-->
@@ -426,7 +468,7 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
       </div>
       <div id="panelEditor" class="tabpanel" role="tabpanel" aria-labelledby="tabEditor">
         <div class="row"><button id="newDance" class="primary">＋ New dance</button><button id="reset2">Load “111”</button></div>
-        <details class="fpbox" id="setupBox"><summary><span class="sumlabel">Formation</span> <span id="setupSum"></span></summary>
+        <details class="fpbox" id="setupBox"><summary title="Change the formation or progression"><span class="sumpic" id="setupPic" aria-hidden="true"></span><span class="sumtext"><span class="sumlabel">Formation</span><span id="setupSum"></span></span><span class="sumchange" aria-hidden="true"></span></summary>
         <div class="dsettings">
           <label for="formation">Formation</label>
           <select id="formation">
@@ -449,9 +491,10 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
         </div>
         <div class="formpicks" id="formPicks" role="group" aria-label="Common formations, as pictures"></div>
         </details>
-        <p class="hint">Click a move to set it up (who, side, how far), then add it to a part or drag it into the rows under the floor. Click a figure in the rows to change it.</p>
-        <div class="builder" id="builder" hidden></div>
-        <input id="poolSearch" type="search" placeholder="Search moves: chain, hey, gypsy…" aria-label="Search moves" autocomplete="off">
+        <div class="builder" id="builder" hidden role="dialog" aria-label="Move"></div>
+        <div class="searchrow"><input id="poolSearch" type="search" placeholder="Search moves: chain, hey, gypsy…" aria-label="Search moves" autocomplete="off">
+          <button type="button" id="poolHelpBtn" class="qbtn" aria-expanded="false" aria-controls="poolHelp" title="How to add and change moves">?</button></div>
+        <p class="hint" id="poolHelp" hidden>Tap a move to see it danced and set it up (who, which hand, how far), then add it to a part (on a computer you can also drag it into the rows under the floor). Tap a figure in the rows to change it.</p>
         <div class="pool" id="pool"></div>
       </div>
       <div id="panelText" class="tabpanel" role="tabpanel" aria-labelledby="tabText" hidden>
@@ -489,6 +532,7 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
   <p class="hint">Settings are remembered on this device.</p>
 </dialog>
 
+<div id="cardScrim" hidden></div>
 <dialog id="dances" class="drawer" aria-labelledby="dancesTitle">
   <div class="refshead"><h2 id="dancesTitle">Dances</h2><button type="button" id="dancesClose" aria-label="Close">✕</button></div>
   <div class="row"><button type="button" id="saveDance" class="primary">Save this dance</button><span class="small" id="saveNote"></span></div>
@@ -655,7 +699,7 @@ const Contra = (() => {
     // with a mixed pair in the middle (`centerPair` says who may stand together there).
     if (ps.length !== 4) return out;
     const ok = spec.pair || (() => true), okC = spec.centerPair || (() => true);
-    const fits = o => (spec.centers === 'mix' ? o.every((i, k) => k === 0 || role(i) !== role(o[k - 1])) : role(o[1]) === (spec.centers || 'R') && role(o[2]) === (spec.centers || 'R'));
+    const fits = o => (spec.centers === 'any' ? true : spec.centers === 'mix' ? o.every((i, k) => k === 0 || role(i) !== role(o[k - 1])) : role(o[1]) === (spec.centers || 'R') && role(o[2]) === (spec.centers || 'R'));
     const perms = a => (a.length < 2 ? [a] : a.flatMap((x, k) => perms(a.filter((y, j) => j !== k)).map(r => [x, ...r])));
     let best = null;
     for (const order of perms([0, 1, 2, 3]).filter(fits)) {
@@ -775,6 +819,12 @@ const Contra = (() => {
     });
     return out;
   }
+  // Which way a short line faces: as the call says, else the way its dancers mostly face (up or down), else down.
+  const shortLineFacing = (ps, call) => {
+    if (call.face) return call.face === 'up' ? Math.PI / 2 : -Math.PI / 2;
+    const s = ps.reduce((sum, d) => sum + (d.a == null ? 0 : Math.sin(d.a)), 0);
+    return s > 0.5 ? Math.PI / 2 : -Math.PI / 2;
+  };
   const centroid = ps => ({ x: ps.reduce((s, d) => s + d.x, 0) / ps.length, y: ps.reduce((s, d) => s + d.y, 0) / ps.length });
   // A smooth path through points (Catmull-Rom), and the direction of travel along it.
   function spline(pts) {
@@ -960,6 +1010,16 @@ const Contra = (() => {
         const dir = Math.sign(ctx.cx - d.x) || 1, face = dir > 0 ? 0 : Math.PI;
         return u => ({ x: d.x + dir * ctx.p.linesStep * bump(u), y: d.y, a: settle(d.a, face, u) });
       });
+    } },
+
+    // Short lines (Ryan: "the set, typically four people, join in a line"): the hands-four takes hands in a line
+    // across the set, facing up or down the hall (as the call says, else the way they mostly face, else down), and
+    // with "forward and back" goes a few steps that way and back.
+    shortLines: { group: 'four', plan(ps, call, ctx) {
+      const c = centroid(ps), F = shortLineFacing(ps, call), order = ps.map((d, i) => i).sort((i, j) => ps[j].x - ps[i].x), slot = {}, form = call.fb ? 0.3 : 1;
+      order.forEach((i, k) => (slot[i] = ctx.cx + (1.5 - k) * 0.7));
+      return ps.map((d, i) => u => { const s = mj(clamp01(u / form)), f = call.fb ? bump(clamp01((u - form) / (1 - form))) : 0;
+        return { x: lerp(d.x, slot[i], s), y: lerp(d.y, c.y, s) + Math.sin(F) * ctx.p.linesStep * f, a: settle(d.a, F, u, 0.2) }; });
     } },
 
     allemande: { group: 'pair', plan([p, q], call, ctx) {
@@ -1796,7 +1856,12 @@ const Contra = (() => {
       for (const i of ends) { const d = cur[i], a0 = angleTo(c, d), r = dist(c, d), sw = (rightHanded ? -1 : 1) * Math.PI / 2;
         second[i] = u => { const ang = a0 + sw * mj(u), rr = lerp(r, Math.min(r, fit), mj(u)); return { x: c.x + rr * Math.cos(ang), y: c.y + rr * Math.sin(ang), a: (d.a || 0) + sw * mj(u) }; }; }
       run(0.4, 1, second);
-      return ps.map((d, i) => u => { let st = d; for (const sg of segs) { if (!sg.fns[i]) continue; if (u < sg.u0) return st; if (u <= sg.u1) return sg.fns[i]((u - sg.u0) / (sg.u1 - sg.u0)); st = sg.fns[i](1); } return st; });
+      // Everyone squares up to the new wave at the end: facing straight across it, alternately, so it balances true.
+      const axis = angleTo(cur[ends[0]], cur[ends[1]]), square = cur.map(q => { const a1 = axis + Math.PI / 2, a2 = axis - Math.PI / 2;
+        return Math.abs(wrap((q.a || 0) - a1)) < Math.abs(wrap((q.a || 0) - a2)) ? a1 : a2; });
+      return ps.map((d, i) => u => { let st = d;
+        for (const sg of segs) { if (!sg.fns[i]) continue; if (u < sg.u0) return st; if (u <= sg.u1) { st = sg.fns[i]((u - sg.u0) / (sg.u1 - sg.u0)); break; } st = sg.fns[i](1); }
+        return u > 0.85 ? { ...st, a: lerpAngle(st.a, square[i], mj((u - 0.85) / 0.15)) } : st; });
     } },
 
     // Swing through (CALLERLAB): from a wave, the ends and the centers beside them turn half by the right (by the
@@ -2107,9 +2172,10 @@ const Contra = (() => {
     halfSashay: () => [hold(0, 'near', 1, 'near', 0, 0.9)],
     poussette: (ps, call) => whoSets(call.who === 'neighbors' ? 'neighbors' : 'partners', { L1: 0, R1: 1, L2: 2, R2: 3 })
       .flatMap(([i, j]) => [hold(i, 'R', j, 'L'), hold(i, 'L', j, 'R')]),
-    // Long lines: hands along each side of the hands-four.
-    longLines: (ps, call, ctx) => [-1, 1].flatMap(side => { const on = ps.map((d, i) => i).filter(i => Math.sign(ps[i].x - ctx.cx) === side);
-      return on.length === 2 ? [hold(on[0], 'near', on[1], 'near')] : []; }),
+    // Long lines: hands along each side, with whoever is beside you (across hands-fours too: see linesAcross).
+    longLines: (ps, call, ctx) => [-1, 1].flatMap(side => { const on = ps.map((d, i) => i).filter(i => Math.sign(ps[i].x - ctx.cx) === side).sort((i, j) => ps[i].y - ps[j].y);
+      return on.slice(1).filter((j, k) => Math.abs(ps[j].y - ps[on[k]].y) < 1.6 * ctx.p.neighborGap).map((j, k) => hold(on[k], 'near', j, 'near')); }),
+    shortLines: (ps, call) => lineHolds(ps, shortLineFacing(ps, call), call.fb ? 0.25 : 0.6, 1),
     circle: ps => ringHolds(ps, 0.08, 0.92),
     balanceRing: ps => ringHolds(ps, 0, 1),
     star: (ps, call) => ps.map((d, i) => ({ a: i, ah: call.side === 'L' ? 'L' : 'R', center: true, u0: 0.1, u1: 0.9 })),
@@ -2275,7 +2341,7 @@ const Contra = (() => {
 
   // Typical lengths in beats, for figures built so far: the ContraLab timing chart (contralab.org),
   // and Contrafusion for pull by (4 beats; 2 when done rapidly as a single change).
-  const TYPICAL_BEATS = { centerWave: 4, swingThrough: 8, boxCirculate: 4, archDive: 4, crossTrails: 4, passOcean: 4, tradeWave: 6, spinTop: 8, scootBack: 6, circulate: 4, walkDodge: 4, contraCorners: 16, promenadeAcross: 8, promenadeAround: 8, turnAlone: 2, dixieTwirl: 4, castAcross: 8, heyThreeSide: 8, crossoverMirrorHey: 16, dolphinHey: 16, chevron: 8, openChain: 8, doubleFigureEight: 16, longLines: 8, allemande: 8, balance: 4, boxTheGnat: 4, swing: 4, circle: 8, pullBy: 4,
+  const TYPICAL_BEATS = { centerWave: 4, swingThrough: 8, boxCirculate: 4, archDive: 4, crossTrails: 4, passOcean: 4, tradeWave: 6, spinTop: 8, scootBack: 6, circulate: 4, walkDodge: 4, contraCorners: 16, shortLines: k => (k.fb ? 8 : 4), promenadeAcross: 8, promenadeAround: 8, turnAlone: 2, dixieTwirl: 4, castAcross: 8, heyThreeSide: 8, crossoverMirrorHey: 16, dolphinHey: 16, chevron: 8, openChain: 8, doubleFigureEight: 16, longLines: 8, allemande: 8, balance: 4, boxTheGnat: 4, swing: 4, circle: 8, pullBy: 4,
     shoulderRound: 8, dosido: 8, seesaw: 8, swatTheFlea: 4, californiaTwirl: 4, starThrough: 4, rollAway: 4, halfSashay: 4,
     passThrough: 4, star: 8, petronella: 4, courtesyTurn: 4, turnAsCouple: 4, chain: 8, rightLeftThrough: 8, flutterwheel: 8,
     hey: k => 16 * (k.turns || 1), figureEight: k => 16 * (k.turns || 1), forwardBack: 8, nextSquare: 8, grandRL: k => 16 * (k.turns || 0.5),
@@ -2315,7 +2381,7 @@ const Contra = (() => {
   // A figure can end in a wave: "...; form wave of four (NR,WL)", "...; form long waves (NR, women face in)",
   // "circle to a wave". The parentheses give the ends' relationship and hand, and who is in the center (short wave)
   // or who faces in (long waves).
-  const FORM_RE = /[;,]?\s*(?:\band\s+)?(?:form|make|step to|to)\s+(?:an?\s+)?(long waves?|short waves?|waves? of four|ocean wave|wave)\b(.*)$/i;
+  const FORM_RE = /[;,]?\s*(?:\band\s+)?(?:form|make|step to|to)\s+(?:an?\s+)?(long waves?|long wavy lines?|short waves?|short wavy lines?|wavy lines?|waves? of four|ocean wave|wave)\b(.*)$/i;
   function parseForm(t) {
     const m = t.match(FORM_RE);
     if (!m) return null;
@@ -2328,6 +2394,8 @@ const Contra = (() => {
       if (ends || mids) paren = `${ends ? (/^p/i.test(ends[1]) ? 'P' : 'N') + H(ends[2]) : 'X' + other(H(mids[2]))},${mids ? (/^(l|g|m)/i.test(mids[1]) ? 'M' : 'W') + H(mids[2]) : ''}`;
     }
     const [a = '', b = ''] = paren.split(/[,;]/).map(x => x.trim().toUpperCase());
+    // Plain "short wavy lines": everyone keeps their place in the line and every other dancer faces the other way.
+    if (!paren && /^(short )?wavy lines?$/i.test(m[1])) return { kind: 'short', hand: 'R', rel: null, centers: 'any', centerRel: null, faceIn: 'R' };
     return { kind: /long/i.test(m[1]) ? 'long' : 'short', hand: /L$/.test(a) ? 'L' : 'R', rel: /^N/.test(a) ? 'N' : /^P/.test(a) ? 'P' : null,
       // The center pair: a role (WL: robins, ML: larks) or a relationship (PL, NL: alternating lark, robin, lark, robin).
       centers: /^(P|N)/.test(b) ? 'mix' : /^(M|G|L)/.test(b) ? 'L' : 'R', centerRel: /^P/.test(b) ? 'P' : /^N/.test(b) ? 'N' : null, faceIn: /\b(men|gents|larks)\s+face in/i.test(m[2]) ? 'L' : 'R' };
@@ -2335,10 +2403,12 @@ const Contra = (() => {
   function parseFigure(text) {
     // "Robins dance in to a long wave in the center": they step into the middle of the set, a wave down the center
     // (read before "…to a long wave", which forms waves on the sides).
-    const cw = text.toLowerCase().match(/\b(larks?|robins?|gents|ladies|men|women)\s+(dance|step|come|walk)\s+in\b.*\blong wave\b|\b(larks?|robins?|gents|ladies|men|women)\s+form a long wave in the (center|centre|middle)/);
+    const cw = text.toLowerCase().match(/\b(larks?|robins?|gents|ladies|men|women)\s+(?:(?:dance|step|come|walk)\s+in|to the (?:center|centre|middle))\b.*\blong wav(?:e|y lines?)\b|\b(larks?|robins?|gents|ladies|men|women)\s+form a long wave in the (center|centre|middle)/);
     if (cw) return { fig: 'centerWave', who: /robin|lad|wom/.test(cw[1] || cw[3]) ? 'robins' : 'larks' };
+    // "(In) short wavy lines" on its own is forming a wave of four across the set ("…, balance" balances it).
+    if (/^\s*(in(to)?\s+)?(short\s+)?wavy lines?\b/i.test(text) && !/balance/i.test(text)) text = 'form ' + text.replace(/^\s*in(to)?\s+/i, '');
     const form = parseForm(text), main = form ? text.replace(FORM_RE, '').trim() : text;
-    if (form && !/[a-z]/i.test(main)) return { fig: 'formWave', who: form.kind === 'long' ? (form.faceIn === 'L' ? 'larks' : 'robins') : form.centers === 'mix' ? 'partners' : form.centers === 'L' ? 'larks' : 'robins', side: form.hand, form };
+    if (form && !/[a-z]/i.test(main)) return { fig: 'formWave', who: form.kind === 'long' ? (form.faceIn === 'L' ? 'larks' : 'robins') : form.centers === 'any' ? 'all' : form.centers === 'mix' ? 'partners' : form.centers === 'L' ? 'larks' : 'robins', side: form.hand, form };
     const r = parseMain(main);
     // "…swing, end facing down (up)": the couple finishes in the middle of the set facing down (up) the hall.
     const ef = main.toLowerCase().match(/\b(end|ending|finish(ing)?)( up)? (facing|to face) (up|down)\b/);
@@ -2369,6 +2439,8 @@ const Contra = (() => {
     const amount = fallback => parseTurns(t.replace(/\s+or\s+.*$/, '').replace(/two-hand/g, '').replace(/\(.*?\)/g, '').replace(/\b\d(s|st|nd|rd|th)\b/g, ''), fallback);
     let m;
     if (/long lines/.test(t)) return { fig: 'longLines', who: 'all' };
+    if (/short lines|lines? of four/.test(t) && !/wavy|down the|up the/.test(t))
+      return { fig: 'shortLines', who: 'all', ...(/forward (and|&) back/.test(t) ? { fb: true } : {}), ...(/facing (up|down)/.test(t) ? { face: t.match(/facing (up|down)/)[1] } : {}) };
     // Wave figures (checked before trade, pass through and the like).
     // "Swing through" (a wave figure: trade by the right, then the centers by the left) isn't built yet, and isn't a swing.
     if (/swing th(r)?(ough|u)\b/.test(t)) return { fig: 'swingThrough', who: 'all' };
@@ -2443,7 +2515,7 @@ const Contra = (() => {
     if (/^set\b|\bset to\b/.test(t)) return { fig: 'set', who };
     if (/turn single/.test(t)) return { fig: 'turnSingle', who: 'all', side: lr(), cloverleaf: /clover/.test(t), toward: (t.match(/turn single (up|down)/) || [])[1] };
     if (/\b(right|left)[- ]hands? turn|\bturn (by the )?(right|left)( hand)?\b|\bhand turn\b/.test(t)) return { fig: 'handTurn', who, side: lr(), turns: amount(1) };
-    if (/balance (the )?(long |short )?wave|wavy line/.test(t)) return { fig: 'balanceWave', who: 'all' };
+    if (/balance (the )?(long |short )?wave|balance.*wavy line|wavy lines?,? balance/.test(t)) return { fig: 'balanceWave', who: 'all' };
     if (/balance (the )?ring/.test(t)) return { fig: 'balanceRing', who: 'all' };
     if (/balance/.test(t)) return { fig: 'balance', who, hand: handTag ? handTag[0].toUpperCase() : null };
     if (/swing/.test(t)) return { fig: 'swing', who };
@@ -2587,6 +2659,7 @@ const Contra = (() => {
     const who = WHO_TEXT[k.who] ? WHO_TEXT[k.who] + ' ' : '', side = h => (h === 'L' ? 'left' : 'right');
     switch (k.fig) {
       case 'longLines': return 'In long lines, go forward and back';
+      case 'shortLines': return k.fb ? 'In short lines, go forward and back' : 'Form short lines';
       case 'allemande': return `${who}allemande ${side(k.hand)} ${turnsText(k.turns)}`;
       case 'balance': return `${who}balance${k.hand ? ` (${k.hand}H)` : ''}`;
       case 'pullBy': return `${who}pull by ${side(k.hand)}`;
@@ -3137,6 +3210,7 @@ const Contra = (() => {
     const roundTheSet = flat.some(q => q.call.fig === 'promenadeAround');
     const startPass = (from, t0, midway) => {
       const { groups, outs } = formGroups(couples, lines, from, P, F, midway, midway && roundTheSet);
+      for (const g of groups) for (const m of g.members) m.waiting = false;
       const cross = {}, inFn = {};
       for (const g of groups) for (const id of Object.values(g.ids)) {
         if (g.faceIn) inFn[id] = () => g.faceIn[id];
@@ -3170,24 +3244,33 @@ const Contra = (() => {
           const shift = !o.flips ? 0 : F.kind === 'becket' ? (next === 'ones' ? -1 : 1) * P.neighborGap
             : F.kind === 'longways' && F.twosAt > 0 ? (next === 'ones' ? -2 : 2) * P.neighborGap : 0;
           to = couplePlaces(F, next, o.cx, y0 + shift, P);
+          // Becket (Ryan: "often on a diagonal, but not always"): rather than assume, look at the dance. The waiting
+          // couple takes the place of the couple of their new role in the hands-four nearest them, one place further
+          // toward the end: just where the couple arriving at the end (moving one place) will look for them, standing
+          // and facing as the dancers in the middle do at this moment (on the diagonal, across, or wherever).
+          const ref = F.kind === 'becket' && o.flips ? groups.filter(g => g.line === c.line).sort((a, b) => Math.abs(a.cy - y0) - Math.abs(b.cy - y0))[0] : null;
+          const R = ref && ref.members.find(q => q.role === next);
+          if (R) {
+            const dy = (Math.sign(y0 - ref.cy) || 1) * dance.progression * P.neighborGap;
+            to = { lark: { ...from[R.lark], y: from[R.lark].y + dy }, robin: { ...from[R.robin], y: from[R.robin].y + dy } };
+          }
+        }
+        // A dance that changes neighbors partway through counts its time through from there: at the start of the
+        // time through a Becket couple already waiting stays where it is (it went to its place when it started waiting).
+        // (In a dance that changes neighbors partway through, where to go is worked out when they start waiting,
+        // from how the dancers stand at that changeover; they go there during the next progression, arriving as
+        // their new neighbors do, at the start of the next time through.)
+        const already = c.waiting; c.waiting = true;
+        // (If their spot is free already they go straight there; if dancers still stand in it, they go during the
+        // next progression, arriving as their new neighbors do.)
+        if (F.kind === 'becket' && regroupAfter.size) {
+          const busy = midway && Object.keys(from).some(id => id !== lark && id !== robin && [to.lark, to.robin].some(q => dist(from[id], q) < P.bodyGap + 0.25));
+          if (midway && busy) c.waitTo = to; else if (midway) { c.waitTo = null; o.crossNow = true; } else if (already && c.waitTo) to = c.waitTo;
+          else if (already) { o.to = { lark: { ...from[lark] }, robin: { ...from[robin] } }; continue; }
         }
         // A dance that progresses by promenading round the set: the waiting couple turns round where they stand
         // when the others promenade (see planCall), to face back into the set.
-        const onSide = Math.abs((from[lark].x + from[robin].x) / 2 - o.cx) > 0.3;
-        if (roundTheSet && F.kind === 'becket' && midway && onSide) {
-          // In a Becket set after promenading half a place along the side to new neighbors: the waiting couple
-          // crosses over to the other side, half a place further out, ready to promenade back in on the diagonal.
-          const m = mid(from[lark], from[robin]), ln = dancers.filter(q => q.line === c.line);
-          const away = ln.reduce((sum, q) => sum + from[q.id].y, 0) / ln.length > m.y ? -1 : 1, dy = away * P.neighborGap / 2;
-          to = couplePlaces(F, next, o.cx, m.y + dy, P);
-          // (They're checked where the next promenade takes them, on the diagonal.)
-          const prom = flat.find(q => q.call.fig === 'promenadeAround').call, mirror = q => ({ x: 2 * o.cx - q.x, y: q.y, a: q.a == null ? null : Math.PI - q.a });
-          const fs = FIGURES.promenadeAround.plan([to.lark, to.robin, mirror(to.lark), mirror(to.robin)], prom, { p: P, cx: o.cx, keys: ['L1', 'R1', 'L2', 'R2'] });
-          o.wantAfter = { lark: fs[0](1), robin: fs[1](1) };
-        } else if (roundTheSet && F.kind === 'becket' && onSide) {
-          o.to = { lark: { ...from[lark] }, robin: { ...from[robin] } };   // already waiting where they should be
-          continue;
-        } else if (roundTheSet && (F.kind === 'longways' || F.kind === 'becket')) {
+        if (roundTheSet && F.kind === 'longways') {
           const m = mid(from[lark], from[robin]), w = dist(from[lark], from[robin]) / 2, ln = dancers.filter(q => q.line === c.line);
           const F1 = ln.reduce((sum, q) => sum + from[q.id].y, 0) / ln.length > m.y ? Math.PI / 2 : -Math.PI / 2, r = F1 - Math.PI / 2;
           o.to = { lark: { x: m.x - w * Math.cos(r), y: m.y - w * Math.sin(r), a: F1 }, robin: { x: m.x + w * Math.cos(r), y: m.y + w * Math.sin(r), a: F1 } };
@@ -3342,20 +3425,12 @@ const Contra = (() => {
       const local0 = t0 - (pass.crossFrom != null ? pass.crossFrom : pass.t0), local1 = local0 + call.beats;
       for (const o of pass.outs) {
         const { lark, robin } = o.couple;
-        if (local0 >= 0 && local0 < crossBeats && pass.cross[lark] && call.fig !== 'promenadeAround') {
+        if (local0 >= 0 && local0 < crossBeats && pass.cross[lark]) {
           for (const id of [lark, robin]) {
             const f = pass.cross[id];
             fns[id] = u => f(clamp01(lerp(local0, local1, u) / crossBeats));
           }
-        } else if (call.fig === 'promenadeAround' && (F.kind === 'longways' || F.kind === 'becket') && Math.abs((from[lark].x + from[robin].x) / 2 - o.cx) > 0.3) {
-          // In a Becket set a couple waiting at an end promenades its half place along its side like everyone else
-          // (as if a couple stood across from them), and so meets the couple coming to them on the diagonal.
-          const mirror = q => ({ x: 2 * o.cx - q.x, y: q.y, a: q.a == null ? null : Math.PI - q.a });
-          const places = [from[lark], from[robin], mirror(from[lark]), mirror(from[robin])], kctx = { p: P, cx: o.cx, keys: ['L1', 'R1', 'L2', 'R2'] };
-          const fs = FIGURES.promenadeAround.plan(places, call, kctx);
-          fns[lark] = fs[0]; fns[robin] = fs[1];
-          addHolds('promenadeAround', places.slice(0, 2), { ...kctx, keys: ['L1', 'R1'] }, [lark, robin]);
-        } else if (call.fig === 'promenadeAround' && (F.kind === 'longways' || F.kind === 'becket')) {
+        } else if (call.fig === 'promenadeAround' && F.kind === 'longways') {
           // Promenading round the set to new neighbors: a couple waiting at an end turns round as a couple
           // (counter-clockwise, like a courtesy turn) to face back into the set, where a couple promenading their
           // way will meet them.
@@ -3374,13 +3449,34 @@ const Contra = (() => {
           const walk = dir < 0 ? (after === 'upHall' ? P.hallWalk : 0) : before === 'downHall' && rest != null && rest - y0 > 0.3 ? rest - y0 : 0;
           if (walk) for (const [id, other] of [[lark, robin], [robin, lark]]) {
             const d = from[id], toward = Math.sign(from[other].x - d.x) || 1, F0 = dir * Math.PI / 2, Fin = faceInFrom(d, o.cx);
-            fns[id] = u => { const t = trap(clamp01((u - 0.1) / 0.8), 0.2), a = settle(d.a, F0, u, 0.15), k = mj(clamp01((u - 0.75) / 0.25));
+            // (At the lines' pace: threading the needle, they walk down in the first half and turn after.)
+            const w1 = call.thread ? 0.5 : 0.9;
+            fns[id] = u => { const t = trap(clamp01((u - 0.1) / (w1 - 0.1)), 0.2), a = settle(d.a, F0, u, 0.15), k = mj(clamp01((u - (call.thread ? 0.6 : 0.75)) / (call.thread ? 0.4 : 0.25)));
               return { x: d.x, y: d.y + dir * walk * t, a: dir < 0 ? a + toward * Math.PI * k : lerpAngle(a, Fin, k) }; };
           }
         } else if (partnerSwing && (F.kind === 'longways' || F.kind === 'becket')) {
           const places = [from[lark], from[robin]];
           FIGURES.swing.plan(places, { ...call, places }, { p: P, cx: o.cx }).forEach((f, i) => (fns[[lark, robin][i]] = f));
           addHolds('swing', places, { keys: ['L', 'R'] }, [lark, robin]);
+        }
+      }
+      // Long lines are everyone along each side: couples waiting at the ends step forward and back too, and hands
+      // are held with whoever is beside you all the way along the line, across hands-fours (Ryan).
+      if (call.fig === 'longLines' && F.kind !== 'square' && F.kind !== 'set') {
+        for (const o of pass.outs) {
+          const { lark, robin } = o.couple;
+          if (fns[lark] || fns[robin]) continue;
+          FIGURES.longLines.plan([from[lark], from[robin]], call, { p: P, cx: o.cx }).forEach((f, i) => (fns[[lark, robin][i]] = f));
+        }
+        for (let i = holds.length - 1; i >= 0; i--) if (holds[i].fig === 'longLines') holds.splice(i, 1);
+        for (const L of lines) for (const side of [-1, 1]) {
+          const on = dancers.map(d => d.id).filter(id => { const q = from[id], near = lines.reduce((b, M) => (Math.abs(M.cx - q.x) < Math.abs(b.cx - q.x) ? M : b));
+            return near === L && Math.sign(q.x - L.cx) === side && Math.abs(q.x - L.cx) > 0.2; }).sort((a, b) => from[a].y - from[b].y);
+          for (let j = 1; j < on.length; j++) {
+            const a = from[on[j - 1]], b = from[on[j]];
+            // (Only dancers standing in line, a sensible distance apart: not two on one spot, or far apart.)
+            if (b.y - a.y > 0.4 * P.neighborGap && b.y - a.y < 1.2 * P.neighborGap && Math.abs(a.x - b.x) < 0.3) holds.push({ fig: 'longLines', a: on[j - 1], ah: 'near', b: on[j], bh: 'near', t0, t1: t0 + call.beats });
+          }
         }
       }
       for (const d of dancers) if (!fns[d.id]) fns[d.id] = standStill(from[d.id]);
@@ -3408,7 +3504,7 @@ const Contra = (() => {
       }
       for (const o of pass.outs) {
         for (const r of ['lark', 'robin']) {
-          const e = (o.wantAfter || o.to)[r], id = o.couple[r];
+          const e = o.to[r], id = o.couple[r];
           want[id] = { x: e.x, y: e.y, a: e.a != null ? e.a : e.x > o.cx ? Math.PI : 0 };   // facing in across the set
         }
       }
@@ -3470,7 +3566,8 @@ const Contra = (() => {
             if (regroupWant) passInfo[p - 1].check = { ...checkPass(regroupWant, ends), at: t1 };
             endOfWait(pass);
             nextPass = startPass(roundTheSet ? facing : ends, pass.t0, true);
-            if (roundTheSet) nextPass.crossFrom = t1;
+            if (nextPass.outs.some(o => o.crossNow)) nextPass.crossFrom = t1;
+
             regroupWant = expectAfter(nextPass, ends);
           }
           if (last) {
@@ -3828,6 +3925,7 @@ const POOL = [
   { cat: 2, label: 'Chevron', fig: 'chevron', who: ['firstCorners', 'secondCorners'], side: 'pass', d: { who: 'firstCorners', side: 'R' }, beats: 8, say: '{who} chevron, crossing by the {side}', re: /chevron/, ecd: true },
   { cat: 3, label: 'Balance', fig: 'balance', who: PAIR, side: 'hands', d: { who: 'neighbors', side: 'R' }, say: '{who} balance {side}' },
   { cat: 3, label: 'Long lines', fig: 'longLines', d: {}, say: 'In long lines, go forward and back' },
+  { cat: 3, label: 'Short lines', fig: 'shortLines', d: {}, beats: 8, say: 'In short lines, go forward and back', re: /short lines|lines? of four/ },
   { cat: 3, label: 'Back to back', fig: 'dosido', who: PAIR, d: { who: 'partners' }, beats: 8, say: '{who} back to back', re: /back to back/, ecd: true },
   { cat: 3, label: 'Siding', fig: 'siding', who: PAIR, side: 'shoulder', d: { who: 'partners', side: 'R' }, beats: 8, say: '{who} side {side}', re: /\bsid(e|ing)\b/, ecd: true },
   { cat: 3, label: 'Sharp siding', fig: 'sharpSiding', who: PAIR, d: { who: 'partners' }, beats: 8, say: '{who} sharp siding', re: /sharp siding|swirly/, ecd: true },
@@ -3846,6 +3944,7 @@ const POOL = [
     say: m => `Form a wave of four (${m.who === 'partners' ? 'N' : 'P'}${m.side}, ${m.who === 'partners' ? 'P' : 'N'}${m.side === 'R' ? 'L' : 'R'})`, re: /wave of four \([NP][RL], ?[NP][RL]\)/ },
   { cat: 9, label: 'Form a wave of four', fig: 'formWave', who: ['robins', 'larks'], side: 'hand', d: { who: 'robins', side: 'R' }, beats: 4,
     say: m => `Form a wave of four (N${m.side}, ${m.who === 'larks' ? 'M' : 'W'}${m.side === 'R' ? 'L' : 'R'})`, re: /wave of four|short wave|ocean wave/ },
+  { cat: 9, label: 'Short wavy lines', fig: 'formWave', d: {}, beats: 4, say: 'Short wavy lines', re: /^(in(to)? )?(short )?wavy lines?$/, setup: '(8) In short lines, go forward and back' },
   { cat: 9, label: 'Form long waves', fig: 'formWave', who: ['robins', 'larks'], side: 'hand', d: { who: 'robins', side: 'R' }, beats: 4,
     say: m => `Form long waves (N${m.side}, ${m.who === 'larks' ? 'larks' : 'robins'} face in)`, re: /long waves?/ },
   { cat: 9, label: 'Pass the ocean', fig: 'passOcean', d: {}, beats: 4, say: 'Pass the ocean', re: /pass the ocean/, setup: '(8) Neighbor swing' },
@@ -4274,6 +4373,7 @@ function renderPool() {
     chip.className = 'chip' + (def.fig ? '' : ' soon') + cls;
     chip.title = def.fig ? `${roleWords(def.label)}: click to set it up, or drag into a part` : `${def.label}: not animated yet. You can still place it; dancers stand still during it.`;
     chip.innerHTML = `${roleWords(def.label)}<small>${def.beats || Contra.TYPICAL_BEATS[def.fig] || 4}</small>`;
+    chip.dataset.label = def.label;
     chip.addEventListener('pointerdown', e => startDrag(e, 'pool', { def, el: chip }));
     return chip;
   };
@@ -4352,9 +4452,16 @@ function dropTarget(x, y) {
   return { part: +track.dataset.part, index, track, x: mx };
 }
 
-function onDragEnd() {
+function onDragEnd(e) {
   if (!drag) return;
   const d = drag;
+  if (e && e.type === 'pointercancel') {
+    drag = null;
+    window.removeEventListener('pointermove', onDragMove); window.removeEventListener('pointerup', onDragEnd); window.removeEventListener('pointercancel', onDragEnd);
+    if (d.ghost) { d.ghost.remove(); renderRows(); }
+    document.querySelectorAll('.dropmark').forEach(m => m.remove());
+    return;
+  }
   drag = null;
   window.removeEventListener('pointermove', onDragMove);
   window.removeEventListener('pointerup', onDragEnd);
@@ -4408,7 +4515,9 @@ const DESCRIPTIONS = {
   'Trade': 'Two people on a diagonal cross to each other\'s places, passing by the named shoulder.',
   'Cross': 'Cross the set on a straight path, passing by the named shoulder (usually partners crossing over). Two dancers of the same role on a diagonal is really a trade.',
   'Balance': 'Step forward and back in place, usually toward someone, with hands joined if named.',
-  'Long lines': 'Holding hands along each side, take four small steps toward the other line and four back. Partners meet close enough to clap.',
+  'Long lines': 'Everyone on each side of the set holds hands with the people beside them, all the way along the line (across hands-fours too), takes four small steps toward the other line and four back. Partners meet close enough to clap.',
+  'Short lines': 'Each hands-four takes hands in a line of four across the set, facing up or down the hall, and goes forward a few steps and back.',
+  'Short wavy lines': 'Each hands-four makes a short line across the set, each dancer facing the opposite way from the one beside them, hands joined: a wave of four.',
   'Do-si-do': 'Face someone, walk forward passing right shoulders, slide right back to back, and fall back to place, always facing the same way.',
   'Seesaw': 'A do-si-do by the left shoulder.',
   'Mad robin': 'Facing across the set, travel an oval around the person beside you, a sideways do-si-do, keeping eye contact with the person across.',
@@ -4601,16 +4710,30 @@ function renderBuilder() {
   if (k) { def = moveOf(k); beats = k.beats; m = def ? readMods(def, k) : null; }
   else if (state.build) ({ def, m, beats } = state.build);
   box.hidden = !k && !state.build;
+  const phone = cardIsSheet();
+  $('cardScrim').hidden = box.hidden || !phone;
+  document.querySelectorAll('#pool .chip').forEach(c => c.classList.toggle('cur', !box.hidden && !!def && c.dataset.label === def.label));
   if (box.hidden) return;
   const cat = def ? def.cat : 0, partName = k ? state.doc.parts[sel.part].name : '';
-  let html = `<div class="bhead cat${cat}">${icon(cat)}<strong>${def ? def.label : 'Unknown figure'}</strong>${k ? `<span class="small">in ${partName}</span>` : '<span class="small">new</span>'}
-    ${def ? '<button type="button" class="bexplore" id="bExplore" title="A closer look at this move">⤢ Explore</button>' : ''}<button type="button" class="bclose" id="bClose" aria-label="Close">✕</button></div>`;
+  // (‹ › flip to the move before or after this one in the list, without closing the card.)
+  let html = `<div class="bhandle" id="bHandle" aria-hidden="true"></div><div class="bhead cat${cat}">${icon(cat)}<strong>${def ? def.label : 'Unknown figure'}</strong>${k ? `<span class="small">in ${partName}</span>` : '<span class="small">new</span>'}
+    ${!k && def ? '<span class="bnav"><button type="button" id="bPrevMove" aria-label="Previous move in the list" title="Previous move">‹</button><button type="button" id="bNextMove" aria-label="Next move in the list" title="Next move">›</button></span>' : ''}
+    ${def ? '<button type="button" class="bexplore" id="bExplore" title="A closer look at this move">⤢ Explore</button>' : ''}<button type="button" class="bclose" id="bClose" aria-label="Close">✕</button></div>
+    <div class="bsub" id="bLine"></div>`;
   state.preview = def ? previewOf(def, m, beats) : null;
   if (state.preview) html += `<div class="bpreview" id="bPrevBox"></div>`;
   if (def && !def.fig) html += `<p class="soonnote">Not animated yet: dancers stand still during it.</p>`;
   if (def) {
     html += `<div class="bgrid">`;
-    if (def.who) html += `<label for="bWho">Who</label><select id="bWho">${def.who.map(w => `<option value="${w}"${m.who === w ? ' selected' : ''}>${w === 'larks' ? roleSet()[0] : w === 'robins' ? roleSet()[1] : WHO_LABEL[w]}</option>`).join('')}</select>`;
+    // Who: big buttons when there are only a few choices (partners / neighbors), a menu when there are many.
+    const whoName = w => (w === 'larks' ? roleSet()[0] : w === 'robins' ? roleSet()[1] : WHO_LABEL[w]);
+    if (def.who && def.who.length <= 4) html += `<span class="blabel">Who</span><div class="seg" role="group" aria-label="Who">${def.who.map(w => `<button type="button" data-who="${w}" aria-pressed="${m.who === w}">${whoName(w)}</button>`).join('')}</div>`;
+    else if (def.who) {
+      // Many choices: the everyday ones (partners, neighbors) as buttons, everyone else in a menu beside them.
+      const big = ['partners', 'neighbors'].filter(w => def.who.includes(w)), other = def.who.filter(w => !big.includes(w));
+      html += `<span class="blabel">Who</span><div class="seg" role="group" aria-label="Who">${big.map(w => `<button type="button" data-who="${w}" aria-pressed="${m.who === w}">${whoName(w)}</button>`).join('')}
+        <select id="bWho" aria-label="Someone else"${big.includes(m.who) ? '' : ' class="on"'}><option value=""${big.includes(m.who) ? ' selected' : ''}>Other…</option>${other.map(w => `<option value="${w}"${m.who === w ? ' selected' : ''}>${whoName(w)}</option>`).join('')}</select></div>`;
+    }
     if (def.side) {
       const S = SIDES[def.side], opts = [...(S.none ? [[null, S.none, 0]] : []), ['L', S.labels[0], S.spin[0]], ['R', S.labels[1], S.spin[1]]];
       html += `<span class="blabel">Side</span><div class="seg" role="group" aria-label="Side">${opts.map(([v, label, spin]) =>
@@ -4623,9 +4746,11 @@ function renderBuilder() {
     html += `<div class="bgrid"><label for="bText">Line</label><input id="bText" type="text"></div>`;
   }
   html += `<div class="bgrid"><span class="blabel">Beats</span><div class="stepper"><button type="button" id="bLess" aria-label="Two beats fewer">−</button><span id="bBeats">${beats}</span><button type="button" id="bMore" aria-label="Two beats more">+</button></div></div>`;
-  html += `<div class="bline" id="bLine"></div>`;
-  html += editing ? `<div class="bactions"><button type="button" id="bRemove">Remove</button></div>`
-    : `<div class="bactions"><span class="bdrag" id="bDrag" title="Drag into a part">⠿ Drag into a part</span><span>or</span><select id="bPart" aria-label="Part">${state.doc.parts.map((p, i) => `<option value="${i}"${i === playingPart() ? ' selected' : ''}>${p.name}</option>`).join('')}</select><button type="button" class="primary" id="bAdd">Add</button></div>`;
+  const into = state.addTo != null && state.doc.parts[state.addTo] ? state.addTo : playingPart();
+  html += editing ? `<div class="bactions"><button type="button" id="bRemove">Remove</button><button type="button" class="primary" id="bDone">Done</button></div>`
+    : `<div class="bactions"><span class="bdrag" id="bDrag" title="Drag into a part">⠿ Drag into a part</span><select id="bPart" aria-label="Part to add it to">${state.doc.parts.map((p, i) => `<option value="${i}"${i === into ? ' selected' : ''}>${p.name}</option>`).join('')}</select><button type="button" class="primary" id="bAdd">Add to ${state.doc.parts[into] ? state.doc.parts[into].name : ''}</button></div>
+       ${state.added ? `<div class="bnote" role="status">${state.added}</div>` : ''}`;
+  state.added = null;
   box.innerHTML = html;
   if ($('bPrevBox')) { bPrevCanvas.setAttribute('aria-label', `Preview of ${def.label}`); $('bPrevBox').appendChild(bPrevCanvas); }
   box.querySelector('.bhead').className = `bhead cat${cat}`;
@@ -4639,17 +4764,22 @@ function renderBuilder() {
       commit(true);
     } else { state.build = { def, m: nm, beats: nb }; renderBuilder(); }
   };
-  if ($('bWho')) $('bWho').onchange = e => apply({ ...m, who: e.target.value }, beats);
-  box.querySelectorAll('.seg button').forEach(b => (b.onclick = () => apply({ ...m, side: b.dataset.side === 'null' ? null : b.dataset.side }, beats)));
+  if ($('bWho')) $('bWho').onchange = e => { if (e.target.value) apply({ ...m, who: e.target.value }, beats); };
+  box.querySelectorAll('.seg button[data-who]').forEach(b => (b.onclick = () => apply({ ...m, who: b.dataset.who }, beats)));
+  box.querySelectorAll('.seg button[data-side]').forEach(b => (b.onclick = () => apply({ ...m, side: b.dataset.side === 'null' ? null : b.dataset.side }, beats)));
   if ($('bAmt')) $('bAmt').onchange = e => apply({ ...m, amt: +e.target.value }, beats);
   if ($('bText')) { $('bText').value = roleWords(k.text); $('bText').onchange = () => { k.text = $('bText').value.trim() || k.text; commit(true); }; }
   $('bLess').onclick = () => apply(m, Math.max(1, beats - 2));
   $('bMore').onclick = () => apply(m, Math.min(32, beats + 2));
-  $('bClose').onclick = () => { state.sel = null; state.build = null; renderRows(); };
+  $('bClose').onclick = closeCard;
+  if ($('bPrevMove')) { $('bPrevMove').onclick = () => flipMove(def, -1); $('bNextMove').onclick = () => flipMove(def, 1); }
+  if ($('bDone')) $('bDone').onclick = closeCard;
+  if ($('bPart')) $('bPart').onchange = e => { state.addTo = +e.target.value; $('bAdd').textContent = `Add to ${state.doc.parts[state.addTo].name}`; };
+  dragToClose($('bHandle'), box);
   if ($('bExplore')) $('bExplore').onclick = () => openExplorer(def, m, beats);
   if (editing) $('bRemove').onclick = () => { state.doc.parts[sel.part].calls.splice(sel.index, 1); state.sel = null; commit(true); };
   else {
-    $('bAdd').onclick = () => addMove(+$('bPart').value, newCall(def, m, beats));
+    $('bAdd').onclick = () => addMove(+$('bPart').value, newCall(def, m, beats), !phone);
     $('bDrag').addEventListener('pointerdown', e => startDrag(e, 'pool', { def, m, beats, el: $('bDrag') }));
   }
 }
@@ -4658,12 +4788,46 @@ function playingPart() {
   const c = state.c, local = c.perPass ? state.t - passAt(state.t) * c.perPass : 0;
   return Math.max(0, c.parts.findIndex(p => local >= p.t0 && local < p.t1));
 }
-function addMove(pi, k) {
+// Add a move to the end of a part. On a computer the card stays open on the same move (to add more); on a phone
+// it closes, back to where you were in the list.
+function addMove(pi, k, keepOpen) {
   const calls = state.doc.parts[pi].calls;
   calls.push(k);
-  state.sel = { part: pi, index: calls.length - 1 }; state.build = null;
+  state.sel = null; state.addTo = pi;
+  if (keepOpen) state.added = `Added to ${state.doc.parts[pi].name} ✓`; else state.build = null;
   commit(true);
 }
+// The card is a sheet from the bottom wherever the whole page scrolls (phones, narrow windows).
+const SHEET = matchMedia('(max-width: 1000px), (max-height: 560px)');
+const cardIsSheet = () => SHEET.matches;
+SHEET.addEventListener('change', () => renderBuilder());
+function closeCard() { state.sel = null; state.build = null; renderRows(); }
+// The move before or after this one in the list as it's shown (search included), skipping repeats.
+function flipMove(def, step) {
+  const labels = [...new Set([...document.querySelectorAll('#pool .chip')].map(c => c.dataset.label))], i = labels.indexOf(def.label);
+  const next = POOL.find(d => d.label === labels[(i + step + labels.length) % labels.length]);
+  if (!next) return;
+  state.build = { def: next, m: { ...next.d }, beats: next.beats || Contra.TYPICAL_BEATS[next.fig] || 4 };
+  renderBuilder();
+  const chip = document.querySelector(`#pool .chip.cur`);
+  if (chip && !cardIsSheet()) chip.scrollIntoView({ block: 'nearest' });
+}
+// On a phone, pull the card down by its handle (or its title) to close it.
+function dragToClose(handle, box) {
+  if (!handle || !cardIsSheet()) return;
+  for (const el of [handle, box.querySelector('.bhead strong')]) el.addEventListener('pointerdown', e => {
+    const y0 = e.clientY; let dy = 0;
+    const move = ev => { dy = Math.max(0, ev.clientY - y0); box.style.transform = `translateY(${dy}px)`; };
+    const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up);
+      box.style.transform = ''; if (dy > 70) closeCard(); };
+    window.addEventListener('pointermove', move); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
+  });
+}
+// (Only a tap that starts on the dimmed page closes the card: the click that follows the tap opening it lands there too.)
+let scrimDown = false;
+$('cardScrim').onpointerdown = () => { scrimDown = true; };
+$('cardScrim').onclick = () => { if (scrimDown) closeCard(); scrimDown = false; };
+$('poolHelpBtn').onclick = () => { const h = $('poolHelp'); h.hidden = !h.hidden; $('poolHelpBtn').setAttribute('aria-expanded', String(!h.hidden)); };
 
 // Checks: a red / yellow / green count on the summary line; open it to see what failed.
 function showChecks() {
@@ -5301,6 +5465,7 @@ renderFormPicks();
 function setupSummary() {
   const f = $('formation'), prog = $('progression');
   $('setupSum').textContent = `${f.options[f.selectedIndex] ? f.options[f.selectedIndex].text : 'Unknown'} · ${prog.options[prog.selectedIndex].text.toLowerCase()} progression`;
+  if (f.value && Contra.FORMATIONS[f.value] && setupSummary.shown !== f.value) { setupSummary.shown = f.value; $('setupPic').innerHTML = formationIcon(f.value); }
 }
 $('setupBox').open = recall('contra.setupBox') === 'open';
 $('setupBox').addEventListener('toggle', () => store('contra.setupBox', $('setupBox').open ? 'open' : 'closed'));

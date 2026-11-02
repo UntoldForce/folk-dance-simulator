@@ -11,7 +11,7 @@ const FIGS = [
   [8, 'Robins chain'], [8, 'Larks chain'], [8, 'Right and left through'], [8, 'Flutterwheel'], [8, 'Reverse flutterwheel'],
   [8, 'Square through 2'], [16, 'Square through 4'], [4, 'Robins give and take'], [8, 'Half hey, robins pass right to start'],
   [16, 'Hey for four, larks pass left to start'], [8, 'Ones half figure eight'], [16, 'Ones figure eight'], [8, 'Slice left'], [4, 'Shift left'],
-  [2, 'Veer right'], [8, 'Ones lead down the center'], [8, 'Down the hall in a line of four'], [8, 'Up the hall in a line of four'],
+  [2, 'Veer right'], [8, 'Ones lead down the center'], [8, 'Down the hall in a line of four'], [8, 'Up the hall in a line of four'], [8, 'In short lines, go forward and back'], [4, 'Short wavy lines'],
   [4, 'Ones cast off'], [4, 'Ones cast down'],
   // English country dance figures
   [8, 'Partner side right'], [8, 'Neighbor siding left'], [8, 'Partner sharp siding'], [8, 'Up a double and back'], [4, 'Fall back'],

@@ -216,6 +216,24 @@ The list lasts until the page closes. `tools/bundle-library.js` puts the whole l
   up. Couples waiting at the ends walk down the hall and back with the lines (when the lines come straight back up),
   so the lines don't walk through them.
 
+**Becket couples waiting out (Ryan, November 2026: "often on a diagonal, but not always").** Rather than assume
+where a waiting couple should be, they look at the dance: they take the place of the couple of their new role in
+the hands-four nearest them, one place further toward the end (where the couple arriving at that end, moving one
+place, will look for them), standing and facing as the dancers in the middle do at that moment. In a dance that
+changes neighbors partway through this is worked out at the changeover; if their spot is free they go straight
+there, and if dancers still stand in it they go during the next progression, arriving as their new neighbors do.
+This replaced the special rules written for A 60th Birthday Dance. Analysis of the 130 Becket dances in the
+library: 101 are fully read, 19 progress right; in every one of the others the couples in the middle go wrong
+before any waiting couple matters (39 end in the middle of the set, 23 don't progress at all, 16 end on the other
+side, 3 other), each from a figure read or danced wrongly. That is the work still to do for Becket.
+
+**Lines (Ryan, November 2026).** Long lines are everyone along each side: hands are held with whoever is beside
+you all the way along the line, across hands-fours, and couples waiting at the ends step forward and back with
+everyone (only dancers standing in line, about a place apart, join hands). Short lines: each hands-four takes hands
+in a line of four across the set, facing up or down the hall. Short wavy lines: from a line of four, every other
+dancer turns to face the other way (a wave of four, everyone in place); "long wavy line" is long waves, and
+"robins to the center to a long wavy line" the long wave in the middle.
+
 What the first 402 dances taught the simulator:
 - **Several figures on one line** ("(16) Neighbors balance & swing", "circle left 3/4 and pass through") stay one
   figure in the dance and one block in the editor, written as they were (Ryan: balance and swing is so common it
@@ -385,12 +403,25 @@ Like a video editor (Ryan's example: Adobe Premiere), nothing scrolls on a compu
   progression should put them; "oof!" (or "oops!", "sorry!") for a moment over two dancers who bump. The engine
   lists these as `c.puzzled` ({id, t0, t1, why}); each dancer's bubble pops a little after the others' so a crowd
   doesn't pop at once. Only on the main floor (a move preview is one move on its own, so everyone would look lost at its end). A switch in Settings (How it looks) turns them off.
-- **Formation, progression and formation pictures** fold away under one line saying what they are ("Formation Improper · single progression"), closed by default to leave room for the moves; opening it is remembered. The pictures sit under the two menus: the common formations, grouped Contra (improper, Becket), English
+- **Formation, progression and formation pictures** fold away under one line saying what they are ("Formation Improper · single progression"), drawn as a button (callers found the plain line hard to spot): a small picture of the formation, its name, and "Change ▾" ("Done ▴" while open), closed by default to leave room for the moves; opening it is remembered. The pictures sit under the two menus: the common formations, grouped Contra (improper, Becket), English
   (proper, three-couple set) and Square & circle (square, circle mixer). Each picture is drawn from where the
   simulator starts everyone (larks as squares, robins as circles, a tick for facing, the band as a dotted line at
   the top), so it always matches the floor. The menu still holds every formation.
 - Narrow or short screens (under 1000 px wide or 560 px tall) fall back to a scrolling page: floor and timeline
   first, the editor below.
+
+
+**The move card (November 2026).** One card for setting up a move and for changing one already placed (tap a move
+in the list, or a figure in the rows). It shows the move's name, its line in small print, the demo playing, the
+choices (Partners and Neighbors as big buttons, anyone else in an "Other…" menu; which hand; how far), beats, and
+"Add to A1" (the part can be changed) or Done / Remove. ‹ › flip to the move before or after in the list as shown.
+- On a computer it is pinned at the top of the editor while the move list scrolls under it; nothing is dimmed, so
+  you can keep clicking moves and watch the floor. Add keeps it open on the same move ("Added to A1 ✓").
+- On a phone (wherever the whole page scrolls, under about 1000 px wide) it slides up from the bottom in front of
+  everything, the rest dimmed; Add closes it, back where you were in the list. Pull it down by its handle or tap
+  the dimmed page to close it (only a tap that starts on the dimmed page: the click after the tap that opened it
+  lands there too). A swipe on a move in the list scrolls the list; a tap opens it.
+- The help text is behind a "?" beside the search box.
 
 ## Dance editor (decisions)
 

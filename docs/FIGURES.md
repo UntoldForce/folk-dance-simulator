@@ -91,7 +91,9 @@ placed in a dance; dancers stand still during them and the checks show a caution
 
 | Figure | Who | Typical beats | How it moves | Ends | Status |
 |---|---|---|---|---|---|
-| [Long lines forward and back](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#long-lines-go-forward-and-back) | Everyone, hands joined along each side | 8 (forward and back) | Four small steps toward the center, four back. Partners come close enough to clap or bump (about 0.4 m apart, center to center); this is intended, and collision checks must not flag it | Where they started | built |
+| [Long lines forward and back](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#long-lines-go-forward-and-back) | Everyone, hands joined along each side (the whole line, across hands-fours; couples waiting at the ends too) | 8 (forward and back) | Four small steps toward the center, four back. Partners come close enough to clap or bump (about 0.4 m apart, center to center); this is intended, and collision checks must not flag it | Where they started | built |
+| Short lines ("in short lines, go forward and back") | Hands-four, a line of four across the set | 8 (4 just to form) | The hands-four takes hands in a line across the set, facing up or down the hall (as the call says, else the way they mostly face, else down); forward a few steps and back | Where the line formed | built |
+| Short wavy lines | Hands-four, a wave of four across the set | 4 | From a line of four: everyone keeps their place and every other dancer turns to face the other way, hands joined (a wave of four). With who's in the middle named ("robins by left") it forms that wave instead. "In short wavy lines, balance" balances it | A wave of four | built |
 | [Balance](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#balance) | Pair (or ring, wave, line) | 4 | Footwork in place, usually toward and away from someone. `(RH)` = right hands joined | Where they started | built (pairs) |
 | [Allemande](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#allemande) | Pair | 8 | Face each other as you meet, then forearm grip and turn close together (about 0.6 m apart, near swing distance): right = clockwise, left = counter-clockwise | Depends on amount; 1½ trades places | built |
 | [Pull by](https://www.ibiblio.org/contradance/thecallersbox/Glossary.htm#pull-by) | Pair | 4 (2 when done rapidly) | Take the named hand and pass by that shoulder, keep going | On the far side, facing on | built |
@@ -151,7 +153,7 @@ placed in a dance; dancers stand still during them and the checks show a caution
 | Balance the wave | A wave | 4 | Hands joined in the wave, balance forward and back | Same wave | built |
 | Trade the wave | Wave of four | 6 | Those facing the same way trade, curving round toward each other, passing right shoulders | Ends and centers swapped, facing the other way, other hand | built |
 | Slide right / left | A wave | 4 | Let go, sidestep to your right (left) in front of the dancer there into their place | Same facing | built |
-| Spin the top | Wave of four | 8 | Ends and adjacent centers turn ½; new centers turn ¾ while the ends walk a quarter round | Wave turned a quarter | built |
+| Spin the top | Wave of four | 8 | Ends and adjacent centers turn ½; new centers turn ¾ while the ends walk a quarter round | Wave turned a quarter | built (squares up at the end: everyone faces straight across the new wave, all four holding hands) |
 | Circulate | Long waves | 4 | Facing in: walk across. Facing out: loop into the place beside you | Long waves again | built |
 | Walk and dodge | Long waves | 4 | Facing in: walk across. Facing out: sidestep into the place beside you | All facing out | built |
 | Scoot back | Long waves | 6–8 | Facing out: loop into the place beside you. Facing in: walk to the middle, allemande right ½, walk on out to the far side | Long waves again | built |
