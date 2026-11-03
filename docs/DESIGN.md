@@ -510,3 +510,7 @@ dancers are big enough to see on a phone.
   part's 16 beats shared among its moves by how long each usually takes. `Contra.expandShorthand` writes out caller's
   shorthand (P, N, alle, B&S, F&B, R&L, dsd, W chain...; L and R at the start of a phrase are larks and robins, after
   a move left and right). The Text tab uses it too, for a line it can't otherwise read.
+
+**Tour and help (Ryan, November 2026).** A first visit opens a quick tour of eight steps, each lighting up one part of
+the page: the floor, playing, the part rows, the editor tabs, Dances, Checks and Help. It's remembered on the device and
+doesn't open again. The ? Help button opens the full guide, a section for each feature, and can show the tour again.

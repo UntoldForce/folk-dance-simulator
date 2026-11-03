@@ -5,6 +5,8 @@ const { chromium } = require('playwright');
   let failures = 0;
   const check = (ok, msg) => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${msg}`); if (!ok) failures++; };
   const b = await chromium.launch(), p = await b.newPage({ viewport: { width: 1440, height: 1100 } });
+  // (The first-visit tour is tested on its own below; here it has been seen already.)
+  await p.addInitScript(() => { try { localStorage.setItem('contra.toured', '1'); } catch (e) {} });
   const errs = []; p.on('pageerror', e => errs.push(e.message));
   await p.goto('file://' + path.join(__dirname, '..', 'index.html'));
   await p.evaluate(() => localStorage.clear()); await p.reload(); await p.waitForTimeout(300);
@@ -232,6 +234,7 @@ const { chromium } = require('playwright');
   // The move card on a phone: slides up in front, the rest dimmed; Add closes it, back where you were in the list.
   {
     const { devices } = require('playwright'), ctx = await b.newContext({ ...devices['iPhone 13'] }), q = await ctx.newPage();
+    await q.addInitScript(() => { try { localStorage.setItem('contra.toured', '1'); } catch (e) {} });
     q.on('pageerror', e => errs.push(e.message));
     await q.goto('file://' + path.join(__dirname, '..', 'index.html')); await q.evaluate(() => localStorage.clear()); await q.reload(); await q.waitForTimeout(300);
     const chip = q.locator('.chip:has-text("Petronella")').first(); await chip.scrollIntoViewIfNeeded(); const y0 = await q.evaluate(() => scrollY);
@@ -258,6 +261,34 @@ const { chromium } = require('playwright');
     const st = await p.textContent('#cardStatus'), title = await p.evaluate(() => state.doc.title), n = await p.evaluate(() => state.doc.parts.reduce((s, x) => s + x.calls.length, 0));
     check(/^Loaded/.test(st) && title === 'Sidmouth Swirl' && n === 7, `a typed dance card loads as the dance (${title}, ${n} moves): ${st}`);
     await p.click('#tabEditor');
+  }
+
+  // First visit: the tour opens by itself, steps through the basics lighting up each part, and once finished
+  // doesn't come back; Help explains more and can show it again.
+  for (const [label, opts] of [['computer', { viewport: { width: 1440, height: 1000 } }], ['phone', { ...require('playwright').devices['iPhone 13'] }]]) {
+    const ctx = await b.newContext(opts), q = await ctx.newPage();
+    q.on('pageerror', e => errs.push(e.message));
+    await q.goto('file://' + path.join(__dirname, '..', 'index.html'));
+    await q.waitForSelector('#tour:not([hidden])', { timeout: 3000 }).catch(() => {});
+    check(await q.isVisible('#tourCard') && /Welcome/.test(await q.textContent('#tourTitle')), `${label}: on a first visit the tour opens with a welcome`);
+    let n = 1, onScreen = true;
+    while (!/Done/.test(await q.textContent('#tourNext')) && n < 20) {
+      await q.click('#tourNext'); await q.waitForTimeout(350); n++;
+      const box = await q.locator('#tourCard').boundingBox(), vp = q.viewportSize();
+      if (!(box.x >= 0 && box.y >= 0 && box.x + box.width <= vp.width + 1 && box.y + box.height <= vp.height + 1)) onScreen = false;
+    }
+    check(n === 8 && onScreen, `${label}: the tour has 8 steps, its card always fully on screen (${n})`);
+    await q.click('#tourNext'); await q.waitForTimeout(100);
+    check(await q.isHidden('#tour'), `${label}: Done closes the tour`);
+    await q.reload(); await q.waitForTimeout(1200);
+    check(await q.isHidden('#tour'), `${label}: the tour doesn't open again on the next visit`);
+    await q.click('#helpOpen');
+    check(await q.isVisible('#helpDialog') && (await q.locator('#helpDialog details').count()) >= 8, `${label}: Help opens the full guide`);
+    await q.click('#helpTour'); await q.waitForTimeout(200);
+    check(await q.isHidden('#helpDialog') && await q.isVisible('#tourCard'), `${label}: Help can show the tour again`);
+    await q.keyboard.press('Escape');
+    check(await q.isHidden('#tour'), `${label}: Escape closes the tour`);
+    await ctx.close();
   }
 
   check(errs.length === 0, `no page errors ${errs.join(' | ')}`);

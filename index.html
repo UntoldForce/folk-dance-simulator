@@ -271,6 +271,19 @@ ul.checks li.passed { color: var(--muted); }
 .light.bad { color: var(--bad); } .light.warn { color: var(--warn); } .light.ok { color: var(--ok); }
 .light.zero { color: var(--muted); opacity: 0.6; }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }
+.tour { position: fixed; inset: 0; z-index: 1000; }
+.tourspot { position: fixed; border-radius: 10px; box-shadow: 0 0 0 3px var(--accent), 0 0 0 9999px rgba(10, 14, 20, 0.55); transition: all 0.25s ease; pointer-events: none; }
+.tourspot.none { left: 50% !important; top: 40% !important; width: 0 !important; height: 0 !important; box-shadow: 0 0 0 9999px rgba(10, 14, 20, 0.55); }
+.tourcard { position: fixed; width: min(360px, calc(100vw - 32px)); background: var(--panel); color: var(--ink); border: 1px solid var(--rule); border-radius: 12px; padding: 14px 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); transition: top 0.25s ease, left 0.25s ease; }
+.tourcard h2 { margin: 2px 0 6px; font: 600 18px var(--font-display); }
+.tourcard p { margin: 0 0 12px; line-height: 1.45; }
+.tourcard .tourstep { margin: 0; color: var(--muted); font-size: 13px; }
+.help p.small { font-size: 13px; color: var(--muted); }
+.tourcard .grow { flex: 1; }
+.help details { border-top: 1px solid var(--rule); padding: 6px 0; }
+.help summary { cursor: pointer; font: 600 16px var(--font-display); padding: 4px 0; }
+.help ul { margin: 6px 0 4px; padding-left: 20px; line-height: 1.5; }
+.help li { margin: 3px 0; }
 .refs { width: min(760px, 94vw); max-height: 88vh; padding: 20px 24px; background: var(--panel); color: var(--ink); border: 1px solid var(--rule); border-radius: 12px; }
 .refs::backdrop { background: rgba(10, 16, 14, 0.45); }
 .refshead { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; }
@@ -420,6 +433,7 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
     <button type="button" id="dancesOpen" class="pill" aria-haspopup="dialog">♫ Dances</button>
     <button type="button" id="checksOpen" class="pill" aria-haspopup="dialog"><span>Checks</span><span class="lights" id="lights"></span></button>
     <button type="button" id="settingsOpen" class="pill" aria-haspopup="dialog">⚙ Settings</button>
+    <button type="button" id="helpOpen" class="pill" aria-haspopup="dialog">? Help</button>
     <button type="button" id="refsOpen" class="pill">References</button>
   </span>
 </header>
@@ -586,6 +600,85 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
   <ul class="checks" id="checks"></ul>
 </dialog>
 
+<div id="tour" class="tour" hidden role="dialog" aria-modal="true" aria-labelledby="tourTitle">
+  <div class="tourspot" id="tourSpot"></div>
+  <div class="tourcard" id="tourCard">
+    <p class="tourstep small" id="tourStep"></p>
+    <h2 id="tourTitle"></h2>
+    <p id="tourText"></p>
+    <div class="row"><button type="button" id="tourSkip">Skip the tour</button><span class="grow"></span><button type="button" id="tourBack">Back</button><button type="button" id="tourNext" class="primary">Next</button></div>
+  </div>
+</div>
+<dialog id="helpDialog" class="refs help" aria-labelledby="helpTitle">
+  <div class="refshead"><h2 id="helpTitle">How to use the simulator</h2><button type="button" id="helpClose" aria-label="Close">✕</button></div>
+  <p>Watch contra dances from above, build your own, and check that they work. <button type="button" id="helpTour">Show the quick tour again</button></p>
+  <details open><summary>Watching a dance</summary>
+    <ul>
+      <li><b>Play</b> starts and stops the dance (or press the space bar). <b>◀ ▶</b> step one beat back or forward (or the arrow keys).</li>
+      <li><b>Speed</b> slows the dance down to learn it, or speeds it up. <b>Loop</b> repeats the whole dance, one time through, one part, or just the move you're on.</li>
+      <li>The line over the floor says where you are (<i>A1 · beat 5 of 16</i>) and what's being danced.</li>
+      <li><b>Hands</b> shows who is holding hands with whom.</li>
+      <li>Turn on <b>Music</b> in Settings to hear the beat; set the tempo there too.</li>
+    </ul>
+  </details>
+  <details><summary>The dance floor</summary>
+    <ul>
+      <li>You're looking down from above, with the band at the top of the hall. Each circle is a dancer, in the colours shown for larks and robins; the number is their couple.</li>
+      <li><b>Tap or click a dancer</b> to follow their couple: the others fade, and a box shows where the couple is and, under <i>Every time through</i>, their whole journey. Tap them again (or ✕) to stop.</li>
+      <li>Couples at the ends of the line <b>wait out</b> and come back in, as on a real floor. <b>Next end effect ⏭</b> jumps to the next time that happens.</li>
+      <li>A dancer with a <b>“?”</b> doesn't know what to do: the move isn't one the simulator knows yet, or it can't work out who they dance it with. An <b>“oof!”</b> means two dancers bumped. (Turn these off in Settings.)</li>
+      <li>A <b>trail</b> shows where each dancer has just been; change its length in Settings.</li>
+    </ul>
+  </details>
+  <details><summary>The timeline under the floor</summary>
+    <ul>
+      <li>One row for each part (A1, A2, B1, B2), each normally 16 beats, with each move as a coloured block. Click a block, or an empty spot, to go there; drag along the beat ruler to scrub through.</li>
+      <li>The strip of <b>times through</b> picks which time through the dance you're watching: the dance progresses, so each time everyone is somewhere new.</li>
+      <li><b>Journey</b> draws every couple's path along the line through the whole dance; click it to go to that moment, or click a line to follow that couple.</li>
+    </ul>
+  </details>
+  <details><summary>Building or changing a dance (Editor tab)</summary>
+    <ul>
+      <li><b>＋ New dance</b> starts an empty one. <b>Formation</b> (under the tabs) sets how the dancers line up (improper, Becket, proper, four facing four, squares, sets and more) and the progression.</li>
+      <li>The <b>move list</b> has every move the simulator knows, by kind; search it with the box. Tap a move to see it danced and to set it up: who dances it, which hand, how far. Then <b>Add</b> it to a part. On a computer you can also drag it straight into a part row.</li>
+      <li>In the part rows, <b>drag a block</b> to move it, <b>drag its right edge</b> to make it longer or shorter (hold Shift for single beats), and <b>tap it</b> to change it or remove it (or press Delete).</li>
+      <li><b>Undo</b> and <b>Redo</b> are at the top right of the panel (Ctrl+Z, Ctrl+Shift+Z).</li>
+    </ul>
+  </details>
+  <details><summary>The dance as text (Text tab)</summary>
+    <ul>
+      <li>The same dance written out the way The Caller's Box writes dances: a title, “by” the author, a Formation line, then each part's name and one move per line with its beats in brackets, like <code>(8) Neighbors do-si-do</code>.</li>
+      <li>It updates as you edit. Paste a dance here and press <b>Run dance</b> to see it. Callers' shorthand works too: <code>(16) N B&amp;S</code>, <code>(8) P alle R 1½</code>.</li>
+    </ul>
+  </details>
+  <details><summary>From a dance card or a photo (Dance card tab)</summary>
+    <ul>
+      <li>Type a caller's card in as written: part names with moves on the same line, shorthand, ditto marks, no beats. <b>Load dance</b> writes it out and loads it; each part's 16 beats are shared among its moves.</li>
+      <li>When the simulator is opened in Claude, <b>Take or choose a photo</b> lets Claude read a card for you. It uses your own Claude account and asks you once to allow it. Check what it wrote against the photo (anything it wasn't sure of is listed), fix it, then Load dance.</li>
+      <li>On the public website photos can't be read; use the link there to open the simulator in Claude.</li>
+    </ul>
+  </details>
+  <details><summary>Saving and loading dances (♫ Dances)</summary>
+    <ul>
+      <li><b>Save this dance</b> keeps it under its title, on this device only. Your saved dances and some examples are listed to load.</li>
+      <li>To share a dance, copy it from the Text tab and send it; the other person pastes it into their Text tab.</li>
+      <li><b>Check many dances</b>: load text files or paste several dances (separated by a line of =====) and check them all at once. Open one, then step through the list with ‹ › at the top of the page.</li>
+    </ul>
+  </details>
+  <details><summary>Does the dance work? (Checks)</summary>
+    <ul>
+      <li>The lights on the <b>Checks</b> button sum it up: green is fine, amber is worth a look, red is a problem.</li>
+      <li>Open Checks to see each one: moves the simulator can't do yet, timing that seems short or long, dancers bumping or stretching to hold hands, and whether everyone progresses to the right place each time through.</li>
+    </ul>
+  </details>
+  <details><summary>Settings</summary>
+    <ul>
+      <li>How many lines and hands-fours are on the floor, and how many times through to dance.</li>
+      <li>Music and tempo; role names (Larks and Robins, Gents and Ladies, or Men and Women); how fast swings turn; trails and confused dancers. Settings are remembered on this device.</li>
+    </ul>
+  </details>
+  <p class="small">Words the simulator uses: <b>larks</b> and <b>robins</b> are the two roles; a <b>hands-four</b> is two couples dancing together; a <b>time through</b> is once through the whole dance, after which everyone has progressed to new neighbors. Shoulder round is what some older cards call a gypsy.</p>
+</dialog>
 <dialog id="refsDialog" class="refs" aria-labelledby="refsTitle">
   <div class="refshead"><h2 id="refsTitle">References and thanks</h2><button type="button" id="refsClose" aria-label="Close">✕</button></div>
   <p>This simulator was built from the generous work of dancers, callers and choreographers who share what they know. Thank you.
@@ -5727,6 +5820,73 @@ function setupCardImport() {
   $('cardClear').onclick = () => { $('cardText').value = ''; const pv = $('photoPreview'); if (pv.src) URL.revokeObjectURL(pv.src); pv.removeAttribute('src'); pv.hidden = true; unsure([]); status(''); };
 }
 
+// ---------- First visit: a quick tour of the basics; Help has the rest ----------
+// Each step lights up one part of the page (none for the welcome) and says what it's for.
+const TOUR = [
+  [null, 'Welcome!', 'This simulator shows contra dances from above, so you can watch one, build your own, and check that it works. Here is a quick tour of the basics.'],
+  ['#floor', 'The dance floor', () => `You're looking down on the hall, with the band at the top. Each circle is a dancer: ${roleSet()[0].toLowerCase()} and ${roleSet()[1].toLowerCase()} in their own colours, numbered by couple. Tap a dancer to follow their couple through the dance.`],
+  ['.tbar', 'Play the dance', 'Play starts the dance. ◀ ▶ step one beat at a time (or use the arrow keys). Slow it down with Speed, and use Loop to repeat one part or one move while you learn it.'],
+  ['#rows', 'The dance, part by part', 'Each row is a part (A1, A2, B1, B2) of 16 beats, with its moves as coloured blocks. Tap a block to jump to that move.'],
+  ['.dancecard', 'Change the dance', 'In the Editor, tap a move in the list to see it danced and add it to a part. Text shows the dance written out. Dance card brings in a dance from a caller’s card, or a photo of one.'],
+  ['#dancesOpen', 'Your dances', 'Save the dance you’re working on, load one you saved, or try an example.'],
+  ['#checksOpen', 'Does it work?', 'These lights show whether the dance works: green is fine, red is a problem, like dancers bumping or not progressing. Open Checks to see why.'],
+  ['#helpOpen', 'Help is here', 'That’s the basics. Help explains everything in more depth, and can show this tour again. Enjoy the dance!'],
+];
+const tour = { i: 0, el: null };
+function tourPlace() {
+  if ($('tour').hidden) return;
+  const [sel] = TOUR[tour.i], el = sel && document.querySelector(sel), spot = $('tourSpot'), card = $('tourCard');
+  const vw = window.innerWidth, vh = window.innerHeight, cw = card.offsetWidth, ch = card.offsetHeight;
+  if (!el || !el.getClientRects().length) {
+    spot.classList.add('none');
+    card.style.left = `${(vw - cw) / 2}px`; card.style.top = `${Math.max(16, (vh - ch) / 2)}px`;
+    return;
+  }
+  spot.classList.remove('none');
+  const r = el.getBoundingClientRect(), pad = 6, top = Math.max(4, r.top - pad), bottom = Math.min(vh - 4, r.bottom + pad);
+  Object.assign(spot.style, { left: `${Math.max(4, r.left - pad)}px`, top: `${top}px`, width: `${Math.min(vw - 8, r.width + 2 * pad)}px`, height: `${Math.max(0, bottom - top)}px` });
+  // The card goes below the lit-up part if it fits, otherwise above it, otherwise over its lower edge.
+  const left = Math.min(Math.max(16, r.left + r.width / 2 - cw / 2), vw - cw - 16);
+  const y = bottom + 10 + ch <= vh - 8 ? bottom + 10 : top - 10 - ch >= 8 ? top - 10 - ch : Math.max(8, vh - ch - 16);
+  card.style.left = `${left}px`; card.style.top = `${y}px`;
+}
+function tourShow(i) {
+  tour.i = Math.max(0, Math.min(TOUR.length - 1, i));
+  const [sel, title, text] = TOUR[tour.i], el = sel && document.querySelector(sel);
+  $('tourStep').textContent = `${tour.i + 1} of ${TOUR.length}`;
+  $('tourTitle').textContent = title;
+  $('tourText').textContent = typeof text === 'function' ? text() : text;
+  $('tourBack').hidden = tour.i === 0;
+  $('tourNext').textContent = tour.i === TOUR.length - 1 ? 'Done' : tour.i === 0 ? 'Show me' : 'Next';
+  $('tourSkip').hidden = tour.i === TOUR.length - 1;
+  if (el && el.getClientRects().length) {
+    const r = el.getBoundingClientRect();
+    if (r.top < 0 || r.bottom > window.innerHeight) el.scrollIntoView({ block: r.height > window.innerHeight * 0.6 ? 'start' : 'center', behavior: 'instant' });
+  }
+  tourPlace();
+  requestAnimationFrame(tourPlace);
+  $('tourNext').focus();
+}
+function tourStart() { if ($('helpDialog').open) $('helpDialog').close(); setPlaying(false); $('tour').hidden = false; tourShow(0); }
+function tourEnd() { $('tour').hidden = true; store('contra.toured', '1'); }
+$('tourNext').onclick = () => (tour.i === TOUR.length - 1 ? tourEnd() : tourShow(tour.i + 1));
+$('tourBack').onclick = () => tourShow(tour.i - 1);
+$('tourSkip').onclick = tourEnd;
+$('tour').addEventListener('keydown', e => {
+  if (e.key === 'Escape') { e.preventDefault(); tourEnd(); }
+  else if (e.key === 'ArrowRight') { e.preventDefault(); e.stopPropagation(); $('tourNext').click(); }
+  else if (e.key === 'ArrowLeft' && tour.i > 0) { e.preventDefault(); e.stopPropagation(); tourShow(tour.i - 1); }
+  else if (e.key === 'Tab') { const b = [...$('tour').querySelectorAll('button')].filter(x => !x.hidden); const k = b.indexOf(document.activeElement);
+    e.preventDefault(); b[(k + (e.shiftKey ? -1 : 1) + b.length) % b.length].focus(); }
+});
+window.addEventListener('resize', tourPlace);
+window.addEventListener('scroll', tourPlace, true);
+$('helpOpen').onclick = () => $('helpDialog').showModal();
+$('helpClose').onclick = () => $('helpDialog').close();
+$('helpTour').onclick = tourStart;
+// (Shown once, on a first visit, after the page has drawn. "?notour" in the address skips it.)
+if (!recall('contra.toured') && !/[?&]notour\b/.test(location.search)) setTimeout(tourStart, 700);
+
 const TABS = [['tabEditor', 'panelEditor'], ['tabText', 'panelText'], ['tabCard', 'panelCard']];
 for (const [tab, panel] of TABS) {
   $(tab).onclick = () => {
@@ -5827,7 +5987,7 @@ $('hands').onchange = () => { store('contra.hands', $('hands').checked ? 'on' : 
 if (recall('contra.hands') === 'off') $('hands').checked = false;
 $('trailLen').oninput = e => { const b = +e.target.value; $('trailVal').textContent = b ? `${b} beat${b === 1 ? '' : 's'}` : 'Off'; };
 document.addEventListener('keydown', e => {
-  if (/^(TEXTAREA|INPUT|SELECT)$/.test(e.target.tagName) || $('explorer').open) return;
+  if (/^(TEXTAREA|INPUT|SELECT)$/.test(e.target.tagName) || $('explorer').open || !$('tour').hidden) return;
   const mod = e.ctrlKey || e.metaKey;
   if (mod && e.key.toLowerCase() === 'z') { e.preventDefault(); undoTo(history.at + (e.shiftKey ? 1 : -1)); return; }
   if (mod && e.key.toLowerCase() === 'y') { e.preventDefault(); undoTo(history.at + 1); return; }
