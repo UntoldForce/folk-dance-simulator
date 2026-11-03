@@ -2680,6 +2680,105 @@ const Contra = (() => {
     if (rest < 1) return [[beats, text]];
     return pieces.map((p, i) => [i < lens.length ? lens[i] : rest, p.text.charAt(0).toUpperCase() + p.text.slice(1)]);
   }
+  // ---------- Dance cards: caller's shorthand ----------
+  // Callers' cards abbreviate ("P alle R½", "N B&S", "Lines F&B"). Written out in full, the simulator can read them.
+  // L and R at the start of a phrase are larks and robins ("L orbit"); after a move they are left and right ("alle L").
+  function expandShorthand(text) {
+    let t = String(text);
+    const R = [
+      [/\b(?:B|bal)\s*[&+]\s*(?:S|sw)\b/gi, 'balance and swing'],
+      [/\bF\s*[&+]\s*B\b/g, 'forward and back'], [/\bfwd\b/gi, 'forward'],
+      [/\bgrand\s+R\s*[&+]\s*L\b/gi, 'grand right and left'],
+      [/\bR\s*[&+]\s*L(?:\s+(?:thru|through))?\b/g, 'right and left through'],
+      [/\b(?:alle|alla|allem|alem|alm)\b\.?/gi, 'allemande'],
+      [/\b(?:dsd|d-s-d)\b/gi, 'do-si-do'],
+      [/\b(?:ptnrs?|ptrs?|prtnrs?|pards?)\b/gi, 'partners'], [/\b(?:nbrs?|neighs?|nghbrs?)\b/gi, 'neighbors'], [/\bshads?\b/gi, 'shadows'],
+      [/\bprom\b\.?/gi, 'promenade'], [/\bbal\b\.?/gi, 'balance'], [/\bcirc\b\.?/gi, 'circle'], [/\bthru\b/gi, 'through'],
+      [/\bw\/\s*/gi, 'with '], [/\bRH\b/g, 'right hand'], [/\bLH\b/g, 'left hand'], [/\bCCW\b/g, 'counterclockwise'], [/\bCW\b/g, 'clockwise'],
+      [/\ball\s+8\b/gi, 'all eight'], [/\ball\s+4\b/gi, 'all four'],
+      [/\bP\b/g, 'partner'], [/\bN\b/g, 'neighbor'], [/\bSh\b/g, 'shadow'], [/\bC\b/g, 'corner'],
+      [/\bW\b/g, 'robins'], [/\bM\b/g, 'larks'],
+      [/\b([LR])(?=[½¼¾\d])/g, '$1 '],                 // "R½" -> "R ½"
+      [/(^|[,;:]\s*|\bthen\s+)L\s+(?=chain\b)/g, '$1ladies '],
+      [/(^|[,;:]\s*|\bthen\s+)L\b(?!\s*[½¼¾\d])/g, '$1larks'], [/(^|[,;:]\s*|\bthen\s+)R\b(?!\s*[½¼¾\d])/g, '$1robins'],
+      [/\bL\b/g, 'left'], [/\bR\b/g, 'right'],
+      [/["“”]([^"“”]+)["“”]/g, '$1'],                  // "spin the top" -> spin the top
+    ];
+    for (const [re, to] of R) t = t.replace(re, to);
+    t = t.replace(/\s+/g, ' ').trim();
+    return t.charAt(0).toUpperCase() + t.slice(1);
+  }
+  // Ditto marks (" " ") under a line repeat the words above them. Lined up by the words around them: leading marks
+  // copy the start of the line above, up to where this line's own words begin there; marks after a word copy what
+  // followed the matching word above, to the end of that phrase.
+  const DITTO = /^(?:["“”〃]|''|-"-|do\.?|ditto|h)$/i;
+  function fillDittos(line, prev) {
+    const tk = line.split(/\s+/).filter(Boolean);
+    if (!prev || !tk.some(w => /^(?:["“”〃]|''|-"-|ditto)$/i.test(w))) return line;
+    const pv = prev.split(/\s+/).filter(Boolean), bare = w => w.toLowerCase().replace(/[^a-z0-9½¼¾]/g, '');
+    const out = [];
+    for (let i = 0; i < tk.length;) {
+      if (!DITTO.test(tk[i]) || (/^(do\.?|h)$/i.test(tk[i]) && !(i > 0 && DITTO.test(tk[i - 1])) && !(DITTO.test(tk[i + 1] || '')))) { out.push(tk[i++]); continue; }
+      let b = i; while (b < tk.length && DITTO.test(tk[b])) b++;
+      if (i === 0) {
+        const j = b < tk.length ? pv.findIndex((w, k) => bare(w) === bare(tk[b]) && (b + 1 >= tk.length || bare(pv[k + 1] || '') === bare(tk[b + 1]))) : -1;
+        const end = j > 0 ? j : pv.findIndex(w => /:$/.test(w)) + 1;
+        out.push(...pv.slice(0, end > 0 ? end : 0));
+      } else {
+        const anchor = i >= 2 ? bare(tk[i - 2]) : null, j = anchor ? pv.findIndex(w => bare(w) === anchor) : -1;
+        if (j >= 0) { const rest = []; for (let k = j + 2; k < pv.length; k++) { rest.push(pv[k]); if (/[,;]$/.test(pv[k])) break; } out.push(...rest); }
+      }
+      i = b;
+    }
+    return out.join(' ');
+  }
+  // A dance card as written ("Sidmouth Swirl  4x4  Bob Isaacs", "A1 Lines F&B; all circle R ½", ...) into the
+  // Caller's Box layout the simulator reads. Lines already in that layout ("(8) ...") are kept. Without beats, a
+  // part's 16 beats are shared among its figures by how long each usually takes.
+  function fromCard(src) {
+    const FORM = /\b(4\s*x\s*4|4\s*fac(?:e|ing)\s*4|four facing four|becket(?:\s+c?cw)?|(?:duple\s+)?improper|imp|(?:duple\s+)?proper|triple minor|sicilian|square|circle mixer|indecent)\b/i;
+    const lines = String(src).split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    if (lines.some(l => /^\(\s*\d+(?:\.\d+)?\s*\)/.test(l) || /^[A-D][1-4]?\s+\(\s*\d/.test(l))) return src;   // already the usual layout
+    let title = '', author = '', formation = '';
+    const parts = [];
+    let prevRaw = null;
+    for (const line0 of lines) {
+      const label = line0.match(/^([A-D])\s*[,.]?\s*([1-4₁₂₃₄]?)\s*[:.)-]?\s+(.*)$/);
+      const isPart = label && !(parts.length === 0 && !label[2] && !title);
+      if (isPart || (parts.length && !FORM.test(line0) && !/^by\s/i.test(line0))) {
+        let body = isPart ? label[3] : line0;
+        body = fillDittos(body, prevRaw); prevRaw = body;
+        if (isPart) parts.push({ name: label[1] + ('₁₂₃₄'.indexOf(label[2]) >= 0 && label[2] ? '₁₂₃₄'.indexOf(label[2]) + 1 : label[2] || ''), figs: [] });
+        parts[parts.length - 1].figs.push(...body.split(/\s*;\s*/).filter(Boolean));
+        continue;
+      }
+      if (/^by\s+/i.test(line0)) { author = line0.replace(/^by\s+/i, ''); continue; }
+      const kv = line0.match(/^(formation|progression|author)\s*:\s*(.*)$/i);
+      if (kv) { if (/formation/i.test(kv[1])) formation = kv[2]; else if (/author/i.test(kv[1])) author = kv[2]; continue; }
+      const fm = line0.match(FORM);
+      if (fm && !title) { title = line0.slice(0, fm.index).trim(); author = author || line0.slice(fm.index + fm[0].length).trim(); formation = fm[0]; }
+      else if (!title) title = line0; else if (fm) formation = fm[0];
+    }
+    const formName = /4\s*x\s*4|4\s*fac|four facing/i.test(formation) ? 'Four facing four' : /^imp$/i.test(formation) ? 'Improper' : formation;
+    const out = [title || 'Untitled dance'];
+    if (author) out.push('by ' + author);
+    out.push('');
+    if (formName) out.push('Formation: ' + formName.charAt(0).toUpperCase() + formName.slice(1));
+    out.push('');
+    for (const p of parts) {
+      const figs = p.figs.map(expandShorthand), want = figs.map(f => {
+        const k = parseFigure(f), b = k.fig && TYPICAL_BEATS[k.fig];
+        return /balance and swing/i.test(f) ? 16 : typeof b === 'function' ? b(k) : b || 8;
+      });
+      const total = want.reduce((a, b) => a + b, 0), beats = want.map(w => Math.max(2, Math.round((w * 16) / total / 2) * 2));
+      beats[beats.length - 1] += 16 - beats.reduce((a, b) => a + b, 0);
+      out.push(p.name);
+      figs.forEach((f, i) => out.push(`(${beats[i]}) ${f}`));
+      out.push('');
+    }
+    return out.join('\n').trim() + '\n';
+  }
+
   function parseDance(src) {
     const dance = { title: '', author: '', meta: {}, metaLines: [], progression: 1, parts: [], warnings: [] };
     let part = null;
@@ -2696,7 +2795,11 @@ const Contra = (() => {
         if (!part) { part = { name: 'A1', calls: [] }; dance.parts.push(part); }
         // A line with several figures ("Neighbors balance & swing") stays one figure in the dance, as written;
         // it's danced as its steps (see compile). It's read as its first step, for its name and colour.
-        const text = fig[2].trim(), steps = splitLine(text, Number(fig[1])), unknownPart = steps.length === 1 && steps[0][2];
+        // (A line it can't read may be caller's shorthand, "P alle R½": read written out in full, if that reads.)
+        let text = fig[2].trim(), steps = splitLine(text, Number(fig[1]));
+        const unread = st => (st.length === 1 ? !parseFigure(st[0][1]).fig || st[0][2] : st.some(q => !parseFigure(q[1]).fig));
+        if (unread(steps)) { const full = expandShorthand(text), st = splitLine(full, Number(fig[1])); if (full !== text && !unread(st)) { text = full; steps = st; } }
+        const unknownPart = steps.length === 1 && steps[0][2];
         const call = { beats: Number(fig[1]), text, ...parseFigure(steps.length > 1 ? steps[0][1] : text), ...(steps.length > 1 ? { steps: steps.length } : {}) };
         if (unknownPart) { call.fig = null; call.unknownPart = unknownPart; }
         if (!call.fig) dance.warnings.push({ level: 'bad', call, part: part.name, text: `${part.name}: “${call.text}” isn't a figure the simulator knows yet. Dancers stand still for those ${call.beats} beats.` });
@@ -2815,7 +2918,7 @@ const Contra = (() => {
     if (/six.fac(e|ing).six|6.fac(e|ing).6/.test(f)) return 'sixFacingSix';
     if (/singlet/.test(f)) return 'singlet';
     if (/^longways set|longways set for|whole.set/.test(f) && !/\d|two|three|four|five|six/.test(f)) return 'set6Proper';   // a whole-set dance (Virginia Reel)
-    if (/four.facing.four|4.fac(e|ing).4|four.face.four|mescolanza|double contra/.test(f)) return /sicilian/.test(f) ? null : 'fourFacingFour';
+    if (/four.facing.four|4.fac(e|ing).4|four.face.four|\b4\s*x\s*4\b|mescolanza|double contra/.test(f)) return /sicilian/.test(f) ? null : 'fourFacingFour';
     if (/grid contra|longways grid/.test(f)) return 'gridContra';
     if (/sicilian/.test(f)) return 'sicilian';
     if (/triple minor/.test(f)) return /improper|crossed/.test(f) ? 'tripleImproper' : 'tripleProper';
@@ -3879,7 +3982,7 @@ const Contra = (() => {
   // Several dances in one piece of text, one after another, separated by a line of ===== (or more).
   const splitDances = text => text.split(/^\s*={5,}\s*$/m).map(t => t.trim()).filter(Boolean);
 
-  return { DEFAULTS, FORMATIONS, FIGURE_INFO, TYPICAL_BEATS, SETUP, parseDance, serialize, callText, compile, poseAt, handsAt, callIndexAt, meetings, review, splitDances };
+  return { DEFAULTS, FORMATIONS, FIGURE_INFO, TYPICAL_BEATS, SETUP, parseDance, fromCard, expandShorthand, serialize, callText, compile, poseAt, handsAt, callIndexAt, meetings, review, splitDances };
 })();
 </script>
 

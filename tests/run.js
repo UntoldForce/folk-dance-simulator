@@ -476,5 +476,19 @@ for (const k of c.calls) {
   check(!bad.ok && bad.title === 'Broken' && bad.unread.join() === 'Frobnicate the robins', 'a dance with a move it can\'t read lists that move');
 }
 
+// Dance cards (Gaye Fifer's idea): a card in caller's shorthand, with ditto marks and no beats, is written out in the
+// usual layout, and every move on it is read.
+{
+  const card = 'Sidmouth Swirl    4x4  Bob Isaacs\n\nA1 Lines F&B; all circle R ½\nA2 corner alle L; grand R&L (starting w/ P)\nB1 all 8 "spin the top": P alle R½, robins star, L orbit to meet P\n" " " " P alle R½, larks star, R " " "\nB2 P B&S';
+  const txt = Contra.fromCard(card), d = Contra.parseDance(txt), calls = d.parts.flatMap(p => p.calls);
+  check(d.title === 'Sidmouth Swirl' && d.author === 'Bob Isaacs' && d.formation === 'fourFacingFour', `a dance card's first line gives the title, the formation (4x4) and the author (${d.title} / ${d.author} / ${d.formation})`);
+  check(d.parts.map(p => p.name).join() === 'A1,A2,B1,B2' && d.parts.every(p => p.calls.reduce((s, k) => s + k.beats, 0) === 16), 'each part of the card gets its 16 beats, shared among its moves');
+  check(calls.every(k => k.fig), 'every move on the card is read: ' + calls.map(k => k.fig).join(', '));
+  check(/larks star, robins orbit to meet partner/.test(calls[5].text) && /^All eight spin the top/.test(calls[5].text), 'ditto marks repeat the words above them: ' + calls[5].text);
+  const sh = Contra.parseDance('A1\n(8) N alle R 1 1/2\n(8) P dsd\nA2\n(16) N B&S\nB1\n(8) W chain\n(8) R&L thru').parts.flatMap(p => p.calls);
+  check(sh.map(k => k.fig + ' ' + k.who).join() === 'allemande neighbors,dosido partners,balance neighbors,chain robins,rightLeftThrough all' && sh[0].hand === 'R' && sh[0].turns === 1.5,
+    'shorthand typed in the Text tab is read too (N alle R 1 1/2, P dsd, N B&S, W chain, R&L thru)');
+}
+
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll checks passed');
 process.exit(failures ? 1 : 0);
