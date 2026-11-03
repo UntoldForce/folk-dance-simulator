@@ -490,5 +490,32 @@ for (const k of c.calls) {
     'shorthand typed in the Text tab is read too (N alle R 1 1/2, P dsd, N B&S, W chain, R&L thru)');
 }
 
+// Heys (Ryan, Five Long Years): "larks start a half hey - lefts in center" is the larks passing left shoulders in the
+// middle first; "robins ricochet" is the robins reaching out, bouncing off each other's hands and going back.
+{
+  const hk = t => Contra.parseDance('A1\n(8) ' + t).parts[0].calls[0];
+  const a = hk('larks start a half hey - lefts in center, rights on ends passing by the left, robins ricochet');
+  check(a.fig === 'hey' && a.starter === 'larks' && a.side === 'L' && a.turns === 0.5 && a.ricochet[0].who === 'robins', '"larks start a half hey - lefts in center, …, robins ricochet" is read: larks first, left shoulders, robins ricochet');
+  check(hk('robins start a half hey - rights in center, lefts on ends').side === 'R' && hk('partners start a full hey - rights on ends, lefts in center').side === 'L', 'which shoulder in the center: "rights in center", or the other one from "rights on ends"');
+  const dance = h => `A1\n(16) Neighbors balance & swing\nA2\n(8) ${h}\n(8) Partners swing\nB1\n(16) Partners balance & swing\nB2\n(8) Circle left 3 places\n(8) Neighbors swing`;
+  const run = h => { const c = Contra.compile(Contra.parseDance(dance(h)), { lines: 1, sets: 2, passes: 1 }), k = c.calls.find(q => q.fig === 'hey'); return { c, k, ids: c.dancers.slice(0, 4).map(d => d.id) }; };
+  const at = (r, id, t) => Contra.poseAt(r.c, id, t), near = (p, q) => Math.hypot(p.x - q.x, p.y - q.y) < 0.05;
+  const half = run('Larks start a half hey - lefts in center, rights on ends, robins ricochet'), plain = run('Larks start a half hey - lefts in center, rights on ends');
+  const robins = half.ids.filter(id => id.endsWith('R')), larks = half.ids.filter(id => id.endsWith('L'));
+  check(robins.every(id => near(at(half, id, half.k.t1), at(half, id, half.k.t0))) && larks.every(id => near(at(half, id, half.k.t1), at(plain, id, plain.k.t1))),
+    'half hey, robins ricochet: the robins end back where they started; the larks end where an ordinary half hey takes them');
+  let closest = 9, crossed = false;
+  const cx = half.ids.reduce((sum, id) => sum + at(half, id, half.k.t0).x, 0) / 4;
+  for (let t = half.k.t0; t <= half.k.t1; t += 0.05) {
+    const [p, q] = robins.map(id => at(half, id, t)); closest = Math.min(closest, Math.hypot(p.x - q.x, p.y - q.y));
+    if (Math.sign(p.x - cx) !== Math.sign(at(half, robins[0], half.k.t0).x - cx)) crossed = true;
+  }
+  check(closest > 0.55 && !crossed && !half.c.warnings.some(w => w.bump), `the robins meet at arm's length and bounce back without crossing the set, nobody bumping (closest ${closest.toFixed(2)} m)`);
+  check((half.k.holds || []).some(h => robins.includes(h.a) && robins.includes(h.b)), 'the robins touch hands as they bounce');
+  const full = run('Larks start a full hey - lefts in center, rights on ends, robins ricochet');
+  check(full.ids.every(id => near(at(full, id, full.k.t0 + full.k.beats), at(full, id, full.k.t0))), 'full hey with the robins ricocheting both times: everyone ends home, as in an ordinary hey');
+  check(Contra.review(fs.readFileSync(path.join(__dirname, '..', 'dances', 'five-long-years.txt'), 'utf8')).ok, 'Five Long Years (ricochet hey) runs with no problems');
+}
+
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll checks passed');
 process.exit(failures ? 1 : 0);

@@ -1097,8 +1097,17 @@ const Contra = (() => {
   // cross twice and pass a shoulder-width apart in the middle. Dancers start a quarter of the track apart:
   // the starters (about to pass in the middle) at t = pi/4 and 5pi/4, the others at 3pi/4 and 7pi/4.
   function heyPlan(ps, call, ctx) {
-    const keys = ctx.keys, c = centroid(ps), who = call.starter || 'robins';
-    const isStarter = k => (who === 'robins' ? k[0] === 'R' : who === 'larks' ? k[0] === 'L' : who === 'partners' ? k[1] === '1' : who === 'neighbors' ? k === 'L1' || k === 'R2' : k[0] === 'R');
+    const keys = ctx.keys, c = centroid(ps);
+    let who = call.starter || 'robins';
+    // "Partners (or neighbors) start a hey - rights on ends, lefts in center": they pass first, on the ends. Whoever
+    // stands in the middle (say the larks, after a larks' allemande) goes out past them, and the two from the outside
+    // come in and pass in the center: they are the ones who make the first center pass.
+    if (who === 'partners' || who === 'neighbors') {
+      const order = [0, 1, 2, 3].sort((i, j) => dist(ps[i], c) - dist(ps[j], c)), [k1, k2] = order.slice(0, 2).map(i => keys[i] || '');
+      // (With everyone at the corners it isn't clear from where they stand; the robins come in first, to be checked with Ryan.)
+      who = k1[0] === k2[0] && dist(ps[order[1]], c) + 0.15 < dist(ps[order[2]], c) ? (k1[0] === 'L' ? 'robins' : 'larks') : 'robins';
+    }
+    const isStarter = k => (who === 'robins' ? k[0] === 'R' : who === 'larks' ? k[0] === 'L' : who === 'partners' || who === 'ones' ? k[1] === '1' : who === 'twos' ? k[1] === '2' : who === 'neighbors' ? k === 'L1' || k === 'R2' : k[0] === 'R');
     const st = [0, 1, 2, 3].filter(i => isStarter(keys[i]));
     const A = ps[st[0]], B = ps[st[1]];
     const across = Math.abs(A.x - B.x) >= Math.abs(A.y - B.y), e = across ? { x: 1, y: 0 } : { x: 0, y: 1 };
@@ -1118,7 +1127,7 @@ const Contra = (() => {
       phase[i] = got; free.splice(free.indexOf(got), 1);
     }
     const span = (call.turns || 0.5) * TAU, corners = [-1, 1].flatMap(a => [-1, 1].map(p => ({ x: c.x + e.x * a * ha + f.x * p * hp, y: c.y + e.y * a * ha + f.y * p * hp })));
-    return ps.map((d, i) => {
+    const fns = ps.map((d, i) => {
       const t0 = phase[i], endPt = track(t0 + span), snap = corners.reduce((b, q) => (dist(q, endPt) < dist(b, endPt) ? q : b));
       const path = s => track(t0 + span * s);
       return u => {
@@ -1129,7 +1138,54 @@ const Contra = (() => {
         return { x: p.x, y: p.y, a: settle(d.a, heading(path, s), u, 0.1) };
       };
     });
+    return call.ricochet ? ricochetPaths(fns, keys, call.ricochet, ctx) : fns;
   }
+  // A ricochet in a hey (Ryan): the two dancers who would pass in the middle reach out, meet hands at arm's length and
+  // bounce back the way they came. Each then carries on along the path the other would have taken (the hey stays
+  // whole for everyone else), so after a half hey they are back where they started; two ricochets in a full hey end
+  // as an ordinary hey does.
+  function ricochetPaths(fns, keys, rules, ctx) {
+    const out = fns.slice(), N = 240, touches = [];
+    for (const rule of rules) {
+      const pair = [0, 1, 2, 3].filter(i => (rule.who === 'larks' ? keys[i][0] === 'L' : rule.who === 'robins' ? keys[i][0] === 'R' : rule.who === 'ones' ? keys[i][1] === '1' : rule.who === 'twos' ? keys[i][1] === '2' : false));
+      if (pair.length !== 2) continue;
+      const [i, j] = pair, fi = out[i], fj = out[j];
+      // Passing in the middle, the two come face to face about arm's length apart, curve by each other, and are face
+      // to face again on the far side: the two closest moments. The ricochet bounces at the first of them.
+      const gap = u => dist(fi(u), fj(u)), mins = [];
+      for (let k = 1; k < N; k++) { const u = k / N, g = gap(u); if (g < gap((k - 1) / N) && g <= gap((k + 1) / N) && g < 1.2 && u > 0.04 && u < 0.96) mins.push(u); }
+      const passes = [];
+      for (let k = 0; k < mins.length; k++) {
+        if (k + 1 < mins.length && mins[k + 1] - mins[k] < 0.3) { passes.push({ a: mins[k], b: mins[k + 1] }); k++; }
+        else passes.push({ a: Math.max(0.02, mins[k] - 0.06), b: Math.min(0.98, mins[k] + 0.06) });
+      }
+      const chosen = passes.filter((q, k) => !rule.time || rule.time === k + 1);
+      if (!chosen.length) continue;
+      // Who follows whose path: they trade paths at each ricochet, so the hey stays whole for everyone else.
+      const route = (mine, other, n) => (n % 2 ? other : mine);
+      const make = (mine, other) => {
+        // In the bounce: back the way they came, easing onto the other's path by the end of where the pass was.
+        const bounce = (ev, before, after, u) => {
+          const back = before(Math.max(0, 2 * ev.a - u)), on = after(u), w = mj((u - ev.a) / (ev.b - ev.a));
+          return { x: lerp(back.x, on.x, w), y: lerp(back.y, on.y, w) };
+        };
+        return u => {
+          const done = chosen.filter(q => u >= q.b).length, ev = chosen.find(q => u > q.a && u < q.b);
+          if (!ev) return route(mine, other, done)(u);
+          const before = route(mine, other, done), after = route(mine, other, done + 1), p = bounce(ev, before, after, u);
+          // Facing: toward the other at the touch, turning (over the first half of the bounce) the way they now go.
+          const fA = before(ev.a), fB = route(other, mine, done)(ev.a), toward = Math.atan2(fB.y - fA.y, fB.x - fA.x);
+          const q = bounce(ev, before, after, Math.min(ev.b - 1e-4, u + 0.01)), go = dist(q, p) > 1e-4 ? Math.atan2(q.y - p.y, q.x - p.x) : toward;
+          return { x: p.x, y: p.y, a: lerpAngle(toward, go, mj(clamp01((u - ev.a) / (0.5 * (ev.b - ev.a))))) };
+        };
+      };
+      out[i] = make(fi, fj); out[j] = make(fj, fi);
+      for (const q of chosen) touches.push({ i, j, u: q.a });
+    }
+    out.touches = touches;
+    return out;
+  }
+
 
   // Each figure takes its dancers' starting poses and returns one path function per dancer.
   // A path maps u (0 to 1 through the figure) to a pose { x, y, a }.
@@ -2396,6 +2452,8 @@ const Contra = (() => {
     swingThrough: (ps, call, ctx) => waveHolds('swingThrough', 0.9)(ps, call, ctx),
     // The wave down the middle: the two in the middle of each hands-four hold hands.
     // (Within the hands-four here; the line is joined across hands-fours where the dance is put together.)
+    // A ricochet: the two touch hands as they bounce off each other.
+    hey: (ps, call, ctx) => (call.ricochet ? heyPlan(ps, call, ctx).touches || [] : []).flatMap(q => [hold(q.i, 'R', q.j, 'L', Math.max(0, q.u - 0.03), q.u + 0.03), hold(q.i, 'L', q.j, 'R', Math.max(0, q.u - 0.03), q.u + 0.03)]),
     centerWave: (ps, call, ctx) => middleLine(FIGURES.centerWave.plan(ps, call, ctx).map(f => f(1)), ctx.cx).map(([i, j]) => hold(i, 'near', j, 'near', 0.7, 1)),
     // Arch and dive: each couple holds inside hands (the arch is the archers' joined hands).
     archDive: (ps, call, ctx) => [['1'], ['2']].flatMap(([n]) => { const cp = [0, 1, 2, 3].filter(i => (ctx.keys[i] || '')[1] === n); return cp.length === 2 ? [hold(cp[0], 'near', cp[1], 'near')] : []; }),
@@ -2745,9 +2803,17 @@ const Contra = (() => {
       return { fig: 'heyThreeSide', who: 'all', active: (/lark|gent|man|men/.test(m[2]) ? 'L' : 'R') + (/1st|first/.test(m[1]) ? '1' : '2'), side: /\bleft\b/.test(t) ? 'L' : 'R', turns: 1 };
     if (/hey for (three|3)|reel of three/.test(t)) return { fig: 'heyThree', who: 'all', side: /\bleft\b/.test(t) ? 'L' : 'R', turns: /half|1\/2/.test(t) ? 0.5 : 1 };
     if (/\bhey\b/.test(t)) {
-      const st = t.match(/(robins|ladies|women|larks|gents|men|partners?|neighbou?rs?)\s+pass\s+(right|left)/);
-      const starter = st ? (/robins|ladies|women/.test(st[1]) ? 'robins' : /larks|gents|men/.test(st[1]) ? 'larks' : /partner/.test(st[1]) ? 'partners' : 'neighbors') : 'robins';
-      return { fig: 'hey', who: 'all', starter, side: st ? st[2][0].toUpperCase() : 'R', turns: /half|1\/2/.test(t) ? 0.5 : amount(1) };
+      // Who starts: "robins pass right", or (as ContraDB writes it) "larks start a half hey - lefts in center, rights on ends".
+      const st = t.match(/(robins|ladies|women|larks|gents|men|partners?|neighbou?rs?)\s+pass\s+(right|left)/), go = t.match(/(robins|ladies|women|larks|gents|men|partners?|neighbou?rs?|ones|twos)\s+(?:start|begin|lead)s?\b/);
+      const name = st ? st[1] : go ? go[1] : '';
+      const starter = /robins|ladies|women/.test(name) ? 'robins' : /larks|gents|men/.test(name) ? 'larks' : /partner/.test(name) ? 'partners' : /neighbo/.test(name) ? 'neighbors' : /ones|twos/.test(name) ? name : 'robins';
+      const cen = t.match(/\b(lefts?|rights?) in (?:the )?cent(?:er|re)|\b(lefts?|rights?) on (?:the )?ends?/);
+      const side = st ? st[2][0].toUpperCase() : cen ? (cen[1] ? cen[1][0].toUpperCase() : cen[2][0] === 'l' ? 'R' : 'L') : 'R';
+      // A ricochet (Ryan): instead of passing in the middle, the two dancers reach out, bounce off each other's hands
+      // and go back where they came from. "Robins ricochet" is every time they meet in the middle; "... second time" one.
+      const ricochet = [...t.matchAll(/\b(robins|ladies|women|larks|gents|men|ones|twos)\s+ricochet(?:\s+(?:the\s+)?(first|second|1st|2nd)\s+time)?/g)]
+        .map(r => ({ who: /robins|ladies|women/.test(r[1]) ? 'robins' : /larks|gents|men/.test(r[1]) ? 'larks' : r[1], time: r[2] ? (/first|1st/.test(r[2]) ? 1 : 2) : 0 }));
+      return { fig: 'hey', who: 'all', starter, side, turns: /half|1\/2/.test(t) ? 0.5 : amount(1), ...(ricochet.length ? { ricochet } : {}) };
     }
     if (/figure (8|eight)/.test(t)) return { fig: 'figureEight', who: who === 'twos' ? 'twos' : 'ones', turns: /half|1\/2/.test(t) ? 0.5 : 1 };
     if (/\bslice\b/.test(t)) return { fig: 'slice', who: 'all', side: lr('L') };
@@ -4323,8 +4389,8 @@ const POOL = [
   { cat: 6, label: 'Rights and lefts', fig: 'squareThrough', amount: 'hands', d: { amt: 4 }, beats: 16, say: 'Rights and lefts, {amt} changes', re: /rights and lefts|circular hey/, ecd: true },
   { cat: 6, label: 'Half open ladies chain', fig: 'openChain', d: {}, beats: 8, say: 'Half open ladies chain', re: /open (ladies|robins|women)'? chain/, ecd: true },
   { cat: 6, label: 'Give and take', fig: 'giveAndTake', who: ['robins', 'larks'], d: { who: 'robins' }, beats: 4, say: '{who} give and take', re: /give.and.take/ },
-  { cat: 7, label: 'Hey for four', fig: 'hey', who: ['robins', 'larks', 'partners', 'neighbors'], side: 'pass', amount: 'half', d: { who: 'robins', side: 'R', amt: 0.5 }, beats: 8,
-    say: m => `${m.amt === 0.5 ? 'Half hey' : 'Hey for four'}, ${WHO_LABEL[m.who].toLowerCase()} pass ${m.side === 'L' ? 'left' : 'right'} to start`, re: /\bhey\b(?! for (three|3))/ },
+  { cat: 7, label: 'Hey for four', fig: 'hey', who: ['robins', 'larks', 'partners', 'neighbors'], side: 'pass', amount: 'half', ricochet: true, d: { who: 'robins', side: 'R', amt: 0.5, rico: null }, beats: 8,
+    say: m => `${m.amt === 0.5 ? 'Half hey' : 'Hey for four'}, ${WHO_LABEL[m.who].toLowerCase()} pass ${m.side === 'L' ? 'left' : 'right'} to start${m.rico ? `, ${m.rico} ricochet` : ''}`, re: /\bhey\b(?! for (three|3))/ },
   { cat: 7, label: 'Hey for three', fig: 'heyThree', side: 'pass', amount: 'half', d: { side: 'R', amt: 1 }, beats: 8,
     say: m => `${m.amt === 0.5 ? 'Half hey for three' : 'Hey for three'} on the sides, ${m.side === 'L' ? 'left' : 'right'} shoulders to start`, re: /hey for (three|3)/, setup: 'triplet' },
   { cat: 7, label: 'Dolphin hey', fig: 'dolphinHey', who: ['ones', 'twos'], d: { who: 'ones' }, beats: 16, say: '{who} dolphin hey across the set', re: /dolphin hey/, ecd: true },
@@ -4387,6 +4453,7 @@ function readMods(def, k) {
     else if (def.side === 'hands') m.side = /\(lh\)/.test(t) ? 'L' : /\(rh\)/.test(t) ? 'R' : null;
     else m.side = /\bleft\b/.test(t) ? 'L' : /\bright\b/.test(t) ? 'R' : m.side;
   }
+  if (def.ricochet) m.rico = k.ricochet && k.ricochet[0] && ['robins', 'larks'].includes(k.ricochet[0].who) ? k.ricochet[0].who : null;
   if (def.amount) {
     if (k.fig && k.turns != null) m.amt = k.turns;
     else if (def.amount === 'half') m.amt = /half|1\/2/.test(t) ? 0.5 : /\b(full|1)\b|for four|figure eight/.test(t) && !/half/.test(t) ? 1 : m.amt;
@@ -4903,7 +4970,7 @@ const DESCRIPTIONS = {
   'Flutterwheel': 'Robins take right hands half way across, pick up the lark there, and bring him around to the robin\'s side. Larks trade places; robins end where they started.',
   'Square through': 'Pull by right across, turn a quarter to face along and pull by left, and so on for the number of hands.',
   'Give and take': 'Everyone takes two steps in; the named dancers take two hands with the person across and draw them back to their own side, usually into a swing.',
-  'Hey for four': 'Four dancers weave along one track, a figure eight with an extra loop, passing alternate shoulders. The named pair pass first, in the middle. A half hey ends with everyone across the set.',
+  'Hey for four': 'Four dancers weave along one track, a figure eight with an extra loop, passing alternate shoulders. The named pair pass first, in the middle. A half hey ends with everyone across the set. With a ricochet, the named pair don’t pass in the middle: they reach out, bounce off each other’s hands and go back where they came from, so after a half hey they are home again (two ricochets in a full hey end as an ordinary hey does).',
   'Hey for three': 'Three dancers on a side weave a figure-eight path, passing alternate shoulders. Shown in a three-couple set, with both sides heying at once; it needs three dancers on a side.',
   'Figure eight': 'The active couple cross diagonally through the other couple and cast around them. A half figure eight ends on the other side of the set.',
   'Slice': 'As couples, four steps forward on the named diagonal, then fall straight back, one place along.',
@@ -4997,6 +5064,7 @@ function openExplorer(def, m, beats) {
     const S = SIDES[def.side], i = m.side === 'L' ? 0 : 1, spin = S.spin[i];
     facts.push(['Side', `${S.labels[i]}${spin ? `, turning ${spin < 0 ? 'clockwise' : 'counter-clockwise'} (seen from above)` : ''}`]);
   }
+  if (def.ricochet && m.rico) facts.push(['Ricochet', m.rico === 'larks' ? roleSet()[0] : roleSet()[1]]);
   if (def.amount && m.amt != null) facts.push(['How far', (AMOUNTS[def.amount].find(a => a[0] === m.amt) || [, String(m.amt)])[1]]);
   const typical = def.fig ? (typeof Contra.TYPICAL_BEATS[def.fig] === 'function' ? Contra.TYPICAL_BEATS[def.fig]({ turns: m.amt }) : Contra.TYPICAL_BEATS[def.fig]) : def.beats;
   facts.push(['Length', `${beats} beats${typical ? ` (usually ${typical})` : ''}`]);
@@ -5079,6 +5147,9 @@ function renderBuilder() {
       html += `<span class="blabel">Side</span><div class="seg" role="group" aria-label="Side">${opts.map(([v, label, spin]) =>
         `<button type="button" data-side="${v}" aria-pressed="${(m.side || null) === v}">${spinIcon(spin) ? `<span class="spin">${spinIcon(spin)}</span>` : ''}${label}</button>`).join('')}</div>`;
     }
+    // A ricochet (hey): the named pair bounce off each other in the middle instead of passing.
+    if (def.ricochet) html += `<span class="blabel">Ricochet</span><div class="seg" role="group" aria-label="Ricochet">${[[null, 'None'], ['robins', whoName('robins')], ['larks', whoName('larks')]].map(([v, l]) =>
+      `<button type="button" data-rico="${v}" aria-pressed="${(m.rico || null) === v}">${l}</button>`).join('')}</div>`;
     if (def.amount) html += `<label for="bAmt">${def.amount === 'places' ? 'How far' : def.amount === 'hands' ? 'Hands' : 'Amount'}</label>
       <div class="amtrow"><select id="bAmt">${AMOUNTS[def.amount].map(([v, l]) => `<option value="${v}"${m.amt === v ? ' selected' : ''}>${l}</option>`).join('')}</select>${dial(def, m)}</div>`;
     html += `</div>`;
@@ -5107,6 +5178,7 @@ function renderBuilder() {
   if ($('bWho')) $('bWho').onchange = e => { if (e.target.value) apply({ ...m, who: e.target.value }, beats); };
   box.querySelectorAll('.seg button[data-who]').forEach(b => (b.onclick = () => apply({ ...m, who: b.dataset.who }, beats)));
   box.querySelectorAll('.seg button[data-side]').forEach(b => (b.onclick = () => apply({ ...m, side: b.dataset.side === 'null' ? null : b.dataset.side }, beats)));
+  box.querySelectorAll('.seg button[data-rico]').forEach(b => (b.onclick = () => apply({ ...m, rico: b.dataset.rico === 'null' ? null : b.dataset.rico }, beats)));
   if ($('bAmt')) $('bAmt').onchange = e => apply({ ...m, amt: +e.target.value }, beats);
   if ($('bText')) { $('bText').value = roleWords(k.text); $('bText').onchange = () => { k.text = $('bText').value.trim() || k.text; commit(true); }; }
   $('bLess').onclick = () => apply(m, Math.max(1, beats - 2));

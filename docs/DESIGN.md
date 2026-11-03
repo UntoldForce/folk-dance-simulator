@@ -514,3 +514,12 @@ dancers are big enough to see on a phone.
 **Tour and help (Ryan, November 2026).** A first visit opens a quick tour of eight steps, each lighting up one part of
 the page: the floor, playing, the part rows, the editor tabs, Dances, Checks and Help. It's remembered on the device and
 doesn't open again. The ? Help button opens the full guide, a section for each feature, and can show the tour again.
+
+**Heys: who starts, and the ricochet (Ryan, November 2026).** ContraDB writes heys as "larks start a half hey - lefts in
+center, rights on ends"; the simulator only knew "larks pass left", so about 80 library heys were read as robins
+starting by the right. Now the starter and the center shoulder are read from that wording. "Partners (or neighbors)
+start ... rights on ends" passes them on the ends first; the pair coming in from the outside then pass in the center
+(with everyone at the corners, the robins: to check with Ryan). A ricochet ("robins ricochet", "... second time"): the
+pair reach out, touch hands at arm's length and bounce back where they came from, then follow each other's path, so the
+hey stays whole for the others. After a half hey they are home again; two ricochets in a full hey end as an ordinary
+hey. The editor's hey has a Ricochet choice (none, robins, larks). Clean dances 116 -> 118 (Five Long Years, Mad About You).
