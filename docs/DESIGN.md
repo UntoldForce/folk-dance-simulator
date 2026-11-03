@@ -244,7 +244,12 @@ the test: a reading that makes more real dances progress is the better one. Fixe
 - Gate (Ryan): a hinge, the pair turning round the middle of their joined hands, one walking forward and the other
   backing up, until they face the way the call says, usually into the set. "Twos gate ones": the ones walk forward.
   "Larks gate neighbors": each lark with his neighbor. Ending facing up or down, the hands-four is a line of four.
-Clean dances: 97 -> 114. Still to settle: contra corners, the long wave in the middle, the figure eight, the mad robin.
+- Long wave in the middle (Ryan): the larks, the robins, or everyone step into one long line right down the center
+  of the set, each facing the opposite wall from the dancer beside them, hands joined all the way along (across
+  hands-fours too), evenly spaced. Anyone of the other role in the middle backs out to the side they came from and
+  faces in; dancers on the sides wait while the line balances. "Robins … balance the wave and remain", then "larks
+  dance in": the robins stay, and everyone shares the line.
+Clean dances: 97 -> 116. Still to settle: contra corners, the figure eight, the mad robin.
 
 **Lines (Ryan, November 2026).** Long lines are everyone along each side: hands are held with whoever is beside
 you all the way along the line, across hands-fours, and couples waiting at the ends step forward and back with

@@ -435,6 +435,20 @@ for (const k of c.calls) {
   const s = Contra.compile(Contra.parseDance('A1\n(16) Neighbors balance & swing, end facing down the hall\n(8) Down the hall\n(8) Up the hall and bend into a ring'), { lines: 1, sets: 2, passes: 1 });
   const xs = s.dancers.slice(0, 4).map(d => Contra.poseAt(s, d.id, 16).x).sort((a, b) => a - b);
   check(xs.every((x, i) => i === 0 || Math.abs(x - xs[i - 1] - 0.7) < 0.1) && !s.warnings.some(w => w.bump), 'swinging to face down the hall ends in an evenly spaced line of four, nobody bumping');
+  // A long wave down the middle (Ryan): the robins step in to one line along the center of the set, neighbors in
+  // the line facing opposite walls, hands joined all the way along (across hands-fours too); the larks stay on the sides.
+  const cw = Contra.compile(Contra.parseDance('A1\n(16) Partners balance & swing\nA2\n(8) Robins dance in to a long wave in the center - balance the wave and remain\n(8) Larks dance in to a long wave in the center - balance the wave\nB1\n(16) Partners balance & swing\nB2\n(8) Circle left 3/4\n(8) Pass through'), { lines: 1, sets: 3, passes: 1 });
+  const line = t => cw.dancers.map(d => ({ d, p: Contra.poseAt(cw, d.id, t) })).filter(q => Math.abs(q.p.x) < 0.1).sort((a, b) => a.p.y - b.p.y);
+  const r20 = line(20), alt = q => q.every((e, i) => i === 0 || Math.cos(e.p.a) * Math.cos(q[i - 1].p.a) < -0.9);
+  check(r20.length === 6 && r20.every(q => q.d.id.endsWith('R')) && alt(r20) && r20.every((q, i) => i === 0 || Math.abs(q.p.y - r20[i - 1].p.y - 1) < 0.05),
+    'robins dance in: every robin in one evenly spaced line down the middle, facing alternate walls');
+  const hs = cw.calls.find(k => k.fig === 'balanceWave').holds;
+  check(r20.every((q, i) => i === 0 || hs.some(h => [h.a, h.b].includes(q.d.id) && [h.a, h.b].includes(r20[i - 1].d.id))), 'the robins in the middle line hold hands with the robins beside them, across hands-fours too');
+  const r28 = line(28);
+  check(r28.length === 12 && alt(r28), '"…and remain", then larks dance in: everyone in the one long line, facing alternate walls');
+  const solo = Contra.compile(Contra.parseDance('A1\n(16) Partners balance & swing\nA2\n(8) Robins dance in to a long wave in the center - balance the wave\n(8) Larks dance in to a long wave in the center - balance the wave\nB1\n(16) Partners balance & swing\nB2\n(8) Circle left 3/4\n(8) Pass through'), { lines: 1, sets: 3, passes: 1 });
+  const out = solo.dancers.filter(d => d.id.endsWith('R')).map(d => Contra.poseAt(solo, d.id, 28));
+  check(out.every(p => Math.abs(Math.abs(p.x) - 0.6) < 0.05 && Math.cos(p.a) * p.x < 0) && !solo.warnings.some(w => w.bump), 'larks dance in: the robins back out to their own side and face in, nobody bumping');
 }
 
 // Confused dancers (speech bubbles on the floor): nobody in the test dances; everyone during a figure the simulator

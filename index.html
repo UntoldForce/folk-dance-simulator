@@ -719,7 +719,17 @@ const Contra = (() => {
   // Dancers in the wave beside each other (for hand holds): pairs of indices about 0.7-1.0 m apart.
   function waveNeighbours(t) {
     const idx = t.map((q, i) => (q ? i : -1)).filter(i => i >= 0), out = [];
-    for (const i of idx) for (const j of idx) if (i < j && dist(t[i], t[j]) < 1.05 && Math.abs(wrap(t[i].a - t[j].a)) > 2.5) out.push([i, j]);
+    // (Side by side, facing opposite ways: not two facing each other across the set.)
+    const beside = (p, q) => Math.abs((q.x - p.x) * Math.cos(p.a) + (q.y - p.y) * Math.sin(p.a)) < 0.5 * dist(p, q);
+    for (const i of idx) for (const j of idx) if (i < j && dist(t[i], t[j]) < 1.05 && Math.abs(wrap(t[i].a - t[j].a)) > 2.5 && beside(t[i], t[j])) out.push([i, j]);
+    return out;
+  }
+  // Neighbors in a long line down the middle of the set (the center wave): standing on the center line, one after
+  // another along it a sensible distance apart, facing opposite ways.
+  function middleLine(t, cx, P = DEFAULTS) {
+    const on = t.map((q, i) => i).filter(i => t[i] && Math.abs(t[i].x - cx) < 0.2).sort((i, j) => t[i].y - t[j].y), out = [];
+    for (let k = 1; k < on.length; k++) { const a = t[on[k - 1]], b = t[on[k]];
+      if (b.y - a.y > 0.3 * P.neighborGap && b.y - a.y < 1.2 * P.neighborGap && Math.abs(wrap(a.a - b.a)) > 2.5) out.push([on[k - 1], on[k]]); }
     return out;
   }
   // Move from where everyone is to the wave over the figure (straight there, turning to face the wave's way).
@@ -1205,7 +1215,10 @@ const Contra = (() => {
     } },
     // Balance the wave: each steps forward and back the way they face (direction of a wave balance varies).
     balanceWave: { group: 'four', any: true, keepsFacing: true, plan(ps, call, ctx) {
-      return ps.map(d => { const f = d.a == null ? 0 : d.a;
+      // (Anyone not in the wave, like dancers on the sides of a long wave down the middle, waits where they are.)
+      const inWave = new Set(waveNeighbours(ps.map(d => ({ ...d, a: d.a == null ? 0 : d.a }))).flat()), middle = middleLine(ps, ctx.cx, ctx.p).length > 0;
+      return ps.map((d, i) => { const f = d.a == null ? 0 : d.a;
+        if (middle && !inWave.has(i)) return () => ({ ...d });
         return u => { const s = ctx.p.balanceStep * bump(u); return { x: d.x + s * Math.cos(f), y: d.y + s * Math.sin(f), a: f }; }; });
     } },
     // Balance the ring: hands in a ring, step in toward the center and back.
@@ -1970,17 +1983,33 @@ const Contra = (() => {
       });
     } },
 
-    // Into a long wave down the middle of the set: the named dancers step into the center line, keeping the way they
-    // face (they came from opposite sides, so neighbors in the wave face opposite ways). Anyone of the other role
-    // standing in the middle steps back out to the side they face.
+    // Into a long wave down the middle of the set (Ryan): the named dancers (larks, robins, or both) step into the
+    // center line, keeping the way they face. They came from opposite sides, so neighbors in the line face opposite
+    // ways, toward one wall then the other. Anyone of the other role standing in the middle backs out to the side
+    // they came from, and faces in. With both, the four of a hands-four share the line, evenly spaced.
     centerWave: { group: 'four', any: true, keepsFacing: true, plan(ps, call, ctx) {
-      const role = call.who === 'larks' ? 'L' : 'R';
+      const role = call.who === 'larks' ? 'L' : call.who === 'all' ? null : 'R', half = ctx.p.partnerGap / 2;
+      const faceOf = d => (d.a != null ? d.a : d.x > ctx.cx ? Math.PI : 0);
+      const ty = ps.map(d => d.y), movers = ps.map((d, i) => i).filter(i => (ctx.keys[i] || '')[0] === role).sort((i, j) => ps[i].y - ps[j].y);
+      // (Two of a role line up a neighbor's distance apart, so the line is evenly spaced all down the set.)
+      if (role && movers.length === 2) { const my = (ps[movers[0]].y + ps[movers[1]].y) / 2; movers.forEach((i, k) => (ty[i] = my + (k - 0.5) * ctx.p.neighborGap)); }
+      if (!role) {
+        // Both: in order down the line (and across, where two stand level), spaced evenly about the hands-four.
+        const order = ps.map((d, i) => i).sort((i, j) => ps[i].y - ps[j].y || ps[i].x - ps[j].x), cy = ps.reduce((s, d) => s + d.y, 0) / ps.length;
+        const step = ctx.p.neighborGap / 2;
+        order.forEach((i, k) => (ty[i] = cy + (k - (order.length - 1) / 2) * step));
+      }
       return ps.map((d, i) => {
-        const mine = (ctx.keys[i] || '')[0] === role, inMiddle = Math.abs(d.x - ctx.cx) < 0.3;
-        if (!mine && !inMiddle) return () => ({ ...d });
-        const face = d.a != null ? d.a : d.x > ctx.cx ? Math.PI : 0;
-        const ex = mine ? ctx.cx : ctx.cx + (Math.cos(face) >= 0 ? 1 : -1) * ctx.p.partnerGap / 2;
-        return u => ({ x: lerp(d.x, ex, mj(u)), y: d.y, a: settle(d.a, face, u, 0.1) });
+        const mine = !role || (ctx.keys[i] || '')[0] === role, inMiddle = Math.abs(d.x - ctx.cx) < 0.3, inside = Math.abs(d.x - ctx.cx) < half - 0.1;
+        if (!mine && !inside) return () => ({ ...d });
+        const face = faceOf(d);
+        // (Facing across the set, toward one wall or the other: whichever is nearer the way they faced, say out of a star.)
+        const across = Math.cos(face) >= 0 ? 0 : Math.PI;
+        if (mine) return u => ({ x: lerp(d.x, ctx.cx, mj(u)), y: lerp(d.y, ty[i], mj(u)), a: lerpAngle(face, across, mj(u)) });
+        // Backing out: away from the way they face, to their side of the set, then facing in. (Anyone else standing
+        // inside the set, say out of a star, steps out to the side they are on.)
+        const side = inMiddle ? (Math.cos(face) >= 0 ? -1 : 1) : Math.sign(d.x - ctx.cx), ex = ctx.cx + side * half, fin = side > 0 ? Math.PI : 0;
+        return u => ({ x: lerp(d.x, ex, mj(u)), y: d.y, a: lerpAngle(face, fin, mj(clamp01((u - 0.5) / 0.5))) });
       });
     } },
 
@@ -2248,7 +2277,8 @@ const Contra = (() => {
     contraCorners: (ps, call, ctx) => cornersPlan(ps, call, ctx).holds,
     swingThrough: (ps, call, ctx) => waveHolds('swingThrough', 0.9)(ps, call, ctx),
     // The wave down the middle: the two in the middle of each hands-four hold hands.
-    centerWave: (ps, call, ctx) => { const role = call.who === 'larks' ? 'L' : 'R', two = ps.map((d, i) => i).filter(i => (ctx.keys[i] || '')[0] === role); return two.length === 2 ? [hold(two[0], 'near', two[1], 'near', 0.7, 1)] : []; },
+    // (Within the hands-four here; the line is joined across hands-fours where the dance is put together.)
+    centerWave: (ps, call, ctx) => middleLine(FIGURES.centerWave.plan(ps, call, ctx).map(f => f(1)), ctx.cx).map(([i, j]) => hold(i, 'near', j, 'near', 0.7, 1)),
     // Arch and dive: each couple holds inside hands (the arch is the archers' joined hands).
     archDive: (ps, call, ctx) => [['1'], ['2']].flatMap(([n]) => { const cp = [0, 1, 2, 3].filter(i => (ctx.keys[i] || '')[1] === n); return cp.length === 2 ? [hold(cp[0], 'near', cp[1], 'near')] : []; }),
     // Square through (and rights and lefts): a hand with each one met, right then left..., as in a pull by.
@@ -2443,8 +2473,8 @@ const Contra = (() => {
   function parseFigure(text) {
     // "Robins dance in to a long wave in the center": they step into the middle of the set, a wave down the center
     // (read before "…to a long wave", which forms waves on the sides).
-    const cw = text.toLowerCase().match(/\b(larks?|robins?|gents|ladies|men|women)\s+(?:(?:dance|step|come|walk)\s+in|to the (?:center|centre|middle))\b.*\blong wav(?:e|y lines?)\b|\b(larks?|robins?|gents|ladies|men|women)\s+form a long wave in the (center|centre|middle)/);
-    if (cw) return { fig: 'centerWave', who: /robin|lad|wom/.test(cw[1] || cw[3]) ? 'robins' : 'larks' };
+    const cw = text.toLowerCase().match(/\b(larks?|robins?|gents|ladies|men|women|everyone|all|both)\s+(?:(?:dances?|steps?|comes?|walks?)\s+in|to the (?:center|centre|middle))\b.*\blong wav(?:e|y lines?)\b|\b(larks?|robins?|gents|ladies|men|women|everyone|all|both)\s+form a long wave in the (center|centre|middle)/);
+    if (cw) return { fig: 'centerWave', who: /everyone|all|both/.test(cw[1] || cw[3]) ? 'all' : /robin|lad|wom/.test(cw[1] || cw[3]) ? 'robins' : 'larks' };
     // "(In) short wavy lines" on its own is forming a wave of four across the set ("…, balance" balances it).
     if (/^\s*(in(to)?\s+)?(short\s+)?wavy lines?\b/i.test(text) && !/balance/i.test(text)) text = 'form ' + text.replace(/^\s*in(to)?\s+/i, '');
     const form = parseForm(text), main = form ? text.replace(FORM_RE, '').trim() : text;
@@ -3221,6 +3251,13 @@ const Contra = (() => {
         if (prev && (prev.fig === 'formWave' || prev.form)) call = { ...call, fig: 'balanceWave', who: 'all' };
         else if ((prev && (['circle', 'balanceRing'].includes(prev.fig) || /\bring\b/i.test(prev.text))) || (next && next.fig === 'petronella')) call = { ...call, fig: 'balanceRing', who: 'all' };
       }
+      // "Robins dance in to a long wave … and remain", then "larks dance in …": the robins stay in the middle, so
+      // everyone ends in the one long wave.
+      if (call.fig === 'centerWave' && (call.who === 'larks' || call.who === 'robins')) {
+        const i = allCalls.findIndex(q => q.src === call.src && q.text === call.text);
+        const back = [1, 2, 3].map(k => allCalls[i - k]).filter(Boolean), last = back.find(q => q.fig === 'centerWave');
+        if (last && last.who !== call.who && last.who !== 'all' && back.slice(0, back.indexOf(last) + 1).some(q => /\b(remain|stay)/i.test(q.line || q.text))) call = { ...call, who: 'all' };
+      }
       const fig = FIGURES[sq && call.fig === 'longLines' ? 'forwardBack' : call.fig];
       const crew = !sq || F.mixer ? null : /^\s*(the )?(heads|head couples?)\b/i.test(call.text) || call.who === 'heads' ? 'heads'
         : /^\s*(the )?(sides|side couples?)\b/i.test(call.text) || call.who === 'sides' ? 'sides' : null;
@@ -3543,6 +3580,22 @@ const Contra = (() => {
             // (Only dancers standing in line, a sensible distance apart: not two on one spot, or far apart.)
             if (b.y - a.y > 0.4 * P.neighborGap && b.y - a.y < 1.2 * P.neighborGap && Math.abs(a.x - b.x) < 0.3) holds.push({ fig: 'longLines', a: on[j - 1], ah: 'near', b: on[j], bh: 'near', t0, t1: t0 + call.beats });
           }
+        }
+      }
+      // A long wave down the middle is one line all the way along the set: hands are held with whoever is beside you
+      // in it, across hands-fours too (and while it is balanced).
+      if ((call.fig === 'centerWave' || call.fig === 'balanceWave') && F.kind !== 'square' && F.kind !== 'set') {
+        const at = call.fig === 'centerWave' ? 1 : 0, u0 = call.fig === 'centerWave' ? 0.7 : 0;
+        const end = {}; for (const d of dancers) end[d.id] = fns[d.id] ? fns[d.id](at) : from[d.id];
+        const pairs = [];
+        for (const L of lines) {
+          const ids = dancers.map(d => d.id).filter(id => lines.reduce((b, M) => (Math.abs(M.cx - end[id].x) < Math.abs(b.cx - end[id].x) ? M : b)) === L);
+          for (const [i, j] of middleLine(ids.map(id => end[id]), L.cx, P)) pairs.push([ids[i], ids[j]]);
+        }
+        if (pairs.length) {
+          const inLine = new Set(pairs.flat());
+          for (let i = holds.length - 1; i >= 0; i--) if (holds[i].fig === call.fig && (inLine.has(holds[i].a) || inLine.has(holds[i].b))) holds.splice(i, 1);
+          for (const [a, b] of pairs) holds.push({ fig: call.fig, a, ah: 'near', b, bh: 'near', t0: t0 + u0 * call.beats, t1: t0 + call.beats });
         }
       }
       for (const d of dancers) if (!fns[d.id]) fns[d.id] = standStill(from[d.id]);
@@ -4018,7 +4071,7 @@ const POOL = [
   { cat: 9, label: 'Balance the wave', fig: 'balanceWave', d: {}, beats: 4, say: 'Balance the wave', re: /balance (the )?(long |short )?wave|wavy line/, setup: '(4) Form a wave of four (NR, WL)' },
   { cat: 9, label: 'Trade the wave', fig: 'tradeWave', d: {}, beats: 6, say: 'Trade the wave', re: /trade the wave/, setup: '(4) Form a wave of four (NR, WL)' },
   { cat: 9, label: 'Slide', fig: 'slideWave', side: 'way', d: { side: 'R' }, beats: 4, say: 'Slide {side}', re: /^slide (right|left)/, setup: '(4) Form a wave of four (NR, WL)' },
-  { cat: 9, label: 'Long wave in the middle', fig: 'centerWave', who: ['robins', 'larks'], d: { who: 'robins' }, beats: 4, say: m => `${m.who === 'larks' ? 'Larks' : 'Robins'} dance in to a long wave in the center`, re: /long wave in the (center|centre|middle)/ },
+  { cat: 9, label: 'Long wave in the middle', fig: 'centerWave', who: ['robins', 'larks', 'all'], d: { who: 'robins' }, beats: 4, say: m => `${m.who === 'larks' ? 'Larks' : m.who === 'all' ? 'Everyone' : 'Robins'} dance in to a long wave in the center`, re: /long wave in the (center|centre|middle)/ },
   { cat: 9, label: 'Swing through', fig: 'swingThrough', d: {}, beats: 8, say: 'Swing through', re: /swing th(r)?(ough|u)/, setup: '(4) Form a wave of four (NR, WL)' },
   { cat: 9, label: 'Spin the top', fig: 'spinTop', d: {}, beats: 8, say: 'Spin the top', re: /spin the top/, setup: '(4) Form a wave of four (NR, WL)' },
   { cat: 9, label: 'Circulate', fig: 'circulate', d: {}, beats: 4, say: 'Circulate', re: /\bcirculate\b/, setup: '(4) Form long waves (NR, robins face in)' },
