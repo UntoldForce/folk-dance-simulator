@@ -498,3 +498,28 @@ Coming to rest within 0.8 m of a dancer joins the dance: your dancer holds on to
 Ten dancers a game; the best score is remembered on the device. The camera follows the throw up the hall, so the
 dancers are big enough to see on a phone.
 
+
+**Dance cards (Gaye Fifer's idea, November 2026).** A third tab, Dance card, brings in a dance from a caller's card.
+- Inside Claude (the published preview), "Take or choose a photo" sends the photo, shrunk to about 1600 pixels, to
+  Claude on the viewer's own Claude account (the page's `sample` capability, with images). Claude writes the dance out
+  in The Caller's Box layout and lists anything it couldn't read clearly; the viewer checks it beside the photo and
+  presses Load dance. Nobody needs an API key; each viewer is asked once to allow it.
+- Anywhere else (GitHub Pages) the photo button is hidden, with a link to the Claude copy, and the card can be typed in.
+- Either way, `Contra.fromCard` writes out a card as written: the first line's title, formation (4x4, imp, Becket...)
+  and author; part labels with the moves on the same line, split at semicolons; ditto marks; and, without beats, each
+  part's 16 beats shared among its moves by how long each usually takes. `Contra.expandShorthand` writes out caller's
+  shorthand (P, N, alle, B&S, F&B, R&L, dsd, W chain...; L and R at the start of a phrase are larks and robins, after
+  a move left and right). The Text tab uses it too, for a line it can't otherwise read.
+
+**Tour and help (Ryan, November 2026).** A first visit opens a quick tour of eight steps, each lighting up one part of
+the page: the floor, playing, the part rows, the editor tabs, Dances, Checks and Help. It's remembered on the device and
+doesn't open again. The ? Help button opens the full guide, a section for each feature, and can show the tour again.
+
+**Heys: who starts, and the ricochet (Ryan, November 2026).** ContraDB writes heys as "larks start a half hey - lefts in
+center, rights on ends"; the simulator only knew "larks pass left", so about 80 library heys were read as robins
+starting by the right. Now the starter and the center shoulder are read from that wording. "Partners (or neighbors)
+start ... rights on ends" passes them on the ends first; the pair coming in from the outside then pass in the center
+(with everyone at the corners, the robins: to check with Ryan). A ricochet ("robins ricochet", "... second time"): the
+pair reach out, touch hands at arm's length and bounce back where they came from, then follow each other's path, so the
+hey stays whole for the others. After a half hey they are home again; two ricochets in a full hey end as an ordinary
+hey. The editor's hey has a Ricochet choice (none, robins, larks). Clean dances 116 -> 118 (Five Long Years, Mad About You).
