@@ -107,6 +107,18 @@ label.small { font-size: 13px; color: var(--muted); display: inline-flex; align-
 .tabtools { margin-left: auto; display: flex; gap: 6px; padding-bottom: 5px; }
 .tabtools button { padding: 3px 9px; font-size: 13px; }
 .tabpanel { display: flex; flex-direction: column; gap: 10px; }
+.tabs [role="tab"] { white-space: nowrap; }
+@media (max-width: 420px) { .tabs [role="tab"] { padding: 6px 8px; font-size: 14px; } }
+#photoFile { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.filebtn { display: inline-flex; align-items: center; cursor: pointer; padding: 7px 14px; border-radius: 8px; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.filebtn:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.cardimport { display: flex; gap: 10px; flex-wrap: wrap; }
+.cardimport img { max-width: min(100%, 320px); max-height: 360px; object-fit: contain; border: 1px solid var(--rule); border-radius: 8px; background: var(--panel); }
+.cardimport textarea { flex: 1 1 260px; min-height: 220px; font: 13px/1.45 var(--font-mono, ui-monospace, monospace); }
+.unsure { margin: 0; padding: 8px 12px 8px 28px; border-left: 3px solid var(--warn); background: color-mix(in srgb, var(--warn) 12%, transparent); border-radius: 4px; font-size: 13px; }
+.unsure li { margin: 2px 0; }
+.thinking::after { content: ''; display: inline-block; width: 1em; animation: dots 1.2s steps(4) infinite; overflow: hidden; vertical-align: bottom; }
+@keyframes dots { 0% { width: 0 } 100% { width: 1.2em } }
 .rows { display: flex; flex-direction: column; gap: 6px; }
 .prow.current .plabel { color: var(--accent); }
 .prow.current .ptrack { background-color: color-mix(in srgb, var(--accent) 10%, var(--bg)); }
@@ -464,6 +476,7 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
       <div class="tabs" role="tablist" aria-label="Edit the dance">
         <button role="tab" id="tabEditor" aria-selected="true" aria-controls="panelEditor">Editor</button>
         <button role="tab" id="tabText" aria-selected="false" aria-controls="panelText">Text</button>
+        <button role="tab" id="tabCard" aria-selected="false" aria-controls="panelCard">Dance card</button>
         <span class="tabtools"><button id="undo" title="Undo (Ctrl+Z)">Undo</button><button id="redo" title="Redo (Ctrl+Shift+Z)">Redo</button></span>
       </div>
       <div id="panelEditor" class="tabpanel" role="tabpanel" aria-labelledby="tabEditor">
@@ -501,6 +514,18 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
         <p class="hint">The same dance as text, in the layout The Caller's Box uses: a part label, then one figure per line with its beats in brackets. It updates as you edit; paste a dance here and press Run.</p>
         <textarea id="danceText" wrap="off" spellcheck="false" aria-label="Dance text"></textarea>
         <div class="row"><button id="run" class="primary">Run dance</button><button id="reset">Load “111”</button></div>
+      </div>
+      <div id="panelCard" class="tabpanel" role="tabpanel" aria-labelledby="tabCard" hidden>
+        <p class="hint">Bring in a dance from a caller's card. Take or choose a photo of the card and Claude reads it for you; or type the card in as written. Shorthand is fine: “N B&amp;S”, “P alle R½”, “Lines F&amp;B”, ditto marks.</p>
+        <div class="row" id="photoRow" hidden><label class="filebtn primary" for="photoFile">Take or choose a photo</label><input type="file" id="photoFile" accept="image/*"></div>
+        <p class="hint" id="photoElsewhere">Reading a photo needs Claude: <a id="openInClaude" target="_blank" rel="noopener">open the simulator in Claude</a> to read photos. Here you can type or paste the card.</p>
+        <div class="cardimport">
+          <img id="photoPreview" alt="Your dance card photo" hidden>
+          <textarea id="cardText" spellcheck="false" aria-label="The dance card, as written" placeholder="Sidmouth Swirl   4x4   Bob Isaacs&#10;A1 Lines F&amp;B; all circle R ½&#10;A2 corner alle L; grand R&amp;L&#10;B1 ...&#10;B2 P B&amp;S"></textarea>
+        </div>
+        <ul id="cardUnsure" class="unsure" hidden></ul>
+        <p class="hint" id="cardStatus" role="status"></p>
+        <div class="row"><button id="cardLoad" class="primary">Load dance</button><button id="cardClear">Clear</button></div>
       </div>
     </section>
   </aside>
@@ -5605,13 +5630,112 @@ $('roleNames').onchange = () => {
   $('larkName').textContent = L; $('robinName').textContent = R;
   renderPool(); renderRows(); showChecks(); updateReadout();
 };
-for (const [tab, panel, other, otherPanel] of [['tabEditor', 'panelEditor', 'tabText', 'panelText'], ['tabText', 'panelText', 'tabEditor', 'panelEditor']]) {
+// ---------- Dance card: a dance from a photo of a caller's card, or the card typed in ----------
+// Reading a photo asks Claude, on the viewer's own Claude account, which only works when the simulator is opened
+// inside Claude. Anywhere else the card can still be typed in: the engine's fromCard writes out the shorthand.
+const CLAUDE_COPY = 'https://claude.ai/artifact/XmQQDsnTSUFcn5Z32zD5XT';
+const CARD_PROMPT = names => `This photo shows a contra dance card handwritten or printed by a dance caller. Write the dance out for a dance simulator.
+
+Layout to use (The Caller's Box layout):
+<title>
+by <choreographer>
+
+Formation: <formation, e.g. Improper, Becket, Proper, Four facing four, Sicilian circle, Square, Triple minor>
+
+A1
+(<beats>) <move>
+(<beats>) <move>
+A2
+...
+B1
+...
+B2
+...
+
+Rules:
+- One move per line, with its beats in brackets. Each part (A1, A2, B1, B2) is 16 beats in all. Cards often leave beats out: use the usual timing (a balance and swing 16; a swing, circle, allemande, do-si-do, star, chain, long lines forward and back 8; a balance 4).
+- Write shorthand out in full: P partner, N neighbor, Sh shadow, C corner, alle allemande, B&S balance and swing, F&B forward and back, R&L right and left through, grand R&L grand right and left, dsd do-si-do, W/L at the start of a phrase robins (ladies), M/G gents = larks. L and R after a move mean left and right; at the start of a phrase in a modern card, larks and robins. Say "shoulder round", never "gypsy".
+- Ditto marks (" or 〃) repeat the words written above them: write the line out in full.
+- "4x4" means four facing four. "imp" means improper.
+- Keep moves in the dancers' words where they are a single move; use these move names where they fit: ${names}.
+- If a word is hard to read, give your best reading and list it under "unsure".
+
+Answer with JSON only: {"isDanceCard": true or false, "text": "<the dance in the layout above>", "unsure": ["<short note about anything you are not sure of, quoting the card>"]}`;
+
+function setupCardImport() {
+  $('openInClaude').href = CLAUDE_COPY;
+  const status = (msg, busy) => { $('cardStatus').textContent = msg; $('cardStatus').classList.toggle('thinking', !!busy); };
+  const unsure = list => { const ul = $('cardUnsure'); ul.replaceChildren(...(list || []).map(t => Object.assign(document.createElement('li'), { textContent: t }))); ul.hidden = !(list && list.length); };
+  let sample = null, maxCount = 0;
+  if (window.claude && typeof window.claude.use === 'function') {
+    window.claude.use('sample').then(async fn => {
+      if (!fn) return;
+      const lim = await fn.limits().catch(() => null);
+      if (!lim || !lim.images) return;
+      sample = fn; maxCount = lim.images.maxCount || 1;
+      $('photoRow').hidden = false; $('photoElsewhere').hidden = true;
+      if (lim.images.mediaTypes && lim.images.mediaTypes.length) $('photoFile').accept = lim.images.mediaTypes.join(',');
+    }).catch(() => {});
+  }
+  // Phone photos are big: shrink to about 1600 pixels on the long side, as a JPEG, before sending.
+  const shrink = file => new Promise((resolve, reject) => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => {
+      const k = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight)), c = document.createElement('canvas');
+      c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      c.toBlob(b => (b ? resolve(b) : reject(new Error('shrink'))), 'image/jpeg', 0.88);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('This photo could not be opened. Try a JPEG or PNG.')); };
+    img.src = url;
+  });
+  $('photoFile').onchange = async () => {
+    const file = $('photoFile').files[0];
+    $('photoFile').value = '';
+    if (!file || !sample) return;
+    const pv = $('photoPreview');
+    if (pv.src) URL.revokeObjectURL(pv.src);
+    pv.src = URL.createObjectURL(file); pv.hidden = false;
+    unsure([]);
+    status('Claude is reading the card', true);
+    try {
+      const blob = await shrink(file);
+      const names = POOL.map(p => p.label).join(', ');
+      const ans = await sample.json(CARD_PROMPT(names), { images: [blob].slice(0, maxCount), modelTier: 'default' });
+      if (!ans || ans.isDanceCard === false || !ans.text) { status("Claude couldn't find a dance on this photo. Try a sharper photo, straight on, or type the card in."); return; }
+      $('cardText').value = Contra.fromCard(String(ans.text));
+      unsure(Array.isArray(ans.unsure) ? ans.unsure.map(String).slice(0, 12) : []);
+      status('Check it against the card, fix anything that looks wrong, then press Load dance.');
+    } catch (e) {
+      const code = e && e.code;
+      status(code === 'not_granted' ? 'Claude wasn’t allowed to read the photo. You can still type the card in.'
+        : code === 'rate_limited' ? 'Claude is busy right now. Try again in a minute.'
+        : code === 'images_unavailable' ? 'Photos can’t be sent to Claude from here. You can still type the card in.'
+        : `Claude couldn't read the card (${(e && e.message) || 'something went wrong'}). Try again, or type it in.`);
+    }
+  };
+  $('cardLoad').onclick = () => {
+    const raw = $('cardText').value.trim();
+    if (!raw) { status('Type the card in, or take a photo of it, first.'); return; }
+    const text = Contra.fromCard(raw), d = Contra.parseDance(text), unread = d.parts.flatMap(p => p.calls.filter(k => !k.fig).map(k => `${p.name}: ${k.text}`));
+    if (!d.parts.length) { status('No parts found. Start each part with its name: A1, A2, B1, B2.'); return; }
+    $('cardText').value = text;
+    $('danceText').value = text; state.sel = null; build(); commit(true);
+    status(unread.length ? `Loaded. The simulator can't do ${unread.length === 1 ? 'one move' : unread.length + ' moves'} yet; they stand still there: ${unread.join('; ')}.` : 'Loaded. Press play to watch it, or switch to the Editor to change it.');
+  };
+  $('cardClear').onclick = () => { $('cardText').value = ''; const pv = $('photoPreview'); if (pv.src) URL.revokeObjectURL(pv.src); pv.removeAttribute('src'); pv.hidden = true; unsure([]); status(''); };
+}
+
+const TABS = [['tabEditor', 'panelEditor'], ['tabText', 'panelText'], ['tabCard', 'panelCard']];
+for (const [tab, panel] of TABS) {
   $(tab).onclick = () => {
-    $(tab).setAttribute('aria-selected', 'true'); $(other).setAttribute('aria-selected', 'false');
-    $(panel).hidden = false; $(otherPanel).hidden = true; store('contra.tab', tab);
+    for (const [t, p] of TABS) { $(t).setAttribute('aria-selected', String(t === tab)); $(p).hidden = t !== tab; }
+    store('contra.tab', tab);
   };
 }
-if (recall('contra.tab') === 'tabText') $('tabText').onclick();
+if (TABS.some(([t]) => t === recall('contra.tab'))) $(recall('contra.tab')).onclick();
+setupCardImport();
 $('exClose').onclick = () => $('explorer').close();
 $('refsOpen').onclick = () => $('refsDialog').showModal();
 $('poolSearch').addEventListener('input', renderPool);

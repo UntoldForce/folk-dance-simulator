@@ -498,3 +498,15 @@ Coming to rest within 0.8 m of a dancer joins the dance: your dancer holds on to
 Ten dancers a game; the best score is remembered on the device. The camera follows the throw up the hall, so the
 dancers are big enough to see on a phone.
 
+
+**Dance cards (Gaye Fifer's idea, November 2026).** A third tab, Dance card, brings in a dance from a caller's card.
+- Inside Claude (the published preview), "Take or choose a photo" sends the photo, shrunk to about 1600 pixels, to
+  Claude on the viewer's own Claude account (the page's `sample` capability, with images). Claude writes the dance out
+  in The Caller's Box layout and lists anything it couldn't read clearly; the viewer checks it beside the photo and
+  presses Load dance. Nobody needs an API key; each viewer is asked once to allow it.
+- Anywhere else (GitHub Pages) the photo button is hidden, with a link to the Claude copy, and the card can be typed in.
+- Either way, `Contra.fromCard` writes out a card as written: the first line's title, formation (4x4, imp, Becket...)
+  and author; part labels with the moves on the same line, split at semicolons; ditto marks; and, without beats, each
+  part's 16 beats shared among its moves by how long each usually takes. `Contra.expandShorthand` writes out caller's
+  shorthand (P, N, alle, B&S, F&B, R&L, dsd, W chain...; L and R at the start of a phrase are larks and robins, after
+  a move left and right). The Text tab uses it too, for a line it can't otherwise read.

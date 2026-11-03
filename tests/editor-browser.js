@@ -248,6 +248,18 @@ const { chromium } = require('playwright');
     await ctx.close();
   }
 
+  // Dance card tab: outside Claude the photo button is hidden and points to the Claude copy; a card typed in as
+  // written (shorthand, ditto marks, no beats) loads as a dance.
+  {
+    await p.click('#tabCard');
+    check(await p.isHidden('#photoRow') && await p.isVisible('#photoElsewhere') && /claude\.ai/.test(await p.getAttribute('#openInClaude', 'href')), 'Dance card tab: away from Claude, no photo button, and a link to open the simulator in Claude');
+    await p.fill('#cardText', 'Sidmouth Swirl    4x4  Bob Isaacs\nA1 Lines F&B; all circle R ½\nA2 corner alle L; grand R&L (starting w/ P)\nB1 all 8 "spin the top": P alle R½, robins star, L orbit to meet P\n" " " " P alle R½, larks star, R " " "\nB2 P B&S');
+    await p.click('#cardLoad');
+    const st = await p.textContent('#cardStatus'), title = await p.evaluate(() => state.doc.title), n = await p.evaluate(() => state.doc.parts.reduce((s, x) => s + x.calls.length, 0));
+    check(/^Loaded/.test(st) && title === 'Sidmouth Swirl' && n === 7, `a typed dance card loads as the dance (${title}, ${n} moves): ${st}`);
+    await p.click('#tabEditor');
+  }
+
   check(errs.length === 0, `no page errors ${errs.join(' | ')}`);
   await b.close();
   console.log(failures ? `\n${failures} check(s) failed` : '\nAll checks passed');
