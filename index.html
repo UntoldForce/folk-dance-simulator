@@ -3268,7 +3268,7 @@ const Contra = (() => {
   }
 
   // Form this time through's groups from where couples stand. Anyone left over is out (at an end).
-  function formGroups(couples, lines, pose, P, F, midway, byFacing) {
+  function formGroups(couples, lines, pose, P, F, midway, byFacing, before) {
     const groups = [], outs = [], used = new Set(), gap = P.neighborGap;
     const midOf = c => ({ x: (pose[c.lark].x + pose[c.robin].x) / 2, y: (pose[c.lark].y + pose[c.robin].y) / 2 });
     const group = (members, frame, lineK) => {
@@ -3381,11 +3381,30 @@ const Contra = (() => {
         // Partners standing side by side on one side of the set (a Becket, or a contra regrouping partway through,
         // after a slide along the set) take hands with the twos level with them across the set; partners across the set
         // (improper and the like), with the twos where the formation puts them (one place below, or above).
+        // A Becket changing neighbors while partners are still across the set (out of a star or a circle, say) takes hands
+        // with the next couple one place along the set: the one, above or below, they haven't just danced with.
+        if (F.kind === 'becket' && midway && Math.abs(m.x - cx) <= 0.25) {
+          const next = couples.filter(q => q.role === 'twos' && lineOf(q) === lineOf(c) && !used.has(q) && !(before && before.has(c.id + '|' + q.id))
+            && Math.abs(Math.abs(midOf(q).y - m.y) - gap) < 0.3 * gap && Math.abs(midOf(q).x - cx) <= 0.25).sort((a, b) => dist(midOf(a), m) - dist(midOf(b), m))[0];
+          if (next) group([c, next], null, lineOf(c));
+          continue;
+        }
         const sideBySide = F.kind === 'becket' || (midway && Math.abs(m.x - cx) > 0.25), want = sideBySide ? 0 : F.twosAt * gap;
         const t = couples.find(q => q.role === 'twos' && lineOf(q) === lineOf(c) && !used.has(q) && Math.abs(midOf(q).y - m.y - want) < 0.3 * gap
           && (!sideBySide || Math.sign(midOf(q).x - cx) === -Math.sign(m.x - cx)));
         if (t) group([c, t], null, lineOf(c));
       }
+    }
+    // A safety net for longways sets: if no hands-four formed at all (the dancers stand somewhere the rules above don't
+    // expect), each ones couple takes hands with the nearest twos couple, preferring one they haven't just danced with,
+    // rather than everyone standing still waiting out for the rest of the dance.
+    if (!groups.length && (F.kind === 'longways' || F.kind === 'becket')) {
+      const pairs = [];
+      for (const c of couples) if (c.role === 'ones') for (const q of couples) if (q.role === 'twos' && lineOf(q) === lineOf(c)) {
+        const d = dist(midOf(c), midOf(q));
+        if (d < 1.8 * gap) pairs.push({ c, q, d: d + (before && before.has(c.id + '|' + q.id) ? 2 * gap : 0) });
+      }
+      for (const o of pairs.sort((a, b) => a.d - b.d)) if (!used.has(o.c) && !used.has(o.q)) group([o.c, o.q], null, lineOf(o.c));
     }
     for (const c of couples) if (!used.has(c)) outs.push({ couple: c, cx: lines[lineOf(c)].cx, end: c.role === 'twos' ? 'top' : 'bottom' });
     return { groups, outs };
@@ -3592,8 +3611,9 @@ const Contra = (() => {
     //   reaching the top waits out twice and comes back in as ones.
     // - four facing four: a line at the end turns around (each couple turning as a couple) and comes back in.
     const roundTheSet = flat.some(q => q.call.fig === 'promenadeAround');
-    const startPass = (from, t0, midway) => {
-      const { groups, outs } = formGroups(couples, lines, from, P, F, midway, midway && roundTheSet);
+    const startPass = (from, t0, midway, prev) => {
+      const before = prev && new Set(prev.groups.map(g => g.members.map(c => c.id).join('|')));
+      const { groups, outs } = formGroups(couples, lines, from, P, F, midway, midway && roundTheSet, before);
       for (const g of groups) for (const m of g.members) m.waiting = false;
       const cross = {}, inFn = {};
       for (const g of groups) for (const id of Object.values(g.ids)) {
@@ -3971,7 +3991,7 @@ const Contra = (() => {
           if (!last && regroupAfter.has(k)) {
             if (regroupWant) passInfo[p - 1].check = { ...checkPass(regroupWant, ends), at: t1 };
             endOfWait(pass);
-            nextPass = startPass(roundTheSet ? facing : ends, pass.t0, true);
+            nextPass = startPass(roundTheSet ? facing : ends, pass.t0, true, pass);
             if (nextPass.outs.some(o => o.crossNow)) nextPass.crossFrom = t1;
 
             regroupWant = expectAfter(nextPass, ends);

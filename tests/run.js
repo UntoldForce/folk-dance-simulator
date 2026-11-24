@@ -517,5 +517,18 @@ for (const k of c.calls) {
   check(Contra.review(fs.readFileSync(path.join(__dirname, '..', 'dances', 'five-long-years.txt'), 'utf8')).ok, 'Five Long Years (ricochet hey) runs with no problems');
 }
 
+// Changing neighbors partway through a Becket dance, out of a star (Becket in the Kitchen: "star left 4 places ⁋"):
+// partners are still across the set, and each couple takes hands with the next couple along the set. Before, nobody
+// found new neighbors, every couple was sent out to wait and the floor froze from the second time through.
+{
+  const t = fs.readFileSync(path.join(__dirname, '..', 'dances', 'becket-in-the-kitchen.txt'), 'utf8'), c = Contra.compile(Contra.parseDance(t), { lines: 1, sets: 3, passes: 4 });
+  check(c.passes.every(p => p.outs.length < c.couples.length && p.groups.length >= 2), `Becket in the Kitchen: every time through, couples find new neighbors (waiting each time: ${c.passes.map(p => p.outs.length).join(', ')})`);
+  const pairs = c.passes.map(p => p.groups.map(g => g.members.join('+')).sort().join(' '));
+  check(new Set(pairs).size === pairs.length, 'and the hands-fours are different each time through: ' + pairs.join(' / '));
+  check(Contra.review(t).ok, 'Becket in the Kitchen runs with no problems');
+  const moved = c.dancers.some(d => { const a = Contra.poseAt(c, d.id, c.perPass * 2 + 40), b = Contra.poseAt(c, d.id, c.perPass * 2 + 60); return Math.hypot(a.x - b.x, a.y - b.y) > 0.3; });
+  check(moved, 'the dancers are still dancing in the third time through');
+}
+
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll checks passed');
 process.exit(failures ? 1 : 0);

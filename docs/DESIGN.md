@@ -523,3 +523,13 @@ start ... rights on ends" passes them on the ends first; the pair coming in from
 pair reach out, touch hands at arm's length and bounce back where they came from, then follow each other's path, so the
 hey stays whole for the others. After a half hey they are home again; two ricochets in a full hey end as an ordinary
 hey. The editor's hey has a Ricochet choice (none, robins, larks). Clean dances 116 -> 118 (Five Long Years, Mad About You).
+
+**Changing neighbors partway through (November 2026).** In a dance marked "⁋" partway through, couples find new
+neighbors at that moment. A Becket dance doing that while partners are still across the set (out of a star, say:
+Becket in the Kitchen's "star left 4 places ⁋") found nobody, because Becket couples were only paired side by side on
+one side of the set; every couple was then sent out to wait and the floor froze from the second time through (44
+library dances failed this way, 38 of them Becket). Now such a couple takes hands with the next couple one place along
+the set, the one they haven't just danced with. And as a safety net in any longways or Becket dance, if no hands-four
+forms at all, each ones couple takes hands with the nearest twos couple (preferring a new one) instead of everyone
+waiting out: the floor no longer freezes (89 library dances did at some point; 6 Sicilian, four-facing-four and Becket
+ones still do). Clean dances 118 -> 140.
