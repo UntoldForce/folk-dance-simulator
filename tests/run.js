@@ -476,5 +476,46 @@ for (const k of c.calls) {
   check(!bad.ok && bad.title === 'Broken' && bad.unread.join() === 'Frobnicate the robins', 'a dance with a move it can\'t read lists that move');
 }
 
+// Dance cards (Gaye Fifer's idea): a card in caller's shorthand, with ditto marks and no beats, is written out in the
+// usual layout, and every move on it is read.
+{
+  const card = 'Sidmouth Swirl    4x4  Bob Isaacs\n\nA1 Lines F&B; all circle R ½\nA2 corner alle L; grand R&L (starting w/ P)\nB1 all 8 "spin the top": P alle R½, robins star, L orbit to meet P\n" " " " P alle R½, larks star, R " " "\nB2 P B&S';
+  const txt = Contra.fromCard(card), d = Contra.parseDance(txt), calls = d.parts.flatMap(p => p.calls);
+  check(d.title === 'Sidmouth Swirl' && d.author === 'Bob Isaacs' && d.formation === 'fourFacingFour', `a dance card's first line gives the title, the formation (4x4) and the author (${d.title} / ${d.author} / ${d.formation})`);
+  check(d.parts.map(p => p.name).join() === 'A1,A2,B1,B2' && d.parts.every(p => p.calls.reduce((s, k) => s + k.beats, 0) === 16), 'each part of the card gets its 16 beats, shared among its moves');
+  check(calls.every(k => k.fig), 'every move on the card is read: ' + calls.map(k => k.fig).join(', '));
+  check(/larks star, robins orbit to meet partner/.test(calls[5].text) && /^All eight spin the top/.test(calls[5].text), 'ditto marks repeat the words above them: ' + calls[5].text);
+  const sh = Contra.parseDance('A1\n(8) N alle R 1 1/2\n(8) P dsd\nA2\n(16) N B&S\nB1\n(8) W chain\n(8) R&L thru').parts.flatMap(p => p.calls);
+  check(sh.map(k => k.fig + ' ' + k.who).join() === 'allemande neighbors,dosido partners,balance neighbors,chain robins,rightLeftThrough all' && sh[0].hand === 'R' && sh[0].turns === 1.5,
+    'shorthand typed in the Text tab is read too (N alle R 1 1/2, P dsd, N B&S, W chain, R&L thru)');
+}
+
+// Heys (Ryan, Five Long Years): "larks start a half hey - lefts in center" is the larks passing left shoulders in the
+// middle first; "robins ricochet" is the robins reaching out, bouncing off each other's hands and going back.
+{
+  const hk = t => Contra.parseDance('A1\n(8) ' + t).parts[0].calls[0];
+  const a = hk('larks start a half hey - lefts in center, rights on ends passing by the left, robins ricochet');
+  check(a.fig === 'hey' && a.starter === 'larks' && a.side === 'L' && a.turns === 0.5 && a.ricochet[0].who === 'robins', '"larks start a half hey - lefts in center, …, robins ricochet" is read: larks first, left shoulders, robins ricochet');
+  check(hk('robins start a half hey - rights in center, lefts on ends').side === 'R' && hk('partners start a full hey - rights on ends, lefts in center').side === 'L', 'which shoulder in the center: "rights in center", or the other one from "rights on ends"');
+  const dance = h => `A1\n(16) Neighbors balance & swing\nA2\n(8) ${h}\n(8) Partners swing\nB1\n(16) Partners balance & swing\nB2\n(8) Circle left 3 places\n(8) Neighbors swing`;
+  const run = h => { const c = Contra.compile(Contra.parseDance(dance(h)), { lines: 1, sets: 2, passes: 1 }), k = c.calls.find(q => q.fig === 'hey'); return { c, k, ids: c.dancers.slice(0, 4).map(d => d.id) }; };
+  const at = (r, id, t) => Contra.poseAt(r.c, id, t), near = (p, q) => Math.hypot(p.x - q.x, p.y - q.y) < 0.05;
+  const half = run('Larks start a half hey - lefts in center, rights on ends, robins ricochet'), plain = run('Larks start a half hey - lefts in center, rights on ends');
+  const robins = half.ids.filter(id => id.endsWith('R')), larks = half.ids.filter(id => id.endsWith('L'));
+  check(robins.every(id => near(at(half, id, half.k.t1), at(half, id, half.k.t0))) && larks.every(id => near(at(half, id, half.k.t1), at(plain, id, plain.k.t1))),
+    'half hey, robins ricochet: the robins end back where they started; the larks end where an ordinary half hey takes them');
+  let closest = 9, crossed = false;
+  const cx = half.ids.reduce((sum, id) => sum + at(half, id, half.k.t0).x, 0) / 4;
+  for (let t = half.k.t0; t <= half.k.t1; t += 0.05) {
+    const [p, q] = robins.map(id => at(half, id, t)); closest = Math.min(closest, Math.hypot(p.x - q.x, p.y - q.y));
+    if (Math.sign(p.x - cx) !== Math.sign(at(half, robins[0], half.k.t0).x - cx)) crossed = true;
+  }
+  check(closest > 0.55 && !crossed && !half.c.warnings.some(w => w.bump), `the robins meet at arm's length and bounce back without crossing the set, nobody bumping (closest ${closest.toFixed(2)} m)`);
+  check((half.k.holds || []).some(h => robins.includes(h.a) && robins.includes(h.b)), 'the robins touch hands as they bounce');
+  const full = run('Larks start a full hey - lefts in center, rights on ends, robins ricochet');
+  check(full.ids.every(id => near(at(full, id, full.k.t0 + full.k.beats), at(full, id, full.k.t0))), 'full hey with the robins ricocheting both times: everyone ends home, as in an ordinary hey');
+  check(Contra.review(fs.readFileSync(path.join(__dirname, '..', 'dances', 'five-long-years.txt'), 'utf8')).ok, 'Five Long Years (ricochet hey) runs with no problems');
+}
+
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll checks passed');
 process.exit(failures ? 1 : 0);
