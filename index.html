@@ -3378,7 +3378,9 @@ const Contra = (() => {
       // (After promenading round the set, partners side by side take hands with the couple they face: see below.)
       const knows = (P.experience ?? 1) >= 0.25, pairs = [];
       for (const c of couples) if (c.role === 'ones') for (const q of couples) if (q.role === 'twos' && lineOf(q) === lineOf(c)) {
-        const m = midOf(c), mq = midOf(q), d = dist(m, mq);
+        // (How far: between the nearest two of their dancers, as a dancer sees it. A couple's middle is no guide in a
+        // ring or star, where partners stand across from each other.)
+        const m = midOf(c), mq = midOf(q), d = Math.min(dist(m, mq), ...[c.lark, c.robin].flatMap(a => [q.lark, q.robin].map(b => dist(pose[a], pose[b]) + 0.2 * gap)));
         const old = before.has(c.id + '|' + q.id), had = x => [...before].some(k => k.startsWith(x.id + '|'));
         // (Neighbors are within reach: a place along the set, or across it on the diagonal. Staying put, only couples
         // without neighbors, back from the end, take new ones.)
@@ -3621,6 +3623,7 @@ const Contra = (() => {
     // "next neighbors", couples form new hands-fours from where they stand. Once each time through.
     const PROGRESS_AFTER = /\b(to|meet) (the |your )?(next|new)\b|⁋|\balong (the )?(set|line)\b|\bprogress/i, NEXT_NEIGHBORS = /\b(next|new)\s+neighbou?rs?\b/i;
     const regroupAfter = new Set();
+    let endChange = true;
     if (F.kind === 'longways' || F.kind === 'becket') {
       // In A1 a mark on a figure that stays put ("long lines forward & back ⁋"), or a figure danced with the "new
       // neighbors", means they met at the start of the time through; only a move along the set (a slide, a slice, a
@@ -3628,10 +3631,26 @@ const Contra = (() => {
       const along = q => ['shift', 'slice', 'passThrough', 'promenadeAround'].includes(q.call.fig);
       // ("... to new neighbor ⁋" as the last figure progresses at the end, as usual: it isn't a change partway through.)
       const endsWithMark = flat.length > 0 && PROGRESS_AFTER.test(flat[flat.length - 1].call.text);
-      const k = flat.findIndex((q, i) => i < flat.length - 1 && ((PROGRESS_AFTER.test(q.call.text) && (q.part !== dance.parts[0] || along(q)))
-        || (!(endsWithMark && i === flat.length - 2) && NEXT_NEIGHBORS.test(flat[i + 1].call.text) && !NEXT_NEIGHBORS.test(q.call.text) && flat[i + 1].part !== dance.parts[0])));
-      if (k >= 0) regroupAfter.add(k);
+      // Every mark partway through is a change of neighbors (a double progression has two: Awesome Double Progression
+      // Dance's "star left 4 places ⁋" and "ones swing, end facing down ⁋"). Without marks, "... new neighbors" says where.
+      // ContraDB's marks aren't a reliable count (Star Step marks its star and its last swing for one progression), so
+      // several changes are read only when the dance says it progresses more than once.
+      const marked = (q, i) => i < flat.length - 1 && PROGRESS_AFTER.test(q.call.text) && (q.part !== dance.parts[0] || along(q));
+      if (dance.progression > 1) {
+        flat.forEach((q, i) => { if (marked(q, i)) regroupAfter.add(i); });
+        endChange = endsWithMark || !regroupAfter.size;
+      } else {
+        // One change: at the first mark partway through, or where "next neighbors" first appear.
+        const k = flat.findIndex((q, i) => marked(q, i)
+          || (i < flat.length - 1 && !(endsWithMark && i === flat.length - 2) && NEXT_NEIGHBORS.test(flat[i + 1].call.text) && !NEXT_NEIGHBORS.test(q.call.text) && flat[i + 1].part !== dance.parts[0]));
+        if (k >= 0) regroupAfter.add(k);
+        endChange = !regroupAfter.size;
+      }
     }
+    // How many places the dance progresses each time through: one for each change of neighbors (or as the dance says,
+    // if more), and how far each change takes a couple waiting at the end.
+    const changes = regroupAfter.size + (endChange ? 1 : 0), nProg = Math.max(dance.progression, changes), step = nProg / Math.max(1, changes);
+    const firstChange = regroupAfter.size ? Math.min(...regroupAfter) : -1;
     const crossBeats = Math.min(8, perPass);
 
     // Everything about one time through that doesn't change call to call: its groups, who is out, which
@@ -3693,10 +3712,10 @@ const Contra = (() => {
           // couple takes the place of the couple of their new role in the hands-four nearest them, one place further
           // toward the end: just where the couple arriving at the end (moving one place) will look for them, standing
           // and facing as the dancers in the middle do at this moment (on the diagonal, across, or wherever).
-          const ref = F.kind === 'becket' && o.flips ? groups.filter(g => g.line === c.line).sort((a, b) => Math.abs(a.cy - y0) - Math.abs(b.cy - y0))[0] : null;
+          const ref = (F.kind === 'becket' || F.kind === 'longways') && o.flips ? groups.filter(g => g.line === c.line).sort((a, b) => Math.abs(a.cy - y0) - Math.abs(b.cy - y0))[0] : null;
           const R = ref && ref.members.find(q => q.role === next);
           if (R) {
-            const dy = (Math.sign(y0 - ref.cy) || 1) * dance.progression * P.neighborGap;
+            const dy = (Math.sign(y0 - ref.cy) || 1) * step * P.neighborGap;
             to = { lark: { ...from[R.lark], y: from[R.lark].y + dy }, robin: { ...from[R.robin], y: from[R.robin].y + dy } };
           }
         }
@@ -3708,7 +3727,7 @@ const Contra = (() => {
         const already = c.waiting; c.waiting = true;
         // (If their spot is free already they go straight there; if dancers still stand in it, they go during the
         // next progression, arriving as their new neighbors do.)
-        if (F.kind === 'becket' && regroupAfter.size) {
+        if ((F.kind === 'becket' || F.kind === 'longways') && regroupAfter.size) {
           const busy = midway && Object.keys(from).some(id => id !== lark && id !== robin && [to.lark, to.robin].some(q => dist(from[id], q) < P.bodyGap + 0.25));
           if (midway && busy) c.waitTo = to; else if (midway) { c.waitTo = null; o.crossNow = true; } else if (already && c.waitTo) to = c.waitTo;
           else if (already) { o.to = { lark: { ...from[lark] }, robin: { ...from[robin] } }; continue; }
@@ -3947,7 +3966,7 @@ const Contra = (() => {
 
     // Where each dancer should be after a time through, if the dance progresses as it should.
     const expectAfter = (pass, from) => {
-      const want = {}, n = dance.progression;
+      const want = {}, n = nProg;
       for (const g of pass.groups) {
         if (g.center || g.longSet) continue;   // squares and fixed sets are checked at the end of each time through (squareWant)
         g.members.forEach((c, i) => {
@@ -4025,16 +4044,16 @@ const Contra = (() => {
           // Progressing partway through: this is where couples change neighbors and roles, so the progression is
           // checked from one such moment to the next (each time through's check is made at the next one).
           if (!last && regroupAfter.has(k)) {
-            if (regroupWant) passInfo[p - 1].check = { ...checkPass(regroupWant, ends), at: t1 };
+            // (The time through is checked from one first change to the next.)
+            if (k === firstChange) { if (regroupWant) passInfo[p - 1].check = { ...checkPass(regroupWant, ends), at: t1 }; }
             endOfWait(pass);
             nextPass = startPass(roundTheSet ? facing : ends, pass.t0, true, pass);
             if (nextPass.outs.some(o => o.crossNow)) nextPass.crossFrom = t1;
-
-            regroupWant = expectAfter(nextPass, ends);
+            if (k === firstChange) regroupWant = expectAfter(nextPass, ends);
           }
           if (last) {
-            if (!regroupAfter.size) endOfWait(pass);
-            nextPass = startPass(ends, t1, false, pass, regroupAfter.size > 0);
+            if (endChange) endOfWait(pass);
+            nextPass = startPass(ends, t1, false, pass, !endChange);
           }
           // A dance that doesn't loop (a single-move preview) ends without turning toward a next figure.
           const next = last && p === passes - 1 && opts.loop === false ? null : planCall(last ? 0 : k + 1, ends, nextPass, t1).fns;
@@ -4092,7 +4111,7 @@ const Contra = (() => {
     const xs = Object.values(start).map(p => p.x), ys = Object.values(start).map(p => p.y);
     return {
       P, kind: F.kind, dancers, couples, start, segs, calls, parts, passes: passInfo, perPass, total: t, warnings, final: pose, puzzled,
-      progression: summarize(passInfo, dance.progression),
+      progression: summarize(passInfo, nProg),
       bounds: { minX: Math.min(...xs), maxX: Math.max(...xs), minY: Math.min(...ys), maxY: Math.max(...ys) },
     };
   }
