@@ -26,3 +26,4 @@ Read `docs/DESIGN.md` first; it holds the agreed decisions. The original brief i
 - Test dances live in `dances/`. How each figure moves is in `docs/FIGURES.md`; the review of every move and formation against The Caller's Box glossary and the English tutorial is `docs/REVIEW.md`.
 - The Dance card tab reads a caller's card: `Contra.fromCard` and `Contra.expandShorthand` write out shorthand; inside Claude a photo is read by Claude through the page's `sample` capability (publish the preview with `capabilities: {sample: {images: true}}`).
 - A first-visit tour (`TOUR`, remembered as `contra.toured`; `?notour` skips it) and the Help dialog explain the page; browser tests mark the tour as seen.
+- Progression is one general rule, the dancer's intuition (formGroups and startPass; see DESIGN.md): `P.experience` (Settings > Dancers' experience) sets how well dancers read it, and `Contra.progressionLevel` gives a dance's progression difficulty (Checks, `tests/library.js`).

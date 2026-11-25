@@ -90,6 +90,9 @@ input[type=number] { width: 72px; font-family: var(--font-mono); }
 label.small { font-size: 13px; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; }
 #scrub { flex: 1 1 200px; accent-color: var(--accent); min-width: 0; }
 #trailLen { width: 110px; accent-color: var(--accent); }
+.span2 { grid-column: 1 / -1; }
+.xprow { display: flex; align-items: center; gap: 8px; }
+#experience { flex: 1; min-width: 0; accent-color: var(--accent); }
 #trailVal { min-width: 56px; font-variant-numeric: tabular-nums; }
 .info { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px;
   border-radius: 50%; color: var(--accent); font-size: 15px; cursor: help; }
@@ -566,6 +569,9 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
       <span class="info" id="genderNote" hidden tabindex="0" role="note" aria-label="About gender-free calling">ⓘ<span class="tip">Many dance communities now call gender-free, with Larks and Robins, so anyone can dance either role. Give it a try!</span></span></span>
   </fieldset>
   <fieldset><legend>How it's danced</legend>
+    <label for="experience" class="span2">Dancers' experience: <b id="expVal">Expert 100%</b>
+      <span class="info" tabindex="0" role="note" aria-label="About dancers' experience">ⓘ<span class="tip">How well the dancers read the progression. Clueless dancers take hands with whoever is nearest and stand still when out at the end; beginners look for new neighbors and switch sides at the end; intermediate dancers watch the set to see where to stand; experienced dancers also wait for their spot to be free and know a triple minor's double wait; experts also know double and triple progressions.</span></span></label>
+    <span class="span2 xprow"><span class="small">Clueless</span><input id="experience" type="range" min="0" max="100" step="25" value="100" aria-describedby="expVal"><span class="small">Expert</span></span>
     <label for="swingRate">Swings turn once every</label><select id="swingRate"><option value="2">2 beats</option><option value="3">3 beats</option><option value="4" selected>4 beats</option><option value="5">5 beats</option><option value="6">6 beats</option></select>
   </fieldset>
   <p class="hint">Settings are remembered on this device.</p>
@@ -669,12 +675,14 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
     <ul>
       <li>The lights on the <b>Checks</b> button sum it up: green is fine, amber is worth a look, red is a problem.</li>
       <li>Open Checks to see each one: moves the simulator can't do yet, timing that seems short or long, dancers bumping or stretching to hold hands, and whether everyone progresses to the right place each time through.</li>
+      <li><b>Progression difficulty</b> says how experienced the dancers must be for the progression to work: beginners and up, intermediate, experienced, or experts only. It's one ingredient of how hard a dance is.</li>
     </ul>
   </details>
   <details><summary>Settings</summary>
     <ul>
       <li>How many lines and hands-fours are on the floor, and how many times through to dance.</li>
       <li>Music and tempo; role names (Larks and Robins, Gents and Ladies, or Men and Women); how fast swings turn; trails and confused dancers. Settings are remembered on this device.</li>
+      <li><b>Dancers' experience</b>: how well the dancers read the progression. <i>Clueless</i> dancers take hands with whoever is nearest and stand still when out at the end; <i>beginners</i> look for new neighbors and switch sides at the end; <i>intermediate</i> dancers watch the set to see where to stand; <i>experienced</i> dancers also wait for their spot to be free (in dances that change neighbors partway through) and know a triple minor's double wait at the top; <i>experts</i> also know double and triple progressions. Turn it down to see how a dance falls apart on a less experienced floor.</li>
     </ul>
   </details>
   <p class="small">Words the simulator uses: <b>larks</b> and <b>robins</b> are the two roles; a <b>hands-four</b> is two couples dancing together; a <b>time through</b> is once through the whole dance, after which everyone has progressed to new neighbors. Shoulder round is what some older cards call a gypsy.</p>
@@ -3679,7 +3687,9 @@ const Contra = (() => {
       }
       for (const o of outs) {
         const c = o.couple, { lark, robin } = c, ctx = { p: P, cx: o.cx };
-        o.flips = F.kind !== 'triple' || c.role === 'ones' || c.waits + 1 >= 2;
+        // Dancers' experience (Settings): below 75% they don't know a couple reaching the top of a triple minor waits twice.
+        const xp = P.experience ?? 1, longSet = F.kind === 'longways' || F.kind === 'becket';
+        o.flips = F.kind !== 'triple' || c.role === 'ones' || c.waits + 1 >= 2 || xp < 0.75;
         const next = o.flips ? (c.role === 'ones' ? 'twos' : 'ones') : c.role;
         const y0 = (from[lark].y + from[robin].y) / 2;
         let to;
@@ -3715,9 +3725,14 @@ const Contra = (() => {
           const ref = (F.kind === 'becket' || F.kind === 'longways') && o.flips ? groups.filter(g => g.line === c.line).sort((a, b) => Math.abs(a.cy - y0) - Math.abs(b.cy - y0))[0] : null;
           const R = ref && ref.members.find(q => q.role === next);
           if (R) {
-            const dy = (Math.sign(y0 - ref.cy) || 1) * step * P.neighborGap;
+            // (Only an expert knows how far each change takes them in a double or triple progression; others go a place.)
+            const dy = (Math.sign(y0 - ref.cy) || 1) * (xp >= 1 ? step : 1) * P.neighborGap;
             to = { lark: { ...from[R.lark], y: from[R.lark].y + dy }, robin: { ...from[R.robin], y: from[R.robin].y + dy } };
           }
+          // Less experienced dancers waiting at the end: a beginner (25%) just switches sides, the improper rule of thumb;
+          // a clueless dancer (under 25%) stands where they are.
+          if (longSet && xp < 0.5) to = xp < 0.25 ? { lark: { ...from[lark] }, robin: { ...from[robin] } }
+            : { lark: { ...from[lark], x: 2 * o.cx - from[lark].x }, robin: { ...from[robin], x: 2 * o.cx - from[robin].x } };
         }
         // A dance that changes neighbors partway through counts its time through from there: at the start of the
         // time through a Becket couple already waiting stays where it is (it went to its place when it started waiting).
@@ -3727,7 +3742,8 @@ const Contra = (() => {
         const already = c.waiting; c.waiting = true;
         // (If their spot is free already they go straight there; if dancers still stand in it, they go during the
         // next progression, arriving as their new neighbors do.)
-        if ((F.kind === 'becket' || F.kind === 'longways') && regroupAfter.size) {
+        // (Waiting for their spot to be free, partway through a dance, takes an experienced dancer: 75%.)
+        if (longSet && regroupAfter.size && xp >= 0.75) {
           const busy = midway && Object.keys(from).some(id => id !== lark && id !== robin && [to.lark, to.robin].some(q => dist(from[id], q) < P.bodyGap + 0.25));
           if (midway && busy) c.waitTo = to; else if (midway) { c.waitTo = null; o.crossNow = true; } else if (already && c.waitTo) to = c.waitTo;
           else if (already) { o.to = { lark: { ...from[lark] }, robin: { ...from[robin] } }; continue; }
@@ -4226,6 +4242,17 @@ const Contra = (() => {
     return seg.f((t - seg.t0) / (seg.t1 - seg.t0));
   }
 
+  // How experienced dancers must be for the dance's progression to work (Ryan): the lowest experience, of 0%
+  // (clueless), 25% (beginner), 50% (intermediate), 75% (experienced) and 100% (expert), from which every more
+  // experienced floor also progresses. null: it doesn't progress even with experts, or the formation has no ends.
+  const LEVELS = [0, 0.25, 0.5, 0.75, 1], LEVEL_NAMES = ['clueless', 'beginner', 'intermediate', 'experienced', 'expert'];
+  function progressionLevel(dance, opts = { lines: 1, sets: 3, passes: 4 }) {
+    const works = x => compile(dance, { ...opts, params: { ...(opts.params || {}), experience: x } }).progression.firstBad < 0;
+    let level = null;
+    for (let i = LEVELS.length - 1; i >= 0; i--) { if (works(LEVELS[i])) level = LEVELS[i]; else break; }
+    return level == null ? null : { level, name: LEVEL_NAMES[LEVELS.indexOf(level)] };
+  }
+
   // A quick health check of one dance, for looking through many at once: the lines it can't read, the time through
   // its progression first goes wrong in, and its first bump and hand problem. ok is true when there are none.
   function review(text) {
@@ -4241,7 +4268,7 @@ const Contra = (() => {
   // Several dances in one piece of text, one after another, separated by a line of ===== (or more).
   const splitDances = text => text.split(/^\s*={5,}\s*$/m).map(t => t.trim()).filter(Boolean);
 
-  return { DEFAULTS, FORMATIONS, FIGURE_INFO, TYPICAL_BEATS, SETUP, parseDance, fromCard, expandShorthand, serialize, callText, compile, poseAt, handsAt, callIndexAt, meetings, review, splitDances };
+  return { DEFAULTS, FORMATIONS, FIGURE_INFO, TYPICAL_BEATS, SETUP, LEVEL_NAMES, progressionLevel, parseDance, fromCard, expandShorthand, serialize, callText, compile, poseAt, handsAt, callIndexAt, meetings, review, splitDances };
 })();
 </script>
 
@@ -4291,7 +4318,10 @@ function build() {
   $('progression').value = String(Math.min(3, dance.progression));
   setupSummary();
   const passes = Math.max(1, Math.min(30, Math.round(+$('passes').value) || 8));
-  state.c = Contra.compile(dance, { lines: +$('lines').value, sets: +$('sets').value, passes, params: { swingBeatsPerTurn: +$('swingRate').value } });
+  state.c = Contra.compile(dance, { lines: +$('lines').value, sets: +$('sets').value, passes, params: { swingBeatsPerTurn: +$('swingRate').value, experience: +$('experience').value / 100 } });
+  // How experienced dancers must be for the progression to work (shown in Checks): worked out after the floor is drawn.
+  state.level = undefined; const levelFor = state.buildId;
+  setTimeout(() => { if (state.buildId !== levelFor) return; state.level = Contra.progressionLevel(dance, { lines: 1, sets: 3, passes: 4, params: { swingBeatsPerTurn: +$('swingRate').value } }); showChecks(); }, 0);
   // The floor settings mean different things per formation: squares across and rows of a grid, circles and
   // their size, sets side by side (a fixed set has its own size), or minor sets down a tempest.
   const kind = state.c.kind, mixer = dance.formation === 'circleMixer';
@@ -5328,6 +5358,16 @@ function showChecks() {
     else items.push(['bad', `In time ${pr.firstBad + 1}, ${pr.total - pr.good} of ${pr.total} dancers don't end in ${place}. Watch the end of that time through to see where they go.`]);
   } else if (pr.firstBad < 0) items.push(['ok', `Progression works ${times}: dancing couples move ${word} along and face their new neighbors; couples out at the ends come back in with their new role.`]);
   else items.push(['bad', `Progression breaks in time ${pr.firstBad + 1}: ${pr.total - pr.good} of ${pr.total} dancers don't end ${word} along, on their own side, facing across. Watch the end of that time through to see where they go.`]);
+  // How experienced the dancers must be for the progression to work (longways and Becket sets).
+  if (c.kind === 'longways' || c.kind === 'becket') {
+    const L = state.level, xpNow = +$('experience').value;
+    if (L === undefined) items.push(['ok', 'Progression difficulty: working it out…']);
+    else if (L === null) items.push(['warn', 'Progression difficulty: the progression doesn’t work even with expert dancers.']);
+    else {
+      const pct = Math.round(L.level * 100), who = { clueless: 'any dancers, even clueless ones', beginner: 'beginners and up', intermediate: 'intermediate dancers and up', experienced: 'experienced dancers and up', expert: 'expert dancers only' }[L.name];
+      items.push([pct > xpNow ? 'warn' : 'ok', `Progression difficulty: works with ${who} (${pct}%)${pct > xpNow ? `; the dancers are set to ${xpNow}% in Settings, so they get lost` : ''}.`]);
+    }
+  }
   // A move from the pool that isn't animated yet is a caution; text the simulator can't recognise is a problem.
   const notYet = w => w.call && moveOf(w.call);
   for (const w of c.warnings) {
@@ -6068,7 +6108,7 @@ $('ruler').addEventListener('pointerdown', e => scrubFrom(e, null));
 // On a phone, start with one line so the dancers aren't tiny (until a choice is remembered).
 if (window.innerWidth < 640 && recall('contra.set.lines') == null) $('lines').value = '1';
 // Remember the settings on this device.
-for (const id of ['lines', 'sets', 'passes', 'tempo', 'swingRate', 'trailLen', 'speed', 'loop', 'music', 'melody', 'puzzled']) {
+for (const id of ['lines', 'sets', 'passes', 'tempo', 'swingRate', 'experience', 'trailLen', 'speed', 'loop', 'music', 'melody', 'puzzled']) {
   const el = $(id), v = recall('contra.set.' + id), box = el.type === 'checkbox';
   if (v != null) { if (box) el.checked = v === 'on'; else el.value = v; }
   el.addEventListener('change', () => store('contra.set.' + id, box ? (el.checked ? 'on' : 'off') : el.value));
@@ -6132,6 +6172,10 @@ for (const id of ['lines', 'sets', 'swingRate', 'passes']) $(id).onchange = buil
 $('puzzled').addEventListener('change', () => draw());
 $('hands').onchange = () => { store('contra.hands', $('hands').checked ? 'on' : 'off'); draw(); };
 if (recall('contra.hands') === 'off') $('hands').checked = false;
+const XP_NAMES = ['Clueless', 'Beginner', 'Intermediate', 'Experienced', 'Expert'];
+$('experience').oninput = () => { const v = +$('experience').value; $('expVal').textContent = `${XP_NAMES[Math.round(v / 25)]} ${v}%`; };
+$('experience').onchange = build;
+$('experience').dispatchEvent(new Event('input'));
 $('trailLen').oninput = e => { const b = +e.target.value; $('trailVal').textContent = b ? `${b} beat${b === 1 ? '' : 's'}` : 'Off'; };
 document.addEventListener('keydown', e => {
   if (/^(TEXTAREA|INPUT|SELECT)$/.test(e.target.tagName) || $('explorer').open || !$('tour').hidden) return;

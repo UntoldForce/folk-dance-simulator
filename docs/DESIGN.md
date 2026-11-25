@@ -546,3 +546,23 @@ grouping still comes from the formation, which is what the formation means. Chec
 rule picked the same hands-fours as the old rules in all 272 changes of neighbors in the dances that worked. Clean
 dances 140 -> 156; dances whose floor froze 89 -> 7. Next: the same idea for couples waiting at the ends, and the
 dancers' experience slider (0% clueless to 100% knowing every rule, such as when to stay put in a double progression).
+
+**Waiting at the ends, several changes, and the dancers' experience (Ryan, November 2026).** Couples out at an end, in
+any longways or Becket formation, watch the set: they stand where the couple of the role they will come back as
+stands in the nearest hands-four, one place further toward their end (in improper this comes out as switching sides; in
+proper, not; in a Becket, on the diagonal or across, as the dance has it). In a dance marked "Progression: Double" (or
+triple) every mark is a change of neighbors, and the end of the dance too if it is marked; at each change a waiting
+couple moves one place (or not at all, where that is where they stand already). ContraDB's marks are not a reliable
+count (Star Step marks two places for one progression), so this is only read when the dance says it is double or
+triple. Settings > Dancers' experience (0%-100%, in steps of 25) sets how well the dancers read the progression; 100%
+dancers still only follow the rules, they never rescue a dance whose moves don't progress (Ryan):
+- 0% clueless: take hands with whoever is nearest (even the same couple), and stand still when out at the end.
+- 25% beginner: look for new neighbors, the way they travel; when out at the end, switch sides.
+- 50% intermediate: when out at the end, watch the set and stand where their next role does.
+- 75% experienced: also wait for their spot to be free in a dance that changes neighbors partway through, and wait
+  twice at the top of a triple minor.
+- 100% expert: also know how far each change takes them in a double or triple progression.
+A dance's progression difficulty (Checks; the library report) is the least experience from which every more
+experienced floor progresses. In the library: 115 for beginners, 23 intermediate, 37 experienced (mostly Becket dances
+changing neighbors partway through). It will be one ingredient of a star rating. Still to do: a known-good double
+progression dance to test the expert level against (the library has none marked double).

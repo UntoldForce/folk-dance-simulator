@@ -530,5 +530,20 @@ for (const k of c.calls) {
   check(moved, 'the dancers are still dancing in the third time through');
 }
 
+// Dancers' experience (Ryan): how well the dancers read the progression, from 0% (clueless: whoever is nearest, standing
+// still at the ends) to 100% (experts). A dance's progression difficulty is the least experience from which it works.
+{
+  const d111 = Contra.parseDance(fs.readFileSync(path.join(__dirname, '..', 'dances', '111.txt'), 'utf8'));
+  const at = x => Contra.compile(d111, { lines: 1, sets: 3, passes: 4, params: { experience: x } }).progression.firstBad;
+  check(at(0) >= 0 && at(0.25) < 0 && at(1) < 0, `111: clueless dancers get lost; beginners and up progress (wrong time: 0% ${at(0) + 1}, 25% ${at(0.25) + 1}, 100% ${at(1) + 1})`);
+  const L111 = Contra.progressionLevel(d111), Lk = Contra.progressionLevel(Contra.parseDance(fs.readFileSync(path.join(__dirname, '..', 'dances', 'becket-in-the-kitchen.txt'), 'utf8')));
+  check(L111 && L111.name === 'beginner' && Lk && Lk.name === 'experienced', `progression difficulty: 111 for beginners (${L111 && L111.name}), Becket in the Kitchen for experienced dancers (${Lk && Lk.name})`);
+  // Clueless dancers keep dancing with the same neighbors; a beginner waiting at the end just switches sides.
+  const c0 = Contra.compile(d111, { lines: 1, sets: 3, passes: 2, params: { experience: 0 } }), c25 = Contra.compile(d111, { lines: 1, sets: 3, passes: 2, params: { experience: 0.25 } });
+  const same = c => c.passes.map(p => p.groups.map(g => g.members.join('+')).sort().join(' '));
+  const o25 = c25.passes[1].outs[0], k25 = o25 && c25.couples.find(q => q.id === o25.couple), p25 = k25 && Contra.poseAt(c25, k25.lark, c25.passes[1].t0);
+  check(new Set(same(c0)).size === 1 && o25 && Math.abs(o25.to.lark.x + p25.x) < 0.05, 'clueless dancers keep the same neighbors; beginners waiting at the end switch sides');
+}
+
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll checks passed');
 process.exit(failures ? 1 : 0);
