@@ -571,3 +571,9 @@ progression dance to test the expert level against (the library has none marked 
 waiting at the ends go forward and back with their line and switch sides afterwards, in the next 8 beats, instead of
 crossing the set during the lines while holding hands with the dancers beside them. (In a dance too short to cross
 after the lines before it comes round again, they cross during them as before.)
+
+**Single file promenade (Ryan, November 2026).** Two moves. Around the hands-four: the circle's ring without hands,
+each walking behind the next, facing the way they go, to the left (clockwise) or right, the named places. Around the
+whole set ("whole set single file", "single file ... around the set"): everyone in each line, couples waiting at the ends
+included, walks one loop of the set: along their side, round the end of the set, down the other side. A place is one
+couple's spot along a side and going round an end is one place, so after whole places everyone stands on a spot again.

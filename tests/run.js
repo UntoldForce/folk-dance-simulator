@@ -557,5 +557,26 @@ for (const k of c.calls) {
   check(widest <= 1.05, `during the long lines no hand hold stretches past arm's reach along the line (${widest.toFixed(2)} m)`);
 }
 
+// Single file promenade (Ryan): around the hands-four, or the whole set (round the ends of the set), to the left
+// (clockwise) or right, no hands, one behind the next.
+{
+  const rd = t => Contra.parseDance('A1\n(8) ' + t).parts[0].calls[0];
+  check(rd('single file promenade three places').turns === 0.75 && rd('circle right 3 places single file').dir === 'R' && rd('Whole set single file promenade left 2 places').scope === 'set',
+    'single file promenade is read: "three places", "circle right 3 places single file", "whole set single file promenade left 2 places"');
+  const run = t => Contra.compile(Contra.parseDance(`A1\n(8) Long lines forward and back\n(8) ${t}\nA2\n(16) Partners balance & swing\nB1\n(16) Neighbors balance & swing\nB2\n(8) Circle left 3/4\n(8) Pass through`), { lines: 1, sets: 2, passes: 1 });
+  const c = run('Whole set single file promenade left 1 place'), k = c.calls.find(q => q.fig === 'singleFile'), P0 = id => Contra.poseAt(c, id, k.t0), P1 = id => Contra.poseAt(c, id, k.t1);
+  const ys = c.dancers.map(d => P0(d.id).y), top = Math.max(...ys), bot = Math.min(...ys);
+  // Clockwise seen from above (band at the top): down the +x side, up the -x side; the dancers at the ends go round the corner.
+  const ok = c.dancers.every(d => { const a = P0(d.id), b = P1(d.id);
+    if (a.x > 0) return a.y > bot + 0.1 ? Math.abs(b.x - a.x) < 0.05 && Math.abs(b.y - (a.y - 1)) < 0.05 : b.x < 0 && Math.abs(b.y - bot) < 0.05;
+    return a.y < top - 0.1 ? Math.abs(b.x - a.x) < 0.05 && Math.abs(b.y - (a.y + 1)) < 0.05 : b.x > 0 && Math.abs(b.y - top) < 0.05; });
+  check(ok, 'whole set single file to the left, one place: everyone moves one spot clockwise, the dancers at the ends go round the corner to the other side');
+  const mid = Contra.poseAt(c, c.dancers[0].id, (k.t0 + k.t1) / 2);
+  check(!k.holds.some(h => h.fig === 'singleFile') && !c.warnings.some(w => w.bump && /single/i.test(w.text)), 'single file: no hands, and nobody bumps');
+  const f = run('Single file promenade left 3 places'), kf = f.calls.find(q => q.fig === 'singleFile');
+  const a0 = Contra.poseAt(f, '0.1L', kf.t0), a1 = Contra.poseAt(f, '0.1L', kf.t1), mid4 = Contra.poseAt(f, '0.1L', (kf.t0 + kf.t1) / 2);
+  check(Math.abs(a1.x - (-0.6)) < 0.1 && Math.abs(a1.y - a0.y) < 0.15, `hands-four single file left 3 places: lark 1 ends three quarters of the way round, clockwise (${a1.x.toFixed(2)}, ${a1.y.toFixed(2)})`);
+}
+
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll checks passed');
 process.exit(failures ? 1 : 0);

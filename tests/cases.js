@@ -6,7 +6,7 @@ const FIGS = [
   [4, 'Partner California twirl'], [4, 'Neighbor star through'], [4, 'Partner roll away with a half sashay'], [4, 'Partner half sashay'],
   [8, 'Neighbor do-si-do 1 & 1/2'], [8, 'Partner seesaw'], [8, 'Mad robin clockwise around neighbor'], [4, 'Set to partner'],
   [4, 'Turn single right'], [4, 'Balance the wave'], [4, 'Balance the ring'], [8, 'Star right 1'], [8, 'Star left 3/4'],
-  [4, 'Petronella turn'], [8, 'Partner poussette clockwise 1/2'], [4, 'Broken circle left 1/4'], [4, 'Star promenade 1/2'], [8, 'Weathervane 1/2'],
+  [4, 'Petronella turn'], [8, 'Partner poussette clockwise 1/2'], [4, 'Broken circle left 1/4'], [8, 'Single file promenade left 3 places'], [8, 'Single file promenade right 4 places'], [8, 'Whole set single file promenade left 2 places'], [8, 'Whole set single file promenade right 1 place'], [4, 'Star promenade 1/2'], [8, 'Weathervane 1/2'],
   [4, 'Partner courtesy turn'], [4, 'Partner turn as a couple'], [4, 'Neighbor gate counterclockwise 1/2'], [4, 'Partner butterfly whirl'],
   [8, 'Robins chain'], [8, 'Larks chain'], [8, 'Right and left through'], [8, 'Flutterwheel'], [8, 'Reverse flutterwheel'],
   [8, 'Square through 2'], [16, 'Square through 4'], [4, 'Robins give and take'], [8, 'Half hey, robins pass right to start'],
