@@ -3627,7 +3627,7 @@ const Contra = (() => {
       // pass through) moves them on there.
       const along = q => ['shift', 'slice', 'passThrough', 'promenadeAround'].includes(q.call.fig);
       // ("... to new neighbor ⁋" as the last figure progresses at the end, as usual: it isn't a change partway through.)
-      const endsWithMark = PROGRESS_AFTER.test(flat[flat.length - 1].call.text);
+      const endsWithMark = flat.length > 0 && PROGRESS_AFTER.test(flat[flat.length - 1].call.text);
       const k = flat.findIndex((q, i) => i < flat.length - 1 && ((PROGRESS_AFTER.test(q.call.text) && (q.part !== dance.parts[0] || along(q)))
         || (!(endsWithMark && i === flat.length - 2) && NEXT_NEIGHBORS.test(flat[i + 1].call.text) && !NEXT_NEIGHBORS.test(q.call.text) && flat[i + 1].part !== dance.parts[0])));
       if (k >= 0) regroupAfter.add(k);
