@@ -1196,6 +1196,31 @@ const Contra = (() => {
   }
 
 
+  // Single file promenade around the whole set (Ryan): one loop up one side of the line, round the end, down the other
+  // side and round the other end, everyone walking behind the next, facing the way they go. Counted in places: a place is
+  // one couple's spot along a side, and rounding an end (across the set) is one place too, so after whole places
+  // everyone stands in a spot of the line again. To the left is clockwise, as in circle left.
+  function singleFileSet(pts, cx, P, call) {
+    const gap = P.neighborGap, h = P.partnerGap / 2, ys = pts.map(q => q.y);
+    const yBot = Math.min(...ys), N = Math.max(1, Math.round((Math.max(...ys) - yBot) / gap) + 1), yTop = yBot + (N - 1) * gap, M = 2 * N;
+    // Place p (counter-clockwise from the bottom of the +x side): up the +x side, round the top, down the -x side, round the bottom.
+    const at = p => {
+      p = ((p % M) + M) % M;
+      if (p <= N - 1) return { x: cx + h, y: yBot + p * gap, a: Math.PI / 2 };
+      if (p < N) { const th = Math.PI * (p - (N - 1)); return { x: cx + h * Math.cos(th), y: yTop + h * Math.sin(th), a: th + Math.PI / 2 }; }
+      if (p <= 2 * N - 1) return { x: cx - h, y: yTop - (p - N) * gap, a: -Math.PI / 2 };
+      const th = Math.PI + Math.PI * (p - (2 * N - 1)); return { x: cx + h * Math.cos(th), y: yBot + h * Math.sin(th), a: th + Math.PI / 2 };
+    };
+    const sgn = call.dir === 'R' ? 1 : -1, n = call.places || 4;
+    return pts.map(d => {
+      const row = Math.max(0, Math.min(N - 1, Math.round((d.y - yBot) / gap))), p0 = d.x >= cx ? row : N + (N - 1 - row);
+      return u => {
+        const s = trap(u, 0.15), q = at(p0 + sgn * n * s), k = mj(clamp01(u / 0.12)), face = q.a + (sgn < 0 ? Math.PI : 0);
+        return { x: lerp(d.x, q.x, k), y: lerp(d.y, q.y, k), a: settle(d.a, face, u, 0.12) };
+      };
+    });
+  }
+
   // Each figure takes its dancers' starting poses and returns one path function per dancer.
   // A path maps u (0 to 1 through the figure) to a pose { x, y, a }.
   const FIGURES = {
@@ -1311,6 +1336,13 @@ const Contra = (() => {
       const dir = call.dir === 'R' ? 1 : -1;               // circle left travels clockwise seen from above
       // Take hands: the ring draws in until neighbors in it are ringGap apart; everyone faces the center.
       return ringPlan(ps, dir * call.turns * TAU, ctx.p.ringGap / (2 * Math.sin(Math.PI / ps.length)), ang => ang + Math.PI, ctx.p.ringOpen);
+    } },
+    // Single file promenade (Ryan): no hands, each walking behind the next, facing the way they go, to the left
+    // (clockwise, like circle left) or right, the named number of places. Around the hands-four here; around the whole
+    // set ("whole set single file") is planned where the dance is put together (see singleFileSet), as everyone takes part.
+    singleFile: { group: 'four', any: true, plan(ps, call, ctx) {
+      const dir = call.dir === 'R' ? 1 : -1, r = (1.25 * ctx.p.ringGap) / (2 * Math.sin(Math.PI / ps.length));
+      return ringPlan(ps, dir * call.turns * TAU, r, ang => ang + dir * Math.PI / 2, true);
     } },
     // ---------- Turns with one person ----------
     // Shoulder round (formerly "gypsy"): walk around each other without touching, looking at each other.
@@ -2596,7 +2628,7 @@ const Contra = (() => {
 
   // Typical lengths in beats, for figures built so far: the ContraLab timing chart (contralab.org),
   // and Contrafusion for pull by (4 beats; 2 when done rapidly as a single change).
-  const TYPICAL_BEATS = { centerWave: 4, swingThrough: 8, boxCirculate: 4, archDive: 4, crossTrails: 4, passOcean: 4, tradeWave: 6, spinTop: 8, scootBack: 6, circulate: 4, walkDodge: 4, contraCorners: 16, shortLines: k => (k.fb ? 8 : 4), promenadeAcross: 8, promenadeAround: 8, turnAlone: 2, dixieTwirl: 4, castAcross: 8, heyThreeSide: 8, crossoverMirrorHey: 16, dolphinHey: 16, chevron: 8, openChain: 8, doubleFigureEight: 16, longLines: 8, allemande: 8, balance: 4, boxTheGnat: 4, swing: 4, circle: 8, pullBy: 4,
+  const TYPICAL_BEATS = { singleFile: 8, centerWave: 4, swingThrough: 8, boxCirculate: 4, archDive: 4, crossTrails: 4, passOcean: 4, tradeWave: 6, spinTop: 8, scootBack: 6, circulate: 4, walkDodge: 4, contraCorners: 16, shortLines: k => (k.fb ? 8 : 4), promenadeAcross: 8, promenadeAround: 8, turnAlone: 2, dixieTwirl: 4, castAcross: 8, heyThreeSide: 8, crossoverMirrorHey: 16, dolphinHey: 16, chevron: 8, openChain: 8, doubleFigureEight: 16, longLines: 8, allemande: 8, balance: 4, boxTheGnat: 4, swing: 4, circle: 8, pullBy: 4,
     shoulderRound: 8, dosido: 8, seesaw: 8, swatTheFlea: 4, californiaTwirl: 4, starThrough: 4, rollAway: 4, halfSashay: 4,
     passThrough: 4, star: 8, petronella: 4, courtesyTurn: 4, turnAsCouple: 4, chain: 8, rightLeftThrough: 8, flutterwheel: 8,
     hey: k => 16 * (k.turns || 1), figureEight: k => 16 * (k.turns || 1), forwardBack: 8, nextSquare: 8, grandRL: k => 16 * (k.turns || 0.5),
@@ -2729,6 +2761,15 @@ const Contra = (() => {
     if (/dixie twirl/.test(t)) return { fig: 'dixieTwirl', who: 'all' };
     if (/contra corners/.test(t)) return { fig: 'contraCorners', who: who === 'twos' ? 'twos' : 'ones' };
     // Round the set by places ("promenade counterclockwise around the set one place to meet new neighbors").
+    // Single file promenade (or "circle ... single file"): around the hands-four, or the whole set when it says so.
+    if (/single[- ]file/.test(t) && /promenade|circle|walk|around/.test(t) && !/\bstar\b|pass through|along the (set|line)/.test(t)) {
+      const words = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8 };
+      const tt = t.replace(/\b(one|two|three|four|five|six|seven|eight)\s+places?\b/g, (m0, w) => words[w] + ' places');
+      const set = /\b(whole|entire|full) (set|line)|around the (whole |entire )?set\b|\bthe set\b/.test(tt), pm = tt.match(/(\d+)\s*places?/);
+      const dir = /\bright\b|counter-?clockwise|\bccw\b/.test(tt) ? 'R' : 'L';
+      if (set) return { fig: 'singleFile', who: 'all', scope: 'set', dir, places: pm ? +pm[1] : 4, turns: (pm ? +pm[1] : 4) / 4 };
+      return { fig: 'singleFile', who: 'all', scope: 'four', dir, turns: pm ? +pm[1] / 4 : parseTurns(tt.replace(/single[- ]file|promenade/g, ''), 1) };
+    }
     if (/promenade/.test(t) && !/star promenade|single file|along the (set|line)/.test(t) && who !== 'heads' && who !== 'sides' && /\baround (the )?(set|ring|hands? ?four)|\bplaces?\b|clockwise|\bc?cw\b/.test(t)) {
       const n = (t.match(/\b(\d|one|two|three|four)\s+places?\b/) || [])[1], places = n ? (+n || ['one', 'two', 'three', 'four'].indexOf(n) + 1) : null;
       return { fig: 'promenadeAround', who: who || 'partners', dir: /counter|anti|\bccw\b/.test(t) || !/clockwise|\bcw\b/.test(t) ? 1 : -1,
@@ -3976,6 +4017,14 @@ const Contra = (() => {
           for (const [a, b] of pairs) holds.push({ fig: call.fig, a, ah: 'near', b, bh: 'near', t0: t0 + u0 * call.beats, t1: t0 + call.beats });
         }
       }
+      // Single file around the whole set: everyone in each line, couples waiting at the ends too.
+      if (call.fig === 'singleFile' && call.scope === 'set' && (F.kind === 'longways' || F.kind === 'becket')) {
+        for (let i = holds.length - 1; i >= 0; i--) if (holds[i].fig === 'singleFile') holds.splice(i, 1);
+        for (const L of lines) {
+          const ids = dancers.map(d => d.id).filter(id => lines.reduce((b, M) => (Math.abs(M.cx - from[id].x) < Math.abs(b.cx - from[id].x) ? M : b)) === L);
+          singleFileSet(ids.map(id => from[id]), L.cx, P, call).forEach((f, i) => (fns[ids[i]] = f));
+        }
+      }
       for (const d of dancers) if (!fns[d.id]) fns[d.id] = standStill(from[d.id]);
       return { fns, notes, holds };
     };
@@ -4479,6 +4528,8 @@ const POOL = [
   { cat: 9, label: 'Scoot back', fig: 'scootBack', d: {}, beats: 8, say: 'Scoot back', re: /scoot back/, setup: '(4) Form long waves (NR, robins face in)' },
   { cat: 3, label: 'Balance the ring', fig: 'balanceRing', d: {}, beats: 4, say: 'Balance the ring', re: /balance (the )?ring/ },
   { cat: 4, label: 'Circle', fig: 'circle', side: 'ring', amount: 'places', d: { side: 'L', amt: 1 }, say: 'Circle {side} {amt}' },
+  { cat: 4, label: 'Single file around the set', fig: 'singleFile', side: 'ring', amount: 'places', d: { side: 'L', amt: 0.5 }, say: 'Whole set single file promenade {side} {amt}', re: /single[- ]file.*\b(whole|entire|the) set|(whole|entire) set.*single[- ]file/ },
+  { cat: 4, label: 'Single file promenade', fig: 'singleFile', side: 'ring', amount: 'places', d: { side: 'L', amt: 0.75 }, say: 'Single file promenade {side} {amt}', re: /single[- ]file/ },
   { cat: 4, label: 'Star', fig: 'star', side: 'hand', amount: 'places', d: { side: 'R', amt: 1 }, beats: 8, say: 'Star {side} {amt}', re: /^star (right|left)|hands across/ },
   { cat: 4, label: 'Box circulate', fig: 'boxCirculate', who: ['robins', 'larks'], d: { who: 'robins' }, beats: 4, say: m => `Box circulate, ${(m.who === 'larks' ? 'larks' : 'robins')} cross`, re: /box circulate/ },
   { cat: 4, label: 'Petronella', fig: 'petronella', d: {}, beats: 4, say: 'Petronella turn', re: /petronella/ },
@@ -5063,6 +5114,8 @@ const DESCRIPTIONS = {
   'Scoot back': 'In long waves: those facing out loop into the place beside them; those facing in walk to the middle, allemande right half, and walk on out to the far side.',
   'Balance the ring': 'Hands in a ring: step in toward the middle and back.',
   'Circle': 'Hands in a ring, everyone facing the middle. Circle left travels clockwise; the amount counts places around the ring.',
+  'Single file promenade': 'No hands: the hands-four walks around its ring one behind the other, facing the way they go, to the left (clockwise, as in circle left) or the right, the named number of places.',
+  'Single file around the set': 'Everyone in the set walks one behind the other along their side, round the corner at the end of the set, and on down the other side: to the left (clockwise) or the right. A place is one couple’s spot along a side; going round an end counts as one place.',
   'Star': 'Named hand in the middle, walk forward around. A right-hand star turns clockwise; the amount counts places.',
   'Petronella': 'From a ring, drop hands and move one place to your right, spinning clockwise, ending facing in again. Often finished with a clap.',
   'Poussette': 'Partners take two hands and orbit the other couple without turning; one walks forward, the other backs up.',
