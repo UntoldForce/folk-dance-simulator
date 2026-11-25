@@ -4071,6 +4071,14 @@ const Contra = (() => {
             if (endChange) endOfWait(pass);
             nextPass = startPass(ends, t1, false, pass, !endChange);
           }
+          // Couples waiting at the ends go forward and back with their line when the lines go forward and back (Ryan), so
+          // they switch sides after it rather than during it, holding hands across the set.
+          if (nextPass !== pass && nextPass.outs.length) {
+            let i = last ? 0 : k + 1, lead = 0;
+            while (i < flat.length && flat[i].call.fig === 'longLines' && lead < perPass) lead += flat[i++].call.beats;
+            // (Only where there's time to cross before the dance comes round again.)
+            if (lead && lead + crossBeats <= perPass) nextPass.crossFrom = (nextPass.crossFrom != null ? nextPass.crossFrom : t1) + lead;
+          }
           // A dance that doesn't loop (a single-move preview) ends without turning toward a next figure.
           const next = last && p === passes - 1 && opts.loop === false ? null : planCall(last ? 0 : k + 1, ends, nextPass, t1).fns;
           const newPose = {}, turned = {};

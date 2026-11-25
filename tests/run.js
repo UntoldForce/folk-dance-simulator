@@ -108,7 +108,7 @@ check(made.every(k => { const r = Contra.parseDance('A1\n(8) ' + Contra.callText
   check(m.passes[2].outs.length === 0 && m.passes[2].groups.length === 3, 'time 3: everyone back in, three hands-fours');
   check(m.passes.every((p, i) => p.groups.length === (i % 2 ? 2 : 3)), `hands-fours keep forming every time through (${m.passes.map(p => p.groups.length).join(', ')})`);
   const mt = (id, t) => Contra.poseAt(m, id, t);
-  check(mt('0.2L', 64 + 8).x > 0.5 && mt('0.2R', 64 + 8).x < -0.5, 'couple 2 crosses over in the first 8 beats of waiting at the top');
+  check(mt('0.2L', 64 + 8).x < -0.5 && mt('0.2L', 64 + 16).x > 0.5 && mt('0.2R', 64 + 16).x < -0.5, 'couple 2, waiting at the top, does the long lines with its line, then crosses over in the next 8 beats');
   const facesInAt = (id, t) => { const p = mt(id, t); return Math.cos(p.a) * Math.sign(-p.x) > 0.95; };
   check(facesInAt('0.2L', 64 + 9) && facesInAt('0.2R', 64 + 9), 'after crossing, the waiting couple faces in');
   const swingGap = Math.hypot(mt('0.2L', 64 + 42).x - mt('0.2R', 64 + 42).x, mt('0.2L', 64 + 42).y - mt('0.2R', 64 + 42).y);
@@ -543,6 +543,18 @@ for (const k of c.calls) {
   const same = c => c.passes.map(p => p.groups.map(g => g.members.join('+')).sort().join(' '));
   const o25 = c25.passes[1].outs[0], k25 = o25 && c25.couples.find(q => q.id === o25.couple), p25 = k25 && Contra.poseAt(c25, k25.lark, c25.passes[1].t0);
   check(new Set(same(c0)).size === 1 && o25 && Math.abs(o25.to.lark.x + p25.x) < 0.05, 'clueless dancers keep the same neighbors; beginners waiting at the end switch sides');
+}
+
+// Long lines at the start of a time through (111, Ryan): couples waiting at the ends go forward and back with their
+// line, holding hands only with dancers beside them, and switch sides afterwards, not across the set during it.
+{
+  const c = Contra.compile(Contra.parseDance(fs.readFileSync(path.join(__dirname, '..', 'dances', '111.txt'), 'utf8')), { lines: 1, sets: 3, passes: 3 });
+  const k = c.calls.find(q => q.pass === 1 && q.fig === 'longLines'), outs = c.passes[1].outs.flatMap(o => { const q = c.couples.find(x => x.id === o.couple); return [q.lark, q.robin]; });
+  const side = (id, t) => Math.sign(Contra.poseAt(c, id, t).x);
+  check(outs.length && outs.every(id => side(id, k.t0) === side(id, k.t1) && side(id, k.t1) !== side(id, k.t1 + 8)), 'couples waiting at the ends stay on their side through the long lines, and switch sides after');
+  let widest = 0;
+  for (const hd of k.holds) for (let b = 0; b <= k.beats; b += 0.5) { const a = Contra.poseAt(c, hd.a, k.t0 + b), z = Contra.poseAt(c, hd.b, k.t0 + b); widest = Math.max(widest, Math.hypot(a.x - z.x, a.y - z.y)); }
+  check(widest <= 1.05, `during the long lines no hand hold stretches past arm's reach along the line (${widest.toFixed(2)} m)`);
 }
 
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll checks passed');
