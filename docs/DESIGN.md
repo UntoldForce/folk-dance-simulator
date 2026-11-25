@@ -523,3 +523,46 @@ start ... rights on ends" passes them on the ends first; the pair coming in from
 pair reach out, touch hands at arm's length and bounce back where they came from, then follow each other's path, so the
 hey stays whole for the others. After a half hey they are home again; two ricochets in a full hey end as an ordinary
 hey. The editor's hey has a Ricochet choice (none, robins, larks). Clean dances 116 -> 118 (Five Long Years, Mad About You).
+
+**Changing neighbors partway through (November 2026).** In a dance marked "⁋" partway through, couples find new
+neighbors at that moment. A Becket dance doing that while partners are still across the set (out of a star, say:
+Becket in the Kitchen's "star left 4 places ⁋") found nobody, because Becket couples were only paired side by side on
+one side of the set; every couple was then sent out to wait and the floor froze from the second time through (44
+library dances failed this way, 38 of them Becket). Now such a couple takes hands with the next couple one place along
+the set, the one they haven't just danced with. And as a safety net in any longways or Becket dance, if no hands-four
+forms at all, each ones couple takes hands with the nearest twos couple (preferring a new one) instead of everyone
+waiting out: the floor no longer freezes (89 library dances did at some point; 6 Sicilian, four-facing-four and Becket
+ones still do). Clean dances 118 -> 140.
+
+**Progression: the dancer's intuition (Ryan, November 2026).** One rule replaces the formation-by-formation rules for
+who dances with whom after the first time through, in longways and Becket sets. At every change of neighbors (the end
+of a time through, or a "⁋" partway through), each couple takes hands with the nearest couple of the other role (ones
+with twos) that they haven't just danced with, travelling past the couple they just danced with: their new neighbors
+are beyond them, the way they faced them when they met (ones past their twos, twos past their ones; couples who met
+level, as in a Becket, may go either way). As many couples as can be are paired, nearest first; a couple the moves
+haven't brought to anyone new keeps dancing with the neighbors they have (the check reports it). In a dance that changes
+neighbors partway through, the end of the time through is no change: everyone keeps the neighbors they have. The first
+grouping still comes from the formation, which is what the formation means. Checked against the library first: the one
+rule picked the same hands-fours as the old rules in all 272 changes of neighbors in the dances that worked. Clean
+dances 140 -> 156; dances whose floor froze 89 -> 7. Next: the same idea for couples waiting at the ends, and the
+dancers' experience slider (0% clueless to 100% knowing every rule, such as when to stay put in a double progression).
+
+**Waiting at the ends, several changes, and the dancers' experience (Ryan, November 2026).** Couples out at an end, in
+any longways or Becket formation, watch the set: they stand where the couple of the role they will come back as
+stands in the nearest hands-four, one place further toward their end (in improper this comes out as switching sides; in
+proper, not; in a Becket, on the diagonal or across, as the dance has it). In a dance marked "Progression: Double" (or
+triple) every mark is a change of neighbors, and the end of the dance too if it is marked; at each change a waiting
+couple moves one place (or not at all, where that is where they stand already). ContraDB's marks are not a reliable
+count (Star Step marks two places for one progression), so this is only read when the dance says it is double or
+triple. Settings > Dancers' experience (0%-100%, in steps of 25) sets how well the dancers read the progression; 100%
+dancers still only follow the rules, they never rescue a dance whose moves don't progress (Ryan):
+- 0% clueless: take hands with whoever is nearest (even the same couple), and stand still when out at the end.
+- 25% beginner: look for new neighbors, the way they travel; when out at the end, switch sides.
+- 50% intermediate: when out at the end, watch the set and stand where their next role does.
+- 75% experienced: also wait for their spot to be free in a dance that changes neighbors partway through, and wait
+  twice at the top of a triple minor.
+- 100% expert: also know how far each change takes them in a double or triple progression.
+A dance's progression difficulty (Checks; the library report) is the least experience from which every more
+experienced floor progresses. In the library: 115 for beginners, 23 intermediate, 37 experienced (mostly Becket dances
+changing neighbors partway through). It will be one ingredient of a star rating. Still to do: a known-good double
+progression dance to test the expert level against (the library has none marked double).

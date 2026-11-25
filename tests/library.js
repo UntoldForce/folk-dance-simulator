@@ -14,6 +14,7 @@ if (!files.length) { console.log('No dances in library/. Run: node tools/fetch-c
 
 const unread = new Map(), formations = new Map(), problems = { crash: [], progression: [], bump: [], hands: [], length: [] };
 let clean = 0, allRead = 0;
+const levels = new Map();   // progression difficulty (how experienced the dancers must be) -> dances
 // A figure's text with who and amounts taken out, so the same figure is counted together.
 const shape = t => t.toLowerCase().replace(/\b(partners?|neighbou?rs?|shadows?|larks?|robins?|ones|twos|1s|2s|first|second|next|new|original)\b/g, '')
   .replace(/[\d½¼¾/&.,()]+/g, ' ').replace(/\s+/g, ' ').trim();
@@ -35,6 +36,12 @@ for (const f of files) {
   if (hands.length) problems.hands.push(`${name} (${dance.title}): ${hands[0].text}`);
   if (long) problems.length.push(`${name} (${dance.title}): ${c.perPass} beats`);
   if (!miss.length && !bad && !bumps.length && !hands.length) clean++;
+  // How experienced the dancers must be for the progression to work (longways and Becket sets that progress).
+  if (!miss.length && !bad && (c.kind === 'longways' || c.kind === 'becket')) {
+    const L = Contra.progressionLevel(dance), key = L ? `${Math.round(L.level * 100)}% ${L.name}` : 'only at another experience';
+    if (!levels.has(key)) levels.set(key, []);
+    levels.get(key).push(`${name} (${dance.title})`);
+  }
 }
 
 const pct = n => `${Math.round((100 * n) / files.length)}%`;
@@ -42,6 +49,8 @@ const lines = [`${files.length} dances. Every figure read: ${allRead} (${pct(all
   'Formations: ' + [...formations].sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k} ${n}`).join(', '), '',
   'Figures not read yet (times seen, an example):',
   ...[...unread].sort((a, b) => b[1][0] - a[1][0]).slice(0, verbose ? 400 : 60).map(([s, [n, ex]]) => `  ${String(n).padStart(4)}  ${ex}`), ''];
+lines.push('Progression difficulty (the least experienced dancers it works for; Settings > Dancers\' experience):',
+  ...[...levels].sort((a, b) => parseInt(a[0]) - parseInt(b[0])).flatMap(([k, list]) => [`  ${k}: ${list.length}`, ...list.slice(0, verbose ? 1000 : 5).map(s => '    ' + s)]), '');
 for (const [k, label] of [['crash', 'Crashes'], ['progression', 'Progression goes wrong (every figure read)'], ['bump', 'Dancers bump'], ['hands', 'Hand problems'], ['length', 'Not 64 beats (often the transcription)']])
   lines.push(`${label}: ${problems[k].length}`, ...problems[k].slice(0, verbose ? 1000 : 15).map(s => '  ' + s), '');
 const report = lines.join('\n');

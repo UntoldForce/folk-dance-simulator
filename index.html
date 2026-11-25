@@ -90,6 +90,9 @@ input[type=number] { width: 72px; font-family: var(--font-mono); }
 label.small { font-size: 13px; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; }
 #scrub { flex: 1 1 200px; accent-color: var(--accent); min-width: 0; }
 #trailLen { width: 110px; accent-color: var(--accent); }
+.span2 { grid-column: 1 / -1; }
+.xprow { display: flex; align-items: center; gap: 8px; }
+#experience { flex: 1; min-width: 0; accent-color: var(--accent); }
 #trailVal { min-width: 56px; font-variant-numeric: tabular-nums; }
 .info { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px;
   border-radius: 50%; color: var(--accent); font-size: 15px; cursor: help; }
@@ -566,6 +569,9 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
       <span class="info" id="genderNote" hidden tabindex="0" role="note" aria-label="About gender-free calling">ⓘ<span class="tip">Many dance communities now call gender-free, with Larks and Robins, so anyone can dance either role. Give it a try!</span></span></span>
   </fieldset>
   <fieldset><legend>How it's danced</legend>
+    <label for="experience" class="span2">Dancers' experience: <b id="expVal">Expert 100%</b>
+      <span class="info" tabindex="0" role="note" aria-label="About dancers' experience">ⓘ<span class="tip">How well the dancers read the progression. Clueless dancers take hands with whoever is nearest and stand still when out at the end; beginners look for new neighbors and switch sides at the end; intermediate dancers watch the set to see where to stand; experienced dancers also wait for their spot to be free and know a triple minor's double wait; experts also know double and triple progressions.</span></span></label>
+    <span class="span2 xprow"><span class="small">Clueless</span><input id="experience" type="range" min="0" max="100" step="25" value="100" aria-describedby="expVal"><span class="small">Expert</span></span>
     <label for="swingRate">Swings turn once every</label><select id="swingRate"><option value="2">2 beats</option><option value="3">3 beats</option><option value="4" selected>4 beats</option><option value="5">5 beats</option><option value="6">6 beats</option></select>
   </fieldset>
   <p class="hint">Settings are remembered on this device.</p>
@@ -669,12 +675,14 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
     <ul>
       <li>The lights on the <b>Checks</b> button sum it up: green is fine, amber is worth a look, red is a problem.</li>
       <li>Open Checks to see each one: moves the simulator can't do yet, timing that seems short or long, dancers bumping or stretching to hold hands, and whether everyone progresses to the right place each time through.</li>
+      <li><b>Progression difficulty</b> says how experienced the dancers must be for the progression to work: beginners and up, intermediate, experienced, or experts only. It's one ingredient of how hard a dance is.</li>
     </ul>
   </details>
   <details><summary>Settings</summary>
     <ul>
       <li>How many lines and hands-fours are on the floor, and how many times through to dance.</li>
       <li>Music and tempo; role names (Larks and Robins, Gents and Ladies, or Men and Women); how fast swings turn; trails and confused dancers. Settings are remembered on this device.</li>
+      <li><b>Dancers' experience</b>: how well the dancers read the progression. <i>Clueless</i> dancers take hands with whoever is nearest and stand still when out at the end; <i>beginners</i> look for new neighbors and switch sides at the end; <i>intermediate</i> dancers watch the set to see where to stand; <i>experienced</i> dancers also wait for their spot to be free (in dances that change neighbors partway through) and know a triple minor's double wait at the top; <i>experts</i> also know double and triple progressions. Turn it down to see how a dance falls apart on a less experienced floor.</li>
     </ul>
   </details>
   <p class="small">Words the simulator uses: <b>larks</b> and <b>robins</b> are the two roles; a <b>hands-four</b> is two couples dancing together; a <b>time through</b> is once through the whole dance, after which everyone has progressed to new neighbors. Shoulder round is what some older cards call a gypsy.</p>
@@ -744,6 +752,7 @@ const Contra = (() => {
     allemandeLook: 1.05,    // rad (60 degrees): how far from facing each other dancers turn while allemanding
     swingRadius: 0.25,      // m from the swing's center to each dancer
     swingBeatsPerTurn: 4,
+    experience: 1,          // dancers' experience reading the progression, 0 (clueless) to 1 (knows every rule); see formGroups and startPass
     shoulderGap: 0.8,       // m apart in a shoulder round
     dosidoGap: 0.5,         // m apart when back to back in a do-si-do
     starRadius: 0.55,       // m from a star's center to each dancer
@@ -3268,7 +3277,7 @@ const Contra = (() => {
   }
 
   // Form this time through's groups from where couples stand. Anyone left over is out (at an end).
-  function formGroups(couples, lines, pose, P, F, midway, byFacing) {
+  function formGroups(couples, lines, pose, P, F, midway, byFacing, before, stay, toward = {}) {
     const groups = [], outs = [], used = new Set(), gap = P.neighborGap;
     const midOf = c => ({ x: (pose[c.lark].x + pose[c.robin].x) / 2, y: (pose[c.lark].y + pose[c.robin].y) / 2 });
     const group = (members, frame, lineK) => {
@@ -3276,7 +3285,11 @@ const Contra = (() => {
       const ids = {};
       members.forEach((c, i) => { ids['L' + keys[i]] = c.lark; ids['R' + keys[i]] = c.robin; used.add(c); });
       const pts = Object.values(ids).map(id => pose[id]);
-      groups.push({ line: lineK, cx: lines[lineK].cx, cy: pts.reduce((s, p) => s + p.y, 0) / pts.length, ids, members, ones: members[0], twos: members[1], frame });
+      // Which way along the hall each couple's neighbors were when they took hands (up +1, down -1, level 0): they
+      // travel past them that way, so their next neighbors are beyond them (see the dancer's intuition below).
+      const toward = {};
+      if (members.length === 2) { const dy = midOf(members[1]).y - midOf(members[0]).y, s = Math.abs(dy) < 0.3 * gap ? 0 : Math.sign(dy); toward[members[0].id] = s; toward[members[1].id] = -s; }
+      groups.push({ line: lineK, cx: lines[lineK].cx, cy: pts.reduce((s, p) => s + p.y, 0) / pts.length, ids, members, ones: members[0], twos: members[1], frame, toward });
     };
     // Grid contras: a couple belongs to whichever line they now stand in.
     const lineOf = c => (!F.grid || F.kind !== 'longways' ? c.line : lines.reduce((b, L, i) => (Math.abs(L.cx - midOf(c).x) < Math.abs(lines[b].cx - midOf(c).x) ? i : b), 0));
@@ -3363,6 +3376,53 @@ const Contra = (() => {
         if (!t) continue;
         const mt = midOf(t), o = mid(m, mt);
         group([c, t], { ox: o.x, oy: o.y, th: angleTo(mt, m) }, c.line);
+      }
+    } else if (before) {
+      // Dancer's intuition (Ryan): at every change of neighbors after the formation's first, each couple takes hands with
+      // the nearest couple of the other role (ones with twos) that they haven't just danced with. This one rule picks the
+      // same hands-fours as the formation-by-formation rules did in every dance that progressed (272 changes in the
+      // library), and also works where they found nobody. A clueless dancer (experience under 25%) doesn't know to
+      // look for new neighbors: they take hands with whoever is nearest, even the same couple again.
+      // (After promenading round the set, partners side by side take hands with the couple they face: see below.)
+      const knows = (P.experience ?? 1) >= 0.25, pairs = [];
+      for (const c of couples) if (c.role === 'ones') for (const q of couples) if (q.role === 'twos' && lineOf(q) === lineOf(c)) {
+        // (How far: between the nearest two of their dancers, as a dancer sees it. A couple's middle is no guide in a
+        // ring or star, where partners stand across from each other.)
+        const m = midOf(c), mq = midOf(q), d = Math.min(dist(m, mq), ...[c.lark, c.robin].flatMap(a => [q.lark, q.robin].map(b => dist(pose[a], pose[b]) + 0.2 * gap)));
+        const old = before.has(c.id + '|' + q.id), had = x => [...before].some(k => k.startsWith(x.id + '|'));
+        // (Neighbors are within reach: a place along the set, or across it on the diagonal. Staying put, only couples
+        // without neighbors, back from the end, take new ones.)
+        if (d > 1.7 * gap || (knows && old && !stay) || (stay && !old && (had(c) || had(q)))) continue;
+        // Travelling past the couple you just danced with: your next neighbors are beyond them, the way you faced them
+        // (ones past their twos, twos past their ones). Couples who stood level with theirs (a Becket) may go either way.
+        const ahead = (x, y, s) => !knows || !s || (midOf(y).y - midOf(x).y) * s > 0.3 * gap;
+        if (!stay && !(ahead(c, q, toward[c.id]) && ahead(q, c, toward[q.id]))) continue;
+        // Facing each other (after promenading round the set) counts for a lot. (In a dance that changes neighbors
+        // partway through, the end of the time through is no change at all: everyone stays with the neighbors they have.)
+        let cost = stay && old ? -1 : d;
+        if (byFacing) { const la = pose[c.lark].a; if (la != null) { const dot = ((mq.x - m.x) * Math.cos(la) + (mq.y - m.y) * Math.sin(la)) / Math.max(1e-6, d); cost += dot > 0.7 ? 0 : 3 * gap; } }
+        pairs.push({ c, q, cost });
+      }
+      // Pair as many couples as can be, the nearest first: each ones couple tries its options from the nearest, and may
+      // move another ones couple on to that couple's next option (so nobody is stranded at the end of the line when
+      // everyone could have had someone).
+      const opts = new Map(), match = new Map();
+      for (const o of pairs.sort((a, b) => a.cost - b.cost)) { if (!opts.has(o.c)) opts.set(o.c, []); opts.get(o.c).push(o.q); }
+      const tryPlace = (c, seen) => {
+        for (const q of opts.get(c)) {
+          if (seen.has(q)) continue;
+          seen.add(q);
+          if (!match.has(q) || tryPlace(match.get(q), seen)) { match.set(q, c); return true; }
+        }
+        return false;
+      };
+      for (const c of [...opts.keys()]) tryPlace(c, new Set());
+      for (const o of pairs) if (match.get(o.q) === o.c && !used.has(o.c) && !used.has(o.q)) group([o.c, o.q], null, lineOf(o.c));
+      // A couple the moves haven't brought to anyone new keeps dancing with the neighbors they have (and the check
+      // reports that the dance doesn't progress), rather than everyone standing about.
+      if (!stay) for (const c of couples) if (c.role === 'ones' && !used.has(c)) {
+        const q = couples.find(x => x.role === 'twos' && !used.has(x) && before.has(c.id + '|' + x.id) && dist(midOf(c), midOf(x)) <= 1.7 * gap);
+        if (q) group([c, q], null, lineOf(c));
       }
     } else {
       for (const c of couples) {
@@ -3571,15 +3631,34 @@ const Contra = (() => {
     // "next neighbors", couples form new hands-fours from where they stand. Once each time through.
     const PROGRESS_AFTER = /\b(to|meet) (the |your )?(next|new)\b|⁋|\balong (the )?(set|line)\b|\bprogress/i, NEXT_NEIGHBORS = /\b(next|new)\s+neighbou?rs?\b/i;
     const regroupAfter = new Set();
+    let endChange = true;
     if (F.kind === 'longways' || F.kind === 'becket') {
       // In A1 a mark on a figure that stays put ("long lines forward & back ⁋"), or a figure danced with the "new
       // neighbors", means they met at the start of the time through; only a move along the set (a slide, a slice, a
       // pass through) moves them on there.
       const along = q => ['shift', 'slice', 'passThrough', 'promenadeAround'].includes(q.call.fig);
-      const k = flat.findIndex((q, i) => i < flat.length - 1 && ((PROGRESS_AFTER.test(q.call.text) && (q.part !== dance.parts[0] || along(q)))
-        || (NEXT_NEIGHBORS.test(flat[i + 1].call.text) && !NEXT_NEIGHBORS.test(q.call.text) && flat[i + 1].part !== dance.parts[0])));
-      if (k >= 0) regroupAfter.add(k);
+      // ("... to new neighbor ⁋" as the last figure progresses at the end, as usual: it isn't a change partway through.)
+      const endsWithMark = flat.length > 0 && PROGRESS_AFTER.test(flat[flat.length - 1].call.text);
+      // Every mark partway through is a change of neighbors (a double progression has two: Awesome Double Progression
+      // Dance's "star left 4 places ⁋" and "ones swing, end facing down ⁋"). Without marks, "... new neighbors" says where.
+      // ContraDB's marks aren't a reliable count (Star Step marks its star and its last swing for one progression), so
+      // several changes are read only when the dance says it progresses more than once.
+      const marked = (q, i) => i < flat.length - 1 && PROGRESS_AFTER.test(q.call.text) && (q.part !== dance.parts[0] || along(q));
+      if (dance.progression > 1) {
+        flat.forEach((q, i) => { if (marked(q, i)) regroupAfter.add(i); });
+        endChange = endsWithMark || !regroupAfter.size;
+      } else {
+        // One change: at the first mark partway through, or where "next neighbors" first appear.
+        const k = flat.findIndex((q, i) => marked(q, i)
+          || (i < flat.length - 1 && !(endsWithMark && i === flat.length - 2) && NEXT_NEIGHBORS.test(flat[i + 1].call.text) && !NEXT_NEIGHBORS.test(q.call.text) && flat[i + 1].part !== dance.parts[0]));
+        if (k >= 0) regroupAfter.add(k);
+        endChange = !regroupAfter.size;
+      }
     }
+    // How many places the dance progresses each time through: one for each change of neighbors (or as the dance says,
+    // if more), and how far each change takes a couple waiting at the end.
+    const changes = regroupAfter.size + (endChange ? 1 : 0), nProg = Math.max(dance.progression, changes), step = nProg / Math.max(1, changes);
+    const firstChange = regroupAfter.size ? Math.min(...regroupAfter) : -1;
     const crossBeats = Math.min(8, perPass);
 
     // Everything about one time through that doesn't change call to call: its groups, who is out, which
@@ -3592,8 +3671,12 @@ const Contra = (() => {
     //   reaching the top waits out twice and comes back in as ones.
     // - four facing four: a line at the end turns around (each couple turning as a couple) and comes back in.
     const roundTheSet = flat.some(q => q.call.fig === 'promenadeAround');
-    const startPass = (from, t0, midway) => {
-      const { groups, outs } = formGroups(couples, lines, from, P, F, midway, midway && roundTheSet);
+    const startPass = (from, t0, midway, prev, stay) => {
+      const before = prev && new Set(prev.groups.flatMap(g => g.members.flatMap(a => g.members.filter(b => b !== a).map(b => a.id + '|' + b.id))));
+      const toward = prev ? Object.assign({}, ...prev.groups.map(g => g.toward || {})) : {};
+      const { groups, outs } = formGroups(couples, lines, from, P, F, midway, midway && roundTheSet, before, stay, toward);
+      // (Staying with the same neighbors, couples keep the direction they had when they met them.)
+      if (stay) for (const g of groups) for (const c of g.members) if (toward[c.id] !== undefined && before.has(g.members.map(m => m.id).join('|'))) g.toward[c.id] = toward[c.id];
       for (const g of groups) for (const m of g.members) m.waiting = false;
       const cross = {}, inFn = {};
       for (const g of groups) for (const id of Object.values(g.ids)) {
@@ -3604,7 +3687,9 @@ const Contra = (() => {
       }
       for (const o of outs) {
         const c = o.couple, { lark, robin } = c, ctx = { p: P, cx: o.cx };
-        o.flips = F.kind !== 'triple' || c.role === 'ones' || c.waits + 1 >= 2;
+        // Dancers' experience (Settings): below 75% they don't know a couple reaching the top of a triple minor waits twice.
+        const xp = P.experience ?? 1, longSet = F.kind === 'longways' || F.kind === 'becket';
+        o.flips = F.kind !== 'triple' || c.role === 'ones' || c.waits + 1 >= 2 || xp < 0.75;
         const next = o.flips ? (c.role === 'ones' ? 'twos' : 'ones') : c.role;
         const y0 = (from[lark].y + from[robin].y) / 2;
         let to;
@@ -3637,12 +3722,17 @@ const Contra = (() => {
           // couple takes the place of the couple of their new role in the hands-four nearest them, one place further
           // toward the end: just where the couple arriving at the end (moving one place) will look for them, standing
           // and facing as the dancers in the middle do at this moment (on the diagonal, across, or wherever).
-          const ref = F.kind === 'becket' && o.flips ? groups.filter(g => g.line === c.line).sort((a, b) => Math.abs(a.cy - y0) - Math.abs(b.cy - y0))[0] : null;
+          const ref = (F.kind === 'becket' || F.kind === 'longways') && o.flips ? groups.filter(g => g.line === c.line).sort((a, b) => Math.abs(a.cy - y0) - Math.abs(b.cy - y0))[0] : null;
           const R = ref && ref.members.find(q => q.role === next);
           if (R) {
-            const dy = (Math.sign(y0 - ref.cy) || 1) * dance.progression * P.neighborGap;
+            // (Only an expert knows how far each change takes them in a double or triple progression; others go a place.)
+            const dy = (Math.sign(y0 - ref.cy) || 1) * (xp >= 1 ? step : 1) * P.neighborGap;
             to = { lark: { ...from[R.lark], y: from[R.lark].y + dy }, robin: { ...from[R.robin], y: from[R.robin].y + dy } };
           }
+          // Less experienced dancers waiting at the end: a beginner (25%) just switches sides, the improper rule of thumb;
+          // a clueless dancer (under 25%) stands where they are.
+          if (longSet && xp < 0.5) to = xp < 0.25 ? { lark: { ...from[lark] }, robin: { ...from[robin] } }
+            : { lark: { ...from[lark], x: 2 * o.cx - from[lark].x }, robin: { ...from[robin], x: 2 * o.cx - from[robin].x } };
         }
         // A dance that changes neighbors partway through counts its time through from there: at the start of the
         // time through a Becket couple already waiting stays where it is (it went to its place when it started waiting).
@@ -3652,7 +3742,8 @@ const Contra = (() => {
         const already = c.waiting; c.waiting = true;
         // (If their spot is free already they go straight there; if dancers still stand in it, they go during the
         // next progression, arriving as their new neighbors do.)
-        if (F.kind === 'becket' && regroupAfter.size) {
+        // (Waiting for their spot to be free, partway through a dance, takes an experienced dancer: 75%.)
+        if (longSet && regroupAfter.size && xp >= 0.75) {
           const busy = midway && Object.keys(from).some(id => id !== lark && id !== robin && [to.lark, to.robin].some(q => dist(from[id], q) < P.bodyGap + 0.25));
           if (midway && busy) c.waitTo = to; else if (midway) { c.waitTo = null; o.crossNow = true; } else if (already && c.waitTo) to = c.waitTo;
           else if (already) { o.to = { lark: { ...from[lark] }, robin: { ...from[robin] } }; continue; }
@@ -3891,7 +3982,7 @@ const Contra = (() => {
 
     // Where each dancer should be after a time through, if the dance progresses as it should.
     const expectAfter = (pass, from) => {
-      const want = {}, n = dance.progression;
+      const want = {}, n = nProg;
       for (const g of pass.groups) {
         if (g.center || g.longSet) continue;   // squares and fixed sets are checked at the end of each time through (squareWant)
         g.members.forEach((c, i) => {
@@ -3969,16 +4060,16 @@ const Contra = (() => {
           // Progressing partway through: this is where couples change neighbors and roles, so the progression is
           // checked from one such moment to the next (each time through's check is made at the next one).
           if (!last && regroupAfter.has(k)) {
-            if (regroupWant) passInfo[p - 1].check = { ...checkPass(regroupWant, ends), at: t1 };
+            // (The time through is checked from one first change to the next.)
+            if (k === firstChange) { if (regroupWant) passInfo[p - 1].check = { ...checkPass(regroupWant, ends), at: t1 }; }
             endOfWait(pass);
-            nextPass = startPass(roundTheSet ? facing : ends, pass.t0, true);
+            nextPass = startPass(roundTheSet ? facing : ends, pass.t0, true, pass);
             if (nextPass.outs.some(o => o.crossNow)) nextPass.crossFrom = t1;
-
-            regroupWant = expectAfter(nextPass, ends);
+            if (k === firstChange) regroupWant = expectAfter(nextPass, ends);
           }
           if (last) {
-            if (!regroupAfter.size) endOfWait(pass);
-            nextPass = startPass(ends, t1);
+            if (endChange) endOfWait(pass);
+            nextPass = startPass(ends, t1, false, pass, !endChange);
           }
           // A dance that doesn't loop (a single-move preview) ends without turning toward a next figure.
           const next = last && p === passes - 1 && opts.loop === false ? null : planCall(last ? 0 : k + 1, ends, nextPass, t1).fns;
@@ -4036,7 +4127,7 @@ const Contra = (() => {
     const xs = Object.values(start).map(p => p.x), ys = Object.values(start).map(p => p.y);
     return {
       P, kind: F.kind, dancers, couples, start, segs, calls, parts, passes: passInfo, perPass, total: t, warnings, final: pose, puzzled,
-      progression: summarize(passInfo, dance.progression),
+      progression: summarize(passInfo, nProg),
       bounds: { minX: Math.min(...xs), maxX: Math.max(...xs), minY: Math.min(...ys), maxY: Math.max(...ys) },
     };
   }
@@ -4151,6 +4242,17 @@ const Contra = (() => {
     return seg.f((t - seg.t0) / (seg.t1 - seg.t0));
   }
 
+  // How experienced dancers must be for the dance's progression to work (Ryan): the lowest experience, of 0%
+  // (clueless), 25% (beginner), 50% (intermediate), 75% (experienced) and 100% (expert), from which every more
+  // experienced floor also progresses. null: it doesn't progress even with experts, or the formation has no ends.
+  const LEVELS = [0, 0.25, 0.5, 0.75, 1], LEVEL_NAMES = ['clueless', 'beginner', 'intermediate', 'experienced', 'expert'];
+  function progressionLevel(dance, opts = { lines: 1, sets: 3, passes: 4 }) {
+    const works = x => compile(dance, { ...opts, params: { ...(opts.params || {}), experience: x } }).progression.firstBad < 0;
+    let level = null;
+    for (let i = LEVELS.length - 1; i >= 0; i--) { if (works(LEVELS[i])) level = LEVELS[i]; else break; }
+    return level == null ? null : { level, name: LEVEL_NAMES[LEVELS.indexOf(level)] };
+  }
+
   // A quick health check of one dance, for looking through many at once: the lines it can't read, the time through
   // its progression first goes wrong in, and its first bump and hand problem. ok is true when there are none.
   function review(text) {
@@ -4166,7 +4268,7 @@ const Contra = (() => {
   // Several dances in one piece of text, one after another, separated by a line of ===== (or more).
   const splitDances = text => text.split(/^\s*={5,}\s*$/m).map(t => t.trim()).filter(Boolean);
 
-  return { DEFAULTS, FORMATIONS, FIGURE_INFO, TYPICAL_BEATS, SETUP, parseDance, fromCard, expandShorthand, serialize, callText, compile, poseAt, handsAt, callIndexAt, meetings, review, splitDances };
+  return { DEFAULTS, FORMATIONS, FIGURE_INFO, TYPICAL_BEATS, SETUP, LEVEL_NAMES, progressionLevel, parseDance, fromCard, expandShorthand, serialize, callText, compile, poseAt, handsAt, callIndexAt, meetings, review, splitDances };
 })();
 </script>
 
@@ -4216,7 +4318,10 @@ function build() {
   $('progression').value = String(Math.min(3, dance.progression));
   setupSummary();
   const passes = Math.max(1, Math.min(30, Math.round(+$('passes').value) || 8));
-  state.c = Contra.compile(dance, { lines: +$('lines').value, sets: +$('sets').value, passes, params: { swingBeatsPerTurn: +$('swingRate').value } });
+  state.c = Contra.compile(dance, { lines: +$('lines').value, sets: +$('sets').value, passes, params: { swingBeatsPerTurn: +$('swingRate').value, experience: +$('experience').value / 100 } });
+  // How experienced dancers must be for the progression to work (shown in Checks): worked out after the floor is drawn.
+  state.level = undefined; const levelFor = state.buildId;
+  setTimeout(() => { if (state.buildId !== levelFor) return; state.level = Contra.progressionLevel(dance, { lines: 1, sets: 3, passes: 4, params: { swingBeatsPerTurn: +$('swingRate').value } }); showChecks(); }, 0);
   // The floor settings mean different things per formation: squares across and rows of a grid, circles and
   // their size, sets side by side (a fixed set has its own size), or minor sets down a tempest.
   const kind = state.c.kind, mixer = dance.formation === 'circleMixer';
@@ -5253,6 +5358,16 @@ function showChecks() {
     else items.push(['bad', `In time ${pr.firstBad + 1}, ${pr.total - pr.good} of ${pr.total} dancers don't end in ${place}. Watch the end of that time through to see where they go.`]);
   } else if (pr.firstBad < 0) items.push(['ok', `Progression works ${times}: dancing couples move ${word} along and face their new neighbors; couples out at the ends come back in with their new role.`]);
   else items.push(['bad', `Progression breaks in time ${pr.firstBad + 1}: ${pr.total - pr.good} of ${pr.total} dancers don't end ${word} along, on their own side, facing across. Watch the end of that time through to see where they go.`]);
+  // How experienced the dancers must be for the progression to work (longways and Becket sets).
+  if (c.kind === 'longways' || c.kind === 'becket') {
+    const L = state.level, xpNow = +$('experience').value;
+    if (L === undefined) items.push(['ok', 'Progression difficulty: working it out…']);
+    else if (L === null) items.push(['warn', 'Progression difficulty: the progression doesn’t work even with expert dancers.']);
+    else {
+      const pct = Math.round(L.level * 100), who = { clueless: 'any dancers, even clueless ones', beginner: 'beginners and up', intermediate: 'intermediate dancers and up', experienced: 'experienced dancers and up', expert: 'expert dancers only' }[L.name];
+      items.push([pct > xpNow ? 'warn' : 'ok', `Progression difficulty: works with ${who} (${pct}%)${pct > xpNow ? `; the dancers are set to ${xpNow}% in Settings, so they get lost` : ''}.`]);
+    }
+  }
   // A move from the pool that isn't animated yet is a caution; text the simulator can't recognise is a problem.
   const notYet = w => w.call && moveOf(w.call);
   for (const w of c.warnings) {
@@ -5993,7 +6108,7 @@ $('ruler').addEventListener('pointerdown', e => scrubFrom(e, null));
 // On a phone, start with one line so the dancers aren't tiny (until a choice is remembered).
 if (window.innerWidth < 640 && recall('contra.set.lines') == null) $('lines').value = '1';
 // Remember the settings on this device.
-for (const id of ['lines', 'sets', 'passes', 'tempo', 'swingRate', 'trailLen', 'speed', 'loop', 'music', 'melody', 'puzzled']) {
+for (const id of ['lines', 'sets', 'passes', 'tempo', 'swingRate', 'experience', 'trailLen', 'speed', 'loop', 'music', 'melody', 'puzzled']) {
   const el = $(id), v = recall('contra.set.' + id), box = el.type === 'checkbox';
   if (v != null) { if (box) el.checked = v === 'on'; else el.value = v; }
   el.addEventListener('change', () => store('contra.set.' + id, box ? (el.checked ? 'on' : 'off') : el.value));
@@ -6057,6 +6172,10 @@ for (const id of ['lines', 'sets', 'swingRate', 'passes']) $(id).onchange = buil
 $('puzzled').addEventListener('change', () => draw());
 $('hands').onchange = () => { store('contra.hands', $('hands').checked ? 'on' : 'off'); draw(); };
 if (recall('contra.hands') === 'off') $('hands').checked = false;
+const XP_NAMES = ['Clueless', 'Beginner', 'Intermediate', 'Experienced', 'Expert'];
+$('experience').oninput = () => { const v = +$('experience').value; $('expVal').textContent = `${XP_NAMES[Math.round(v / 25)]} ${v}%`; };
+$('experience').onchange = build;
+$('experience').dispatchEvent(new Event('input'));
 $('trailLen').oninput = e => { const b = +e.target.value; $('trailVal').textContent = b ? `${b} beat${b === 1 ? '' : 's'}` : 'Off'; };
 document.addEventListener('keydown', e => {
   if (/^(TEXTAREA|INPUT|SELECT)$/.test(e.target.tagName) || $('explorer').open || !$('tour').hidden) return;
