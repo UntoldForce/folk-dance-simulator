@@ -533,3 +533,16 @@ the set, the one they haven't just danced with. And as a safety net in any longw
 forms at all, each ones couple takes hands with the nearest twos couple (preferring a new one) instead of everyone
 waiting out: the floor no longer freezes (89 library dances did at some point; 6 Sicilian, four-facing-four and Becket
 ones still do). Clean dances 118 -> 140.
+
+**Progression: the dancer's intuition (Ryan, November 2026).** One rule replaces the formation-by-formation rules for
+who dances with whom after the first time through, in longways and Becket sets. At every change of neighbors (the end
+of a time through, or a "⁋" partway through), each couple takes hands with the nearest couple of the other role (ones
+with twos) that they haven't just danced with, travelling past the couple they just danced with: their new neighbors
+are beyond them, the way they faced them when they met (ones past their twos, twos past their ones; couples who met
+level, as in a Becket, may go either way). As many couples as can be are paired, nearest first; a couple the moves
+haven't brought to anyone new keeps dancing with the neighbors they have (the check reports it). In a dance that changes
+neighbors partway through, the end of the time through is no change: everyone keeps the neighbors they have. The first
+grouping still comes from the formation, which is what the formation means. Checked against the library first: the one
+rule picked the same hands-fours as the old rules in all 272 changes of neighbors in the dances that worked. Clean
+dances 140 -> 156; dances whose floor froze 89 -> 7. Next: the same idea for couples waiting at the ends, and the
+dancers' experience slider (0% clueless to 100% knowing every rule, such as when to stay put in a double progression).

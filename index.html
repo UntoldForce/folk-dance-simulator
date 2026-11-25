@@ -744,6 +744,7 @@ const Contra = (() => {
     allemandeLook: 1.05,    // rad (60 degrees): how far from facing each other dancers turn while allemanding
     swingRadius: 0.25,      // m from the swing's center to each dancer
     swingBeatsPerTurn: 4,
+    experience: 1,          // dancers' experience reading the progression, 0 (clueless) to 1 (knows every rule); see formGroups and startPass
     shoulderGap: 0.8,       // m apart in a shoulder round
     dosidoGap: 0.5,         // m apart when back to back in a do-si-do
     starRadius: 0.55,       // m from a star's center to each dancer
@@ -3268,7 +3269,7 @@ const Contra = (() => {
   }
 
   // Form this time through's groups from where couples stand. Anyone left over is out (at an end).
-  function formGroups(couples, lines, pose, P, F, midway, byFacing, before) {
+  function formGroups(couples, lines, pose, P, F, midway, byFacing, before, stay, toward = {}) {
     const groups = [], outs = [], used = new Set(), gap = P.neighborGap;
     const midOf = c => ({ x: (pose[c.lark].x + pose[c.robin].x) / 2, y: (pose[c.lark].y + pose[c.robin].y) / 2 });
     const group = (members, frame, lineK) => {
@@ -3276,7 +3277,11 @@ const Contra = (() => {
       const ids = {};
       members.forEach((c, i) => { ids['L' + keys[i]] = c.lark; ids['R' + keys[i]] = c.robin; used.add(c); });
       const pts = Object.values(ids).map(id => pose[id]);
-      groups.push({ line: lineK, cx: lines[lineK].cx, cy: pts.reduce((s, p) => s + p.y, 0) / pts.length, ids, members, ones: members[0], twos: members[1], frame });
+      // Which way along the hall each couple's neighbors were when they took hands (up +1, down -1, level 0): they
+      // travel past them that way, so their next neighbors are beyond them (see the dancer's intuition below).
+      const toward = {};
+      if (members.length === 2) { const dy = midOf(members[1]).y - midOf(members[0]).y, s = Math.abs(dy) < 0.3 * gap ? 0 : Math.sign(dy); toward[members[0].id] = s; toward[members[1].id] = -s; }
+      groups.push({ line: lineK, cx: lines[lineK].cx, cy: pts.reduce((s, p) => s + p.y, 0) / pts.length, ids, members, ones: members[0], twos: members[1], frame, toward });
     };
     // Grid contras: a couple belongs to whichever line they now stand in.
     const lineOf = c => (!F.grid || F.kind !== 'longways' ? c.line : lines.reduce((b, L, i) => (Math.abs(L.cx - midOf(c).x) < Math.abs(lines[b].cx - midOf(c).x) ? i : b), 0));
@@ -3364,6 +3369,51 @@ const Contra = (() => {
         const mt = midOf(t), o = mid(m, mt);
         group([c, t], { ox: o.x, oy: o.y, th: angleTo(mt, m) }, c.line);
       }
+    } else if (before) {
+      // Dancer's intuition (Ryan): at every change of neighbors after the formation's first, each couple takes hands with
+      // the nearest couple of the other role (ones with twos) that they haven't just danced with. This one rule picks the
+      // same hands-fours as the formation-by-formation rules did in every dance that progressed (272 changes in the
+      // library), and also works where they found nobody. A clueless dancer (experience under 25%) doesn't know to
+      // look for new neighbors: they take hands with whoever is nearest, even the same couple again.
+      // (After promenading round the set, partners side by side take hands with the couple they face: see below.)
+      const knows = (P.experience ?? 1) >= 0.25, pairs = [];
+      for (const c of couples) if (c.role === 'ones') for (const q of couples) if (q.role === 'twos' && lineOf(q) === lineOf(c)) {
+        const m = midOf(c), mq = midOf(q), d = dist(m, mq);
+        const old = before.has(c.id + '|' + q.id), had = x => [...before].some(k => k.startsWith(x.id + '|'));
+        // (Neighbors are within reach: a place along the set, or across it on the diagonal. Staying put, only couples
+        // without neighbors, back from the end, take new ones.)
+        if (d > 1.7 * gap || (knows && old && !stay) || (stay && !old && (had(c) || had(q)))) continue;
+        // Travelling past the couple you just danced with: your next neighbors are beyond them, the way you faced them
+        // (ones past their twos, twos past their ones). Couples who stood level with theirs (a Becket) may go either way.
+        const ahead = (x, y, s) => !knows || !s || (midOf(y).y - midOf(x).y) * s > 0.3 * gap;
+        if (!stay && !(ahead(c, q, toward[c.id]) && ahead(q, c, toward[q.id]))) continue;
+        // Facing each other (after promenading round the set) counts for a lot. (In a dance that changes neighbors
+        // partway through, the end of the time through is no change at all: everyone stays with the neighbors they have.)
+        let cost = stay && old ? -1 : d;
+        if (byFacing) { const la = pose[c.lark].a; if (la != null) { const dot = ((mq.x - m.x) * Math.cos(la) + (mq.y - m.y) * Math.sin(la)) / Math.max(1e-6, d); cost += dot > 0.7 ? 0 : 3 * gap; } }
+        pairs.push({ c, q, cost });
+      }
+      // Pair as many couples as can be, the nearest first: each ones couple tries its options from the nearest, and may
+      // move another ones couple on to that couple's next option (so nobody is stranded at the end of the line when
+      // everyone could have had someone).
+      const opts = new Map(), match = new Map();
+      for (const o of pairs.sort((a, b) => a.cost - b.cost)) { if (!opts.has(o.c)) opts.set(o.c, []); opts.get(o.c).push(o.q); }
+      const tryPlace = (c, seen) => {
+        for (const q of opts.get(c)) {
+          if (seen.has(q)) continue;
+          seen.add(q);
+          if (!match.has(q) || tryPlace(match.get(q), seen)) { match.set(q, c); return true; }
+        }
+        return false;
+      };
+      for (const c of [...opts.keys()]) tryPlace(c, new Set());
+      for (const o of pairs) if (match.get(o.q) === o.c && !used.has(o.c) && !used.has(o.q)) group([o.c, o.q], null, lineOf(o.c));
+      // A couple the moves haven't brought to anyone new keeps dancing with the neighbors they have (and the check
+      // reports that the dance doesn't progress), rather than everyone standing about.
+      if (!stay) for (const c of couples) if (c.role === 'ones' && !used.has(c)) {
+        const q = couples.find(x => x.role === 'twos' && !used.has(x) && before.has(c.id + '|' + x.id) && dist(midOf(c), midOf(x)) <= 1.7 * gap);
+        if (q) group([c, q], null, lineOf(c));
+      }
     } else {
       for (const c of couples) {
         if (c.role !== 'ones') continue;
@@ -3381,30 +3431,11 @@ const Contra = (() => {
         // Partners standing side by side on one side of the set (a Becket, or a contra regrouping partway through,
         // after a slide along the set) take hands with the twos level with them across the set; partners across the set
         // (improper and the like), with the twos where the formation puts them (one place below, or above).
-        // A Becket changing neighbors while partners are still across the set (out of a star or a circle, say) takes hands
-        // with the next couple one place along the set: the one, above or below, they haven't just danced with.
-        if (F.kind === 'becket' && midway && Math.abs(m.x - cx) <= 0.25) {
-          const next = couples.filter(q => q.role === 'twos' && lineOf(q) === lineOf(c) && !used.has(q) && !(before && before.has(c.id + '|' + q.id))
-            && Math.abs(Math.abs(midOf(q).y - m.y) - gap) < 0.3 * gap && Math.abs(midOf(q).x - cx) <= 0.25).sort((a, b) => dist(midOf(a), m) - dist(midOf(b), m))[0];
-          if (next) group([c, next], null, lineOf(c));
-          continue;
-        }
         const sideBySide = F.kind === 'becket' || (midway && Math.abs(m.x - cx) > 0.25), want = sideBySide ? 0 : F.twosAt * gap;
         const t = couples.find(q => q.role === 'twos' && lineOf(q) === lineOf(c) && !used.has(q) && Math.abs(midOf(q).y - m.y - want) < 0.3 * gap
           && (!sideBySide || Math.sign(midOf(q).x - cx) === -Math.sign(m.x - cx)));
         if (t) group([c, t], null, lineOf(c));
       }
-    }
-    // A safety net for longways sets: if no hands-four formed at all (the dancers stand somewhere the rules above don't
-    // expect), each ones couple takes hands with the nearest twos couple, preferring one they haven't just danced with,
-    // rather than everyone standing still waiting out for the rest of the dance.
-    if (!groups.length && (F.kind === 'longways' || F.kind === 'becket')) {
-      const pairs = [];
-      for (const c of couples) if (c.role === 'ones') for (const q of couples) if (q.role === 'twos' && lineOf(q) === lineOf(c)) {
-        const d = dist(midOf(c), midOf(q));
-        if (d < 1.8 * gap) pairs.push({ c, q, d: d + (before && before.has(c.id + '|' + q.id) ? 2 * gap : 0) });
-      }
-      for (const o of pairs.sort((a, b) => a.d - b.d)) if (!used.has(o.c) && !used.has(o.q)) group([o.c, o.q], null, lineOf(o.c));
     }
     for (const c of couples) if (!used.has(c)) outs.push({ couple: c, cx: lines[lineOf(c)].cx, end: c.role === 'twos' ? 'top' : 'bottom' });
     return { groups, outs };
@@ -3595,8 +3626,10 @@ const Contra = (() => {
       // neighbors", means they met at the start of the time through; only a move along the set (a slide, a slice, a
       // pass through) moves them on there.
       const along = q => ['shift', 'slice', 'passThrough', 'promenadeAround'].includes(q.call.fig);
+      // ("... to new neighbor ⁋" as the last figure progresses at the end, as usual: it isn't a change partway through.)
+      const endsWithMark = PROGRESS_AFTER.test(flat[flat.length - 1].call.text);
       const k = flat.findIndex((q, i) => i < flat.length - 1 && ((PROGRESS_AFTER.test(q.call.text) && (q.part !== dance.parts[0] || along(q)))
-        || (NEXT_NEIGHBORS.test(flat[i + 1].call.text) && !NEXT_NEIGHBORS.test(q.call.text) && flat[i + 1].part !== dance.parts[0])));
+        || (!(endsWithMark && i === flat.length - 2) && NEXT_NEIGHBORS.test(flat[i + 1].call.text) && !NEXT_NEIGHBORS.test(q.call.text) && flat[i + 1].part !== dance.parts[0])));
       if (k >= 0) regroupAfter.add(k);
     }
     const crossBeats = Math.min(8, perPass);
@@ -3611,9 +3644,12 @@ const Contra = (() => {
     //   reaching the top waits out twice and comes back in as ones.
     // - four facing four: a line at the end turns around (each couple turning as a couple) and comes back in.
     const roundTheSet = flat.some(q => q.call.fig === 'promenadeAround');
-    const startPass = (from, t0, midway, prev) => {
-      const before = prev && new Set(prev.groups.map(g => g.members.map(c => c.id).join('|')));
-      const { groups, outs } = formGroups(couples, lines, from, P, F, midway, midway && roundTheSet, before);
+    const startPass = (from, t0, midway, prev, stay) => {
+      const before = prev && new Set(prev.groups.flatMap(g => g.members.flatMap(a => g.members.filter(b => b !== a).map(b => a.id + '|' + b.id))));
+      const toward = prev ? Object.assign({}, ...prev.groups.map(g => g.toward || {})) : {};
+      const { groups, outs } = formGroups(couples, lines, from, P, F, midway, midway && roundTheSet, before, stay, toward);
+      // (Staying with the same neighbors, couples keep the direction they had when they met them.)
+      if (stay) for (const g of groups) for (const c of g.members) if (toward[c.id] !== undefined && before.has(g.members.map(m => m.id).join('|'))) g.toward[c.id] = toward[c.id];
       for (const g of groups) for (const m of g.members) m.waiting = false;
       const cross = {}, inFn = {};
       for (const g of groups) for (const id of Object.values(g.ids)) {
@@ -3998,7 +4034,7 @@ const Contra = (() => {
           }
           if (last) {
             if (!regroupAfter.size) endOfWait(pass);
-            nextPass = startPass(ends, t1);
+            nextPass = startPass(ends, t1, false, pass, regroupAfter.size > 0);
           }
           // A dance that doesn't loop (a single-move preview) ends without turning toward a next figure.
           const next = last && p === passes - 1 && opts.loop === false ? null : planCall(last ? 0 : k + 1, ends, nextPass, t1).fns;
