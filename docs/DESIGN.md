@@ -566,3 +566,8 @@ A dance's progression difficulty (Checks; the library report) is the least exper
 experienced floor progresses. In the library: 115 for beginners, 23 intermediate, 37 experienced (mostly Becket dances
 changing neighbors partway through). It will be one ingredient of a star rating. Still to do: a known-good double
 progression dance to test the expert level against (the library has none marked double).
+
+**Long lines and couples at the ends (Ryan, November 2026).** When a time through starts with long lines (111), couples
+waiting at the ends go forward and back with their line and switch sides afterwards, in the next 8 beats, instead of
+crossing the set during the lines while holding hands with the dancers beside them. (In a dance too short to cross
+after the lines before it comes round again, they cross during them as before.)
