@@ -289,6 +289,56 @@ ul.checks li.passed { color: var(--muted); }
 .help summary { cursor: pointer; font: 600 16px var(--font-display); padding: 4px 0; }
 .help ul { margin: 6px 0 4px; padding-left: 20px; line-height: 1.5; }
 .help li { margin: 3px 0; }
+.caller .cvbody { flex: 1; min-height: 0; display: flex; gap: 18px; align-items: stretch; }
+.icard.cvcard { flex: 1 1 auto; overflow-y: auto; font-size: 30px; --rule-h: 46px; cursor: default; min-height: 0; }
+.icard.cvcard .iline { white-space: normal; border-radius: 4px; transition: background .2s; }
+.cvcard .iline.cur { background: rgba(255, 225, 90, .55); }
+.cvcard .iline.next { box-shadow: inset 4px 0 0 #6aa0d8; }
+.cvprompt { flex: 0 0 300px; display: flex; flex-direction: column; gap: 12px; }
+.cvnow, .cvnext { border-radius: 10px; padding: 12px 14px; background: var(--panel); border: 1px solid var(--rule); display: flex; flex-direction: column; gap: 4px; }
+.cvnow small, .cvnext small { font: 600 12px var(--font-body); color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.cvnow span { font: 600 20px var(--font-display); }
+.cvnext span { font: 700 26px var(--font-display); }
+.cvnext.soon { background: #fff3c4; border-color: #e6b800; color: #2b2300; }
+.cvnext.soon small { color: #6b5600; }
+.cvcontrols { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.cvcontrols button { min-width: 44px; min-height: 40px; }
+.cvcontrols #cvPlay { min-width: 90px; }
+@media (max-width: 800px) { .caller .cvbody { flex-direction: column; } .cvprompt { flex: none; flex-direction: row; } .cvprompt > div { flex: 1; } .icard.cvcard { font-size: 24px; --rule-h: 38px; } .cvnext span { font-size: 20px; } .cvnow span { font-size: 16px; } .cvhint { display: none; } }
+@media (min-width: 641px) { .phoneonly, .checkdot, .playbar { display: none !important; } }
+.phoneonly { display: none; }
+.checkdot { width: 30px; height: 30px; border-radius: 50%; padding: 0; display: none; align-items: center; justify-content: center; }
+.checkdot span { width: 14px; height: 14px; border-radius: 50%; background: var(--ok); }
+.checkdot.warn span { background: var(--warn); } .checkdot.bad span { background: var(--bad); }
+.playbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 25; gap: 8px; align-items: center; padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); background: var(--panel); border-top: 1px solid var(--rule); box-shadow: 0 -4px 16px rgba(0,0,0,.08); }
+.playbar button { min-width: 44px; min-height: 44px; font-size: 16px; }
+.playbar #pbPlay { min-width: 86px; }
+.pbtext { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.pbtext span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#pbWhere { font: 500 12px var(--font-mono); color: var(--muted); }
+#pbWhat { font: 600 15px var(--font-display); }
+.editbtn { width: 100%; padding: 12px; font: 600 16px var(--font-display); border-radius: 10px; }
+.sheet { position: fixed; inset: auto 0 0 0; margin: 0; width: 100%; max-width: 100%; border: 0; border-radius: 14px 14px 0 0; padding: 14px 16px calc(16px + env(safe-area-inset-bottom)); background: var(--panel); color: var(--ink); box-shadow: 0 -8px 30px rgba(0,0,0,.2); }
+.sheet::backdrop { background: rgba(10, 14, 20, .35); }
+.menulist { display: flex; flex-direction: column; gap: 6px; }
+.menulist button { display: flex; flex-direction: column; align-items: flex-start; text-align: left; padding: 10px 14px; font: 600 16px var(--font-display); border-radius: 10px; }
+.menulist small { font: 400 13px var(--font-body); color: var(--muted); }
+@media (max-width: 640px) {
+  .phoneonly { display: revert; }
+  .playbar { display: flex; }
+  .checkdot { display: inline-flex; }
+  #dancesOpen, #boxOpen, #checksOpen, #settingsOpen, #helpOpen, #refsOpen, #callerOpen { display: none; }
+  .topbar { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+  .topbar .nowplaying { order: 3; flex: 1 1 100%; font-size: 15px; }
+  .tbtools { width: auto !important; margin-left: auto !important; flex-wrap: nowrap !important; }
+  .tbar > .grp:first-child { display: none; }
+  .timeline:not(.more) .adv { display: none !important; }
+  body:not(.editing) .side { display: none; }
+  body { padding-bottom: calc(76px + env(safe-area-inset-bottom)) !important; }
+  .floorwrap { height: 60vh !important; }
+  .floorwrap .now { display: none; }
+  .topright { top: 8px !important; }
+}
 .box { width: min(1180px, 100vw); max-width: 100vw; height: min(92vh, 100%); max-height: 100vh; padding: 16px 20px; background: var(--bg); color: var(--ink); border: 1px solid var(--rule); border-radius: 12px; }
 .box[open] { display: flex; flex-direction: column; gap: 10px; }
 .box .grow { flex: 1; }
@@ -353,6 +403,7 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
 .pill { border-radius: 999px; padding: 4px 12px; font: 500 13px var(--font-body); display: inline-flex; align-items: center; gap: 8px; background: var(--panel); }
 .pill .lights { gap: 4px; }
 .pill .light { padding: 0 7px; font-size: 12px; }
+@media (max-width: 1440px) { .pill .light small { display: none; } }
 .app { flex: 1 1 auto; min-height: 0; align-items: stretch; grid-template-rows: minmax(0, 1fr); }
 .stage { min-height: 0; gap: 8px; }
 .floorwrap { flex: 1 1 auto; height: auto; min-height: 200px; }
@@ -478,12 +529,15 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
   <span class="nowplaying"><span class="nplabel">Now playing:</span> <b id="danceTitle">111</b></span>
   <span class="tbtools">
     <span class="bulkstep" id="bulkStep" hidden><button type="button" id="bulkPrev" aria-label="Previous dance in the list">‹</button><span id="bulkPos"></span><button type="button" id="bulkNext" aria-label="Next dance in the list">›</button></span>
+    <button type="button" id="checkDot" class="phoneonly checkdot" aria-label="Checks"><span></span></button>
+    <button type="button" id="menuOpen" class="pill phoneonly" aria-haspopup="dialog">☰ Menu</button>
+    <button type="button" id="callerOpen" class="pill" aria-haspopup="dialog">🎤 Caller view</button>
     <button type="button" id="dancesOpen" class="pill" aria-haspopup="dialog">♫ Dances</button>
     <button type="button" id="boxOpen" class="pill" aria-haspopup="dialog">🗂 Card box</button>
     <button type="button" id="checksOpen" class="pill" aria-haspopup="dialog"><span>Checks</span><span class="lights" id="lights"></span></button>
     <button type="button" id="settingsOpen" class="pill" aria-haspopup="dialog">⚙ Settings</button>
     <button type="button" id="helpOpen" class="pill" aria-haspopup="dialog">? Help</button>
-    <button type="button" id="refsOpen" class="pill">References</button>
+    <button type="button" id="refsOpen" class="pill" hidden>References</button>
   </span>
 </header>
 
@@ -516,15 +570,16 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
           <label class="small" for="speed">Speed</label>
           <select id="speed"><option value="0.25">¼×</option><option value="0.5">½×</option><option value="1" selected>1×</option><option value="1.5">1½×</option><option value="2">2×</option></select>
         </div>
-        <div class="grp">
+        <button type="button" id="tbMore" class="phoneonly" aria-expanded="false">More ▾</button>
+        <div class="grp adv">
           <label class="small" for="loop">Loop</label>
           <select id="loop"><option value="all">Whole dance</option><option value="pass">This time through</option><option value="part">This part</option><option value="figure">This figure</option></select>
         </div>
-        <label class="small"><input id="hands" type="checkbox" checked> Hands</label>
-        <span class="seg viewseg" role="group" aria-label="Timeline view"><button type="button" id="viewParts" aria-pressed="true">Parts</button><button type="button" id="viewJourney" aria-pressed="false">Journey</button></span>
-        <button type="button" id="nextEnd" title="Go to the next time a couple goes out at an end or comes back in">Next end effect ⏭</button>
+        <label class="small adv"><input id="hands" type="checkbox" checked> Hands</label>
+        <span class="seg viewseg adv" role="group" aria-label="Timeline view"><button type="button" id="viewParts" aria-pressed="true">Parts</button><button type="button" id="viewJourney" aria-pressed="false">Journey</button></span>
+        <button type="button" id="nextEnd" class="adv" title="Go to the next time a couple goes out at an end or comes back in">Next end effect ⏭</button>
       </div>
-      <div class="passes" id="passStrip" role="group" aria-label="Times through"></div>
+      <div class="passes adv" id="passStrip" role="group" aria-label="Times through"></div>
       <div class="prow rulerrow"><div class="plabel small">Beat</div><div class="ruler" id="ruler" title="Drag along here to move through this part"></div></div>
       <div class="journey" id="journeyView" hidden>
         <canvas id="journeyCanvas" aria-label="Where each couple is along the line, through the whole dance. Click to go to that moment; click a line to follow that couple."></canvas>
@@ -532,6 +587,7 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
       </div>
       <div class="rows" id="rows" title="Drag a figure to move it, drag its right edge to change its length (Shift for single beats), click it to change who dances it. Click an empty space to jump there."></div>
     </div>
+    <button type="button" id="editToggle" class="phoneonly editbtn" aria-expanded="false">✎ Edit this dance</button>
   </div>
 
   <aside class="side">
@@ -654,6 +710,41 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
   <ul class="checks" id="checks"></ul>
 </dialog>
 
+<div id="playbar" class="playbar phoneonly" role="group" aria-label="Play the dance">
+  <button type="button" id="pbBack" aria-label="Back one beat">◀</button>
+  <button type="button" id="pbPlay" class="primary">Play</button>
+  <button type="button" id="pbFwd" aria-label="Forward one beat">▶</button>
+  <span class="pbtext"><span id="pbWhere"></span><span id="pbWhat"></span></span>
+</div>
+<dialog id="phoneMenu" class="sheet" aria-label="Menu">
+  <div class="refshead"><h2>Menu</h2><button type="button" id="menuClose" aria-label="Close">✕</button></div>
+  <nav class="menulist">
+    <button type="button" data-go="dancesOpen">♫ Dances <small>featured dances to watch</small></button>
+    <button type="button" data-go="boxOpen">🗂 My card box <small>your own dances</small></button>
+    <button type="button" data-go="callerOpen">🎤 Caller view <small>the card, as a caller reads it</small></button>
+    <button type="button" data-go="editToggle" id="menuEdit">✎ Edit this dance <small>build or change it</small></button>
+    <button type="button" data-go="cardImport">📷 Read a dance card <small>from a photo, or typed in</small></button>
+    <button type="button" data-go="checksOpen" id="menuChecks">✓ Checks <small id="menuChecksSum"></small></button>
+    <button type="button" data-go="settingsOpen">⚙ Settings <small>floor, music, dancers</small></button>
+    <button type="button" data-go="helpOpen">? Help <small>how everything works</small></button>
+    <button type="button" data-go="refsOpen">References and thanks</button>
+  </nav>
+</dialog>
+<dialog id="callerView" class="box caller" aria-labelledby="cvTitle">
+  <div class="boxhead"><h2 id="cvTitle">Caller view</h2><span class="small" id="cvWhere"></span><span class="grow"></span><button type="button" id="cvClose" aria-label="Close">✕</button></div>
+  <div class="cvbody">
+    <div id="cvCard" class="icard full cvcard"></div>
+    <div class="cvprompt" aria-live="polite">
+      <div class="cvnow"><small>Now</small><span id="cvNow"></span></div>
+      <div class="cvnext" id="cvNextBox"><small>Call next <b id="cvIn"></b></small><span id="cvNext"></span></div>
+    </div>
+  </div>
+  <div class="cvcontrols">
+    <button type="button" id="cvBack" aria-label="Back one beat">◀</button><button type="button" id="cvPlay" class="primary">Play</button><button type="button" id="cvFwd" aria-label="Forward one beat">▶</button>
+    <label class="small">Speed <select id="cvSpeed"><option value="0.25">¼×</option><option value="0.5">½×</option><option value="1">1×</option><option value="1.5">1½×</option><option value="2">2×</option></select></label>
+    <span class="small cvhint">The highlighted line is being danced. Give the next call in the last few beats, when its box lights up.</span>
+  </div>
+</dialog>
 <dialog id="cardBox" class="box" aria-labelledby="boxTitle">
   <div class="boxhead">
     <h2 id="boxTitle">My card box</h2><span class="small" id="boxCount"></span><span class="grow"></span>
@@ -700,7 +791,7 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
 </div>
 <dialog id="helpDialog" class="refs help" aria-labelledby="helpTitle">
   <div class="refshead"><h2 id="helpTitle">How to use the simulator</h2><button type="button" id="helpClose" aria-label="Close">✕</button></div>
-  <p>Watch folk dances from above (contras, English country dances, squares and more), build your own, and check that they work. <button type="button" id="helpTour">Show the quick tour again</button></p>
+  <p>Watch folk dances from above (contras, English country dances, squares and more), build your own, and check that they work. <button type="button" id="helpTour">Show the quick tour again</button> <button type="button" id="helpRefs">References and thanks</button></p>
   <details open><summary>Watching a dance</summary>
     <ul>
       <li><b>Play</b> starts and stops the dance (or press the space bar). <b>◀ ▶</b> step one beat back or forward (or the arrow keys).</li>
@@ -708,6 +799,21 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
       <li>The line over the floor says where you are (<i>A1 · beat 5 of 16</i>) and what's being danced.</li>
       <li><b>Hands</b> shows who is holding hands with whom.</li>
       <li>Turn on <b>Music</b> in Settings to hear the beat; set the tempo there too.</li>
+    </ul>
+  </details>
+  <details><summary>Calling the dance (🎤 Caller view)</summary>
+    <ul>
+      <li>The dance on a big index card, as a caller reads it: the line being danced is highlighted, and the next one is marked.</li>
+      <li>Beside it (below it on a phone): <b>Now</b>, the move being danced, and <b>Call next</b>, the next move and how many beats until it starts. The Call next box lights up in the last few beats, when a caller gives the call.</li>
+      <li>Play, step a beat with ◀ ▶, and set the speed at the bottom (the space bar plays and pauses too). Set the tempo in Settings to match your band.</li>
+    </ul>
+  </details>
+  <details><summary>On a phone</summary>
+    <ul>
+      <li>The page opens for watching: the floor, the parts, and a play bar that stays at the bottom of the screen.</li>
+      <li><b>☰ Menu</b> has everything else: featured dances, your card box, the caller view, editing the dance, reading a dance card, checks, settings, help and references.</li>
+      <li>The coloured dot beside the menu sums up the checks: green is fine, amber is worth a look, red is a problem. Tap it to see them.</li>
+      <li><b>More ▾</b> under the floor shows the extra playback controls (loop, hands, journey, times through). <b>✎ Edit this dance</b> opens the editor.</li>
     </ul>
   </details>
   <details><summary>The dance floor</summary>
@@ -4477,6 +4583,7 @@ function build() {
   $('progression').value = String(Math.min(3, dance.progression));
   setupSummary();
   const passes = Math.max(1, Math.min(30, Math.round(+$('passes').value) || 8));
+  if ($('callerView').open) setTimeout(() => callerView.build(), 0);
   state.c = Contra.compile(dance, { lines: +$('lines').value, sets: +$('sets').value, passes, params: { swingBeatsPerTurn: +$('swingRate').value, experience: +$('experience').value / 100 } });
   // How experienced dancers must be for the progression to work (shown in Checks): worked out after the floor is drawn.
   state.level = undefined; const levelFor = state.buildId;
@@ -5244,6 +5351,7 @@ function moveMatches(def, query) {
   const hay = `${def.label} ${roleWords(def.label)} ${CATEGORIES.find(c => c.id === def.cat).name}`.toLowerCase();
   return q.split(/\s+/).every(w => hay.includes(w)) || !!(def.re && (def.re.test(q) || def.re.test(query.toLowerCase())));
 }
+const poolOpen = new Set();
 function renderPool() {
   const pool = $('pool'), query = $('poolSearch').value.trim();
   pool.innerHTML = '';
@@ -5267,7 +5375,9 @@ function renderPool() {
     const all = POOL.filter(d => d.cat === cat.id), moves = all.filter(d => moveMatches(d, query));
     if (!moves.length) continue;
     found += moves.length;
-    const group = document.createElement('details'); group.className = `pgroup cat${cat.id}`; group.open = true;
+    // (The groups stay folded, so the list starts short, unless searching or opened.)
+    const group = document.createElement('details'); group.className = `pgroup cat${cat.id}`; group.open = !!query || poolOpen.has(cat.id);
+    group.addEventListener('toggle', () => { if (query) return; if (group.open) poolOpen.add(cat.id); else poolOpen.delete(cat.id); });
     group.innerHTML = `<summary>${icon(cat.id)}<span>${cat.name}</span><small>${query ? moves.length + ' found' : `${all.filter(d => d.fig).length}/${all.length}`}</small></summary><div class="chips"></div>`;
     for (const def of moves) group.querySelector('.chips').appendChild(chipFor(def));
     pool.appendChild(group);
@@ -5748,6 +5858,10 @@ function showChecks() {
   if (!c.warnings.some(w => /beats long/.test(w.text))) items.push(['ok', 'Every part is 16 beats and the dance is 64.']);
   if (!c.warnings.some(w => /musical phrase/.test(w.text))) items.push(['ok', '8- and 16-beat figures start on a phrase.']);
   const count = l => items.filter(i => i[0] === l).length;
+  // (On a phone, one dot for the checks: red if there's a problem, amber for cautions, else green.)
+  $('checkDot').className = 'phoneonly checkdot ' + (count('bad') ? 'bad' : count('warn') ? 'warn' : 'ok');
+  $('checkDot').setAttribute('aria-label', `Checks: ${count('bad')} problems, ${count('warn')} cautions`);
+  $('menuChecksSum').textContent = `${count('bad')} problem${count('bad') === 1 ? '' : 's'}, ${count('warn')} caution${count('warn') === 1 ? '' : 's'}`;
   $('lights').innerHTML = [['bad', 'problem', 'problems'], ['warn', 'caution', 'cautions'], ['ok', 'passed', 'passed']]
     .map(([l, one, many]) => `<span class="light ${l}${count(l) ? '' : ' zero'}">${count(l)}<small>${count(l) === 1 ? one : many}</small></span>`).join('');
   $('checksOpen').setAttribute('aria-label', `Checks: ${count('bad')} problems, ${count('warn')} cautions, ${count('ok')} passed`);
@@ -5910,7 +6024,7 @@ function scrubFrom(e, partIndex) {
 
 function seek(t) { state.t = Math.max(0, Math.min(state.c.total, t)); music.next = null; }
 function setPlaying(on) {
-  state.playing = on; $('play').textContent = on ? 'Pause' : 'Play'; state.last = performance.now(); music.next = null;
+  state.playing = on; $('play').textContent = on ? 'Pause' : 'Play'; $('pbPlay').textContent = on ? 'Pause' : 'Play'; $('cvPlay').textContent = on ? 'Pause' : 'Play'; state.last = performance.now(); music.next = null;
   if (on) startAudio();
 }
 
@@ -6007,7 +6121,7 @@ const rgb = hex => { const h = hex.replace('#', ''); return [0, 2, 4].map(i => p
 // How metres on the floor map to pixels on a canvas: fit `b` (bounds in metres) with some room around it.
 function view(cv = canvas, b = state.c.bounds, pad) {
   const r = cv.getBoundingClientRect();
-  pad = pad || { l: 1.0, r: 1.0, t: r.width < 640 ? 2.4 : 1.6, b: 0.9 };   // more room at the top on a phone, for the key
+  pad = pad || { l: 0.8, r: 0.8, t: r.width < 640 ? 1.3 : 1.6, b: 0.7 };   // on a phone the play bar says where you are, so the floor keeps only the key at the top
   const W = b.maxX - b.minX + pad.l + pad.r, H = b.maxY - b.minY + pad.t + pad.b;
   const s = Math.min(r.width / W, r.height / H);
   const ox = (r.width - W * s) / 2 + pad.l * s, oy = (r.height - H * s) / 2 + pad.t * s;
@@ -6035,7 +6149,7 @@ function drawFloor(cv, c, t, o) {
 
 function drawSetting(g, v, c, t, P) {
   g.fillStyle = tokens.muted; g.font = '600 11px "Instrument Sans", system-ui, sans-serif'; g.textAlign = 'center';
-  g.fillText('BAND  ↑  TOP OF THE HALL', v.w / 2, Math.max(v.w < 640 ? 88 : 62, v.Y(c.bounds.maxY + 1.3)));   // on a phone the key sits above it
+  g.fillText('BAND  ↑  TOP OF THE HALL', v.w / 2, v.w < 640 ? Math.max(40, v.Y(c.bounds.maxY + 0.85)) : Math.max(62, v.Y(c.bounds.maxY + 1.3)));   // on a phone, just under the key
 
   // This time through's hands-fours, and a label beside couples waiting out at the ends. When the groups change at
   // the start of a time through, the old outlines fade out as the new ones fade in, over SETTING_FADE beats;
@@ -6208,6 +6322,8 @@ function updateReadout() {
   const passText = c.passes.length > 1 ? `Time ${p + 1} of ${c.passes.length} · ` : '';
   $('where').textContent = `${passText}${part.name} · beat ${beat} of ${part.t1 - part.t0} · bar ${Math.ceil(beat / 2)}`;
   $('what').textContent = roleWords(k.text);
+  $('pbWhere').textContent = `${part.name} · beat ${beat}`; $('pbWhat').textContent = roleWords(k.text);
+  if ($('callerView').open) callerView.update();
   $('passStrip').querySelectorAll('.pbox').forEach((el, j) => { el.classList.toggle('cur', j === p); if (j === p && state.passShown !== p) el.scrollIntoView({ block: 'nearest', inline: 'nearest' }); });
   state.passShown = p;
   for (const el of $('rows').querySelectorAll('.fblk')) el.classList.toggle('active', +el.dataset.flat === k.src);
@@ -6387,6 +6503,78 @@ function setupCardImport() {
   $('cardClear').onclick = () => { cardPhoto = null; $('cardText').value = ''; const pv = $('photoPreview'); if (pv.src) URL.revokeObjectURL(pv.src); pv.removeAttribute('src'); pv.hidden = true; unsure([]); status(''); };
 }
 
+// ---------- Caller view (Ryan): the dance card as a caller reads it while calling ----------
+// The dance on a big index card; the line being danced is highlighted and the next call is prompted, lighting up in
+// its last few beats, when a caller gives it. Playing, stepping and the speed are the floor's own.
+const callerView = (() => {
+  let lines = [], last = '';
+  const formName = key => { const o = $('formation').querySelector(`option[value="${key}"]`); return o ? o.textContent : key; };
+  function build() {
+    const d = state.doc, card = $('cvCard'); card.innerHTML = ''; lines = [];
+    const head = document.createElement('header');
+    for (const [cls, t] of [['ititle', d.title || 'Untitled dance'], ['iform', formName(d.formation)], ['iby', d.author]]) if (t) { const sp = document.createElement('span'); sp.className = cls; sp.textContent = roleWords(t); head.appendChild(sp); }
+    const body = document.createElement('div'); body.className = 'ilines';
+    let t = 0;
+    for (const part of d.parts) part.calls.forEach((k, i) => {
+      const line = document.createElement('div'); line.className = 'iline';
+      line.innerHTML = `<span class="ipart"></span><span class="itext"></span><span class="ibeats"></span>`;
+      line.children[0].textContent = i ? '' : part.name; line.children[1].textContent = roleWords(k.text); line.children[2].textContent = k.beats;
+      body.appendChild(line); lines.push({ el: line, t0: t, t1: t + k.beats, text: roleWords(k.text), part: part.name }); t += k.beats;
+    });
+    card.append(head, body); last = '';
+    update();
+  }
+  function update() {
+    const c = state.c; if (!c || !lines.length) return;
+    const per = c.perPass || 1, pass = Math.min(Math.floor(state.t / per), (c.passes || []).length - 1), local = state.t - pass * per;
+    const i = Math.max(0, lines.findIndex(q => local >= q.t0 - 1e-6 && local < q.t1 - 1e-6)), cur = lines[i], nx = lines[(i + 1) % lines.length];
+    const left = Math.max(0, Math.ceil(cur.t1 - local - 1e-6)), soon = left <= Math.min(4, Math.max(2, (cur.t1 - cur.t0) / 2));
+    const key = `${pass}|${i}|${left}`;
+    if (key === last) return;
+    const moved = !last || last.split('|')[1] !== String(i); last = key;
+    lines.forEach((q, j) => { q.el.classList.toggle('cur', j === i); q.el.classList.toggle('next', j === (i + 1) % lines.length && lines.length > 1); });
+    $('cvWhere').textContent = `Time ${pass + 1} of ${(c.passes || []).length} · ${cur.part} · beat ${Math.floor(local - (c.parts.find(p => p.name === cur.part) || { t0: 0 }).t0) + 1}`;
+    $('cvNow').textContent = `${cur.part}: ${cur.text}`;
+    $('cvNext').textContent = `${nx.part}: ${nx.text}`;
+    $('cvIn').textContent = i === lines.length - 1 ? `(next time through) in ${left} beat${left === 1 ? '' : 's'}` : `in ${left} beat${left === 1 ? '' : 's'}`;
+    $('cvNextBox').classList.toggle('soon', soon);
+    if (moved) cur.el.scrollIntoView({ block: 'center', behavior: state.playing ? 'smooth' : 'auto' });
+  }
+  $('callerOpen').onclick = () => { $('cvSpeed').value = $('speed').value; build(); $('callerView').showModal(); update(); };
+  $('cvClose').onclick = () => $('callerView').close();
+  $('cvPlay').onclick = () => $('play').click();
+  $('cvBack').onclick = () => { $('back').click(); update(); };
+  $('cvFwd').onclick = () => { $('fwd').click(); update(); };
+  $('cvSpeed').onchange = () => { $('speed').value = $('cvSpeed').value; $('speed').dispatchEvent(new Event('change')); };
+  return { build, update };
+})();
+
+// ---------- On a phone (Christine's first visit): watch first, everything else in one menu ----------
+const PHONE = window.matchMedia('(max-width: 640px)');
+$('pbPlay').onclick = () => $('play').click();
+$('pbBack').onclick = () => $('back').click();
+$('pbFwd').onclick = () => $('fwd').click();
+$('tbMore').onclick = () => { const t = document.querySelector('.timeline'), on = t.classList.toggle('more'); $('tbMore').setAttribute('aria-expanded', String(on)); $('tbMore').textContent = on ? 'Less ▴' : 'More ▾'; };
+function setEditing(on) {
+  document.body.classList.toggle('editing', on);
+  $('editToggle').setAttribute('aria-expanded', String(on));
+  $('editToggle').textContent = on ? 'Done editing ▴' : '✎ Edit this dance';
+  $('menuEdit').firstChild.textContent = on ? '✎ Done editing ' : '✎ Edit this dance ';
+  if (on) requestAnimationFrame(() => document.querySelector('.side').scrollIntoView({ behavior: 'smooth', block: 'start' }));
+}
+$('editToggle').onclick = () => setEditing(!document.body.classList.contains('editing'));
+$('checkDot').onclick = () => $('checksOpen').click();
+$('menuOpen').onclick = () => $('phoneMenu').showModal();
+$('menuClose').onclick = () => $('phoneMenu').close();
+$('phoneMenu').addEventListener('click', e => { if (e.target === $('phoneMenu')) $('phoneMenu').close(); });
+for (const b of document.querySelectorAll('#phoneMenu [data-go]')) b.onclick = () => {
+  $('phoneMenu').close();
+  const go = b.dataset.go;
+  if (go === 'cardImport') { setEditing(true); $('tabCard').click(); }
+  else if (go === 'editToggle') setEditing(!document.body.classList.contains('editing'));
+  else $(go).click();
+};
+
 // ---------- First visit: a quick tour of the basics; Help has the rest ----------
 // Each step lights up one part of the page (none for the welcome) and says what it's for.
 const TOUR = [
@@ -6395,15 +6583,23 @@ const TOUR = [
   ['.tbar', 'Play the dance', 'Play starts the dance. ◀ ▶ step one beat at a time (or use the arrow keys). Slow it down with Speed, and use Loop to repeat one part or one move while you learn it.'],
   ['#rows', 'The dance, part by part', 'Each row is a part (A1, A2, B1, B2) of 16 beats, with its moves as coloured blocks. Tap a block to jump to that move.'],
   ['.dancecard', 'Change the dance', 'In the Editor, tap a move in the list to see it danced and add it to a part. Text shows the dance written out. Dance card brings in a dance from a caller’s card, or a photo of one.'],
+  ['#callerOpen', 'Calling the dance', 'Caller view shows the dance card as a caller reads it, with the line being danced highlighted and the next call prompted a few beats ahead.'],
   ['#dancesOpen', 'Dances', 'Try one of the featured dances, or check many dances at once.'],
   ['#boxOpen', 'Your card box', 'Your own dances, each on an index card: add them from the floor, from a typed card or a photo of one, then search, sort, rate and export them.'],
   ['#checksOpen', 'Does it work?', 'These lights show whether the dance works: green is fine, red is a problem, like dancers bumping or not progressing. Open Checks to see why.'],
   ['#helpOpen', 'Help is here', 'That’s the basics. Help explains everything in more depth, and can show this tour again. Enjoy the dance!'],
 ];
-const tour = { i: 0, el: null };
+// On a phone, a shorter tour: the floor, the play bar, and the menu with everything else.
+const TOUR_PHONE = [
+  [null, 'Welcome!', 'This simulator shows folk dances (contras, English country dances, squares and more) from above. Three quick things.'],
+  ['#floor', 'The dance floor', () => `Looking down on the hall, band at the top. ${roleSet()[0]} and ${roleSet()[1].toLowerCase()} in their own colours. Tap a dancer to follow their couple.`],
+  ['#playbar', 'Play the dance', 'Play starts the dance; ◀ ▶ step a beat at a time. It says which part and move you’re on.'],
+  ['#menuOpen', 'Everything else', 'Featured dances, your card box, the caller view, editing the dance, checks, settings and help are all in the menu. Enjoy!'],
+];
+const tour = { i: 0, el: null, steps: TOUR };
 function tourPlace() {
   if ($('tour').hidden) return;
-  const [sel] = TOUR[tour.i], el = sel && document.querySelector(sel), spot = $('tourSpot'), card = $('tourCard');
+  const [sel] = tour.steps[tour.i], el = sel && document.querySelector(sel), spot = $('tourSpot'), card = $('tourCard');
   const vw = window.innerWidth, vh = window.innerHeight, cw = card.offsetWidth, ch = card.offsetHeight;
   if (!el || !el.getClientRects().length) {
     spot.classList.add('none');
@@ -6419,14 +6615,14 @@ function tourPlace() {
   card.style.left = `${left}px`; card.style.top = `${y}px`;
 }
 function tourShow(i) {
-  tour.i = Math.max(0, Math.min(TOUR.length - 1, i));
-  const [sel, title, text] = TOUR[tour.i], el = sel && document.querySelector(sel);
-  $('tourStep').textContent = `${tour.i + 1} of ${TOUR.length}`;
+  tour.i = Math.max(0, Math.min(tour.steps.length - 1, i));
+  const [sel, title, text] = tour.steps[tour.i], el = sel && document.querySelector(sel);
+  $('tourStep').textContent = `${tour.i + 1} of ${tour.steps.length}`;
   $('tourTitle').textContent = title;
   $('tourText').textContent = typeof text === 'function' ? text() : text;
   $('tourBack').hidden = tour.i === 0;
-  $('tourNext').textContent = tour.i === TOUR.length - 1 ? 'Done' : tour.i === 0 ? 'Show me' : 'Next';
-  $('tourSkip').hidden = tour.i === TOUR.length - 1;
+  $('tourNext').textContent = tour.i === tour.steps.length - 1 ? 'Done' : tour.i === 0 ? 'Show me' : 'Next';
+  $('tourSkip').hidden = tour.i === tour.steps.length - 1;
   if (el && el.getClientRects().length) {
     const r = el.getBoundingClientRect();
     if (r.top < 0 || r.bottom > window.innerHeight) el.scrollIntoView({ block: r.height > window.innerHeight * 0.6 ? 'start' : 'center', behavior: 'instant' });
@@ -6435,9 +6631,9 @@ function tourShow(i) {
   requestAnimationFrame(tourPlace);
   $('tourNext').focus();
 }
-function tourStart() { if ($('helpDialog').open) $('helpDialog').close(); setPlaying(false); $('tour').hidden = false; tourShow(0); }
+function tourStart() { tour.steps = PHONE.matches ? TOUR_PHONE : TOUR; if ($('helpDialog').open) $('helpDialog').close(); if ($('phoneMenu').open) $('phoneMenu').close(); setPlaying(false); $('tour').hidden = false; tourShow(0); }
 function tourEnd() { $('tour').hidden = true; store('contra.toured', '1'); }
-$('tourNext').onclick = () => (tour.i === TOUR.length - 1 ? tourEnd() : tourShow(tour.i + 1));
+$('tourNext').onclick = () => (tour.i === tour.steps.length - 1 ? tourEnd() : tourShow(tour.i + 1));
 $('tourBack').onclick = () => tourShow(tour.i - 1);
 $('tourSkip').onclick = tourEnd;
 $('tour').addEventListener('keydown', e => {
@@ -6452,6 +6648,7 @@ window.addEventListener('scroll', tourPlace, true);
 $('helpOpen').onclick = () => $('helpDialog').showModal();
 $('helpClose').onclick = () => $('helpDialog').close();
 $('helpTour').onclick = tourStart;
+$('helpRefs').onclick = () => { $('helpDialog').close(); $('refsDialog').showModal(); };
 // (Shown once, on a first visit, after the page has drawn. "?notour" in the address skips it.)
 if (!recall('contra.toured') && !/[?&]notour\b/.test(location.search)) setTimeout(tourStart, 700);
 

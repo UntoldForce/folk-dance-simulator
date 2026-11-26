@@ -212,7 +212,7 @@ const { chromium } = require('playwright');
   check(await p.evaluate(() => $('hands').checked), 'the hands switch turns off and back on');
   check(await p.evaluate(() => $('puzzled').checked && typeof drawPuzzled === 'function'), 'confused dancers say so, unless turned off in Settings');
   check(!(await p.locator('#refsDialog').isVisible()), 'references are hidden until asked for');
-  await p.click('#refsOpen'); await p.waitForTimeout(150);
+  await p.click('#helpOpen'); await p.click('#helpRefs'); await p.waitForTimeout(150);
   check(await p.locator('#refsDialog').isVisible() && (await p.locator('#refsDialog a').count()) >= 6, 'the References button opens the list of sources');
   await p.click('#refsClose');
   check(!(await p.locator('#refsDialog').isVisible()), 'and it closes again');
@@ -237,6 +237,10 @@ const { chromium } = require('playwright');
     await q.addInitScript(() => { try { localStorage.setItem('contra.toured', '1'); } catch (e) {} });
     q.on('pageerror', e => errs.push(e.message));
     await q.goto('file://' + path.join(__dirname, '..', 'index.html')); await q.evaluate(() => localStorage.clear()); await q.reload(); await q.waitForTimeout(300);
+    // On a phone the page opens for watching: the editor is behind "Edit this dance".
+    check(await q.isHidden('.side') && await q.isVisible('#editToggle'), 'on a phone the editor starts hidden, behind "Edit this dance"');
+    await q.tap('#editToggle'); await q.waitForTimeout(400);
+    check(await q.isVisible('.side'), '"Edit this dance" shows the editor');
     const chip = q.locator('.chip:has-text("Petronella")').first(); await chip.scrollIntoViewIfNeeded(); const y0 = await q.evaluate(() => scrollY);
     await chip.tap(); await q.waitForTimeout(300);
     const box = await q.locator('#builder').boundingBox(), vh = await q.evaluate(() => innerHeight);
@@ -277,12 +281,13 @@ const { chromium } = require('playwright');
       const box = await q.locator('#tourCard').boundingBox(), vp = q.viewportSize();
       if (!(box.x >= 0 && box.y >= 0 && box.x + box.width <= vp.width + 1 && box.y + box.height <= vp.height + 1)) onScreen = false;
     }
-    check(n === 9 && onScreen, `${label}: the tour has 9 steps, its card always fully on screen (${n})`);
+    check(n === (label === 'phone' ? 4 : 10) && onScreen, `${label}: the tour has ${label === 'phone' ? 4 : 10} steps, its card always fully on screen (${n})`);
     await q.click('#tourNext'); await q.waitForTimeout(100);
     check(await q.isHidden('#tour'), `${label}: Done closes the tour`);
     await q.reload(); await q.waitForTimeout(1200);
     check(await q.isHidden('#tour'), `${label}: the tour doesn't open again on the next visit`);
-    await q.click('#helpOpen');
+    if (label === 'phone') { await q.click('#menuOpen'); check(await q.isVisible('#phoneMenu'), 'phone: the ☰ Menu opens, with everything else in it'); await q.click('#phoneMenu [data-go="helpOpen"]'); }
+    else await q.click('#helpOpen');
     check(await q.isVisible('#helpDialog') && (await q.locator('#helpDialog details').count()) >= 8, `${label}: Help opens the full guide`);
     await q.click('#helpTour'); await q.waitForTimeout(200);
     check(await q.isHidden('#helpDialog') && await q.isVisible('#tourCard'), `${label}: Help can show the tour again`);
@@ -358,9 +363,57 @@ const { chromium } = require('playwright');
     q.on('pageerror', e => errs.push(e.message));
     await q.addInitScript(() => { try { localStorage.setItem('contra.toured', '1'); } catch (e) {} });
     await q.goto('file://' + path.join(__dirname, '..', 'index.html')); await q.waitForTimeout(800);
-    await q.click('#boxOpen'); await q.click('#boxAdd'); await q.waitForTimeout(300);
+    await q.click('#menuOpen'); await q.click('#phoneMenu [data-go="boxOpen"]'); await q.click('#boxAdd'); await q.waitForTimeout(300);
     const box = await q.locator('#cardBox').boundingBox(), c1 = await q.locator('#boxGrid .icard').first().boundingBox(), vp = q.viewportSize();
     check(box.width >= vp.width - 2 && c1.x >= 0 && c1.x + c1.width <= vp.width, 'card box on a phone: fills the screen, cards fit across');
+    await ctx.close();
+  }
+
+  // Phone-friendly (Christine): a play bar always at the bottom, the expert controls behind More, one dot for the checks;
+  // the move list folded; the Caller view, the dance card as a caller reads it.
+  {
+    const { devices } = require('playwright'), ctx = await b.newContext({ ...devices['iPhone 13'] }), q = await ctx.newPage();
+    q.on('pageerror', e => errs.push(e.message));
+    await q.addInitScript(() => { try { localStorage.setItem('contra.toured', '1'); } catch (e) {} });
+    await q.goto('file://' + path.join(__dirname, '..', 'index.html')); await q.waitForTimeout(800);
+    const bar = await q.locator('#playbar').boundingBox(), vh = q.viewportSize().height;
+    check(bar && Math.abs(bar.y + bar.height - vh) < 2 && await q.isVisible('#pbPlay'), 'phone: the play bar sits at the bottom of the screen');
+    await q.evaluate(() => window.scrollTo(0, 2000)); await q.waitForTimeout(100);
+    const bar2 = await q.locator('#playbar').boundingBox();
+    check(Math.abs(bar2.y + bar2.height - vh) < 2, 'phone: the play bar stays there while scrolling');
+    await q.tap('#pbFwd'); await q.tap('#pbFwd'); await q.waitForTimeout(100);
+    check(/A1 · beat 3/.test(await q.textContent('#pbWhere')) && /long lines/i.test(await q.textContent('#pbWhat')), `phone: the play bar steps the dance and says where it is (${await q.textContent('#pbWhere')})`);
+    check(await q.isHidden('#loop') && await q.isHidden('#passStrip'), 'phone: the expert controls start hidden');
+    await q.evaluate(() => window.scrollTo(0, 0)); await q.tap('#tbMore'); await q.waitForTimeout(100);
+    check(await q.isVisible('#loop') && await q.isVisible('#passStrip'), 'phone: More shows them');
+    check(await q.isVisible('#checkDot') && /warn|bad|ok/.test(await q.getAttribute('#checkDot', 'class')) && await q.isHidden('#checksOpen'), 'phone: the checks are one coloured dot');
+    await q.tap('#menuOpen'); await q.tap('#phoneMenu [data-go="callerOpen"]'); await q.waitForTimeout(300);
+    check(await q.isVisible('#callerView') && (await q.locator('#cvCard .iline.cur').count()) === 1, 'phone: the Caller view opens from the menu, with the current line highlighted');
+    await ctx.close();
+  }
+  {
+    const ctx = await b.newContext({ viewport: { width: 1280, height: 860 } }), q = await ctx.newPage();
+    q.on('pageerror', e => errs.push(e.message));
+    await q.addInitScript(() => { try { localStorage.setItem('contra.toured', '1'); } catch (e) {} });
+    await q.goto('file://' + path.join(__dirname, '..', 'index.html')); await q.waitForTimeout(800);
+    check(await q.isHidden('#playbar') && await q.isHidden('#menuOpen') && await q.isVisible('#dancesOpen'), 'computer: no play bar or menu; the buttons are as before');
+    check((await q.locator('#pool details.pgroup[open]').count()) === 0 && await q.isVisible('#pool .pgroup.common'), 'the move list starts folded: the most common moves, the groups closed');
+    await q.fill('#poolSearch', 'chain'); await q.waitForTimeout(100);
+    check((await q.locator('#pool details.pgroup[open]').count()) > 0, 'searching opens the groups with matches');
+    await q.fill('#poolSearch', '');
+    await q.click('#callerOpen'); await q.waitForTimeout(300);
+    const lines = q.locator('#cvCard .iline');
+    check(await q.isVisible('#callerView') && (await lines.count()) === 12 && /111/.test(await q.textContent('#cvCard header')), 'Caller view: the dance on a card, every line');
+    check(/In long lines/.test(await q.textContent('#cvNow')) && /Robins allemande/.test(await q.textContent('#cvNext')) && /in 8 beats/.test(await q.textContent('#cvIn')), `Caller view: now, and the next call with the beats until it (${await q.textContent('#cvIn')})`);
+    for (let i = 0; i < 5; i++) await q.click('#cvFwd');
+    await q.waitForTimeout(150);
+    check(/in 3 beats/.test(await q.textContent('#cvIn')) && /soon/.test(await q.getAttribute('#cvNextBox', 'class')), 'Caller view: the next call lights up in the last beats before it');
+    for (let i = 0; i < 4; i++) await q.click('#cvFwd');
+    await q.waitForTimeout(150);
+    check((await lines.nth(1).getAttribute('class')).includes('cur') && /Robins allemande/.test(await q.textContent('#cvNow')), 'Caller view: the highlight moves on to the next line');
+    await q.click('#cvPlay'); await q.waitForTimeout(600);
+    check(await q.evaluate(() => state.playing) && (await q.textContent('#cvPlay')) === 'Pause', 'Caller view: Play plays the dance');
+    await q.click('#cvPlay'); await q.click('#cvClose');
     await ctx.close();
   }
 

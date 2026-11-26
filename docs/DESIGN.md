@@ -602,3 +602,20 @@ The card box says plainly that cards are kept only on this device, in this brows
 yourself": on a phone the share sheet offers the backup file to Mail; elsewhere the file is saved and a new email opens
 saying which file to attach (a few cards go straight into the email). Each card can also be emailed on its own. Help
 explains backing up and getting cards back with Import.
+
+**Phone-friendly, and the Caller view (Ryan and Christine, November 2026).** Christine was overwhelmed opening the
+simulator on her phone: the floor and Play were buried under buttons, expert controls and a 100-move list. On a phone
+(640 px wide or less) it now opens for watching:
+- one ☰ Menu instead of six buttons (Dances, card box, Caller view, Edit this dance, Read a dance card, Checks,
+  Settings, Help, References), with the checks as one coloured dot beside it;
+- a play bar fixed at the bottom of the screen (◀ Play ▶, the part and beat, the move);
+- the expert playback controls (loop, hands, journey, next end effect, times through) behind More ▾;
+- the editor behind ✎ Edit this dance;
+- the floor's own "where" line hidden (the play bar says it) so the dancers draw bigger;
+- a four-step tour (welcome, the floor, the play bar, the menu).
+Everywhere, the move list starts folded: the most common moves, the groups closed until tapped or searched. On a
+computer, References moved into Help (and the check counters drop their words below 1440 px) to keep the top bar on
+one line.
+Caller view (🎤): the dance on a big index card as a caller reads it, the line being danced highlighted and the next
+marked; beside it "Now" and "Call next", with the beats until it, lighting up in the last few beats (up to 4, or half
+of a short move), when a caller gives the call. Play, step and speed are the floor's own.
