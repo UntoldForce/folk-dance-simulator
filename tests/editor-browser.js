@@ -111,8 +111,8 @@ const { chromium } = require('playwright');
   check(await p.evaluate(f => EXAMPLES.slice(1).every((t, i) => t === f[i]), files), 'the example dances match the test dances in dances/');
   await p.click('#dancesOpen'); await p.click('#exampleList .dlist:has-text("Simple Square")'); await p.waitForTimeout(150);
   check(await p.evaluate(() => state.c.kind === 'square' && !$('dances').open), 'an example loads from the Dances panel');
-  await p.click('#dancesOpen'); await p.click('#saveDance'); await p.waitForTimeout(50);
-  check(await p.locator('#myList .dlist:has-text("Simple Square")').count() === 1, 'Save this dance adds it to My dances');
+  await p.click('#dancesOpen'); await p.click('#saveDance'); await p.waitForTimeout(300);
+  check(/Added “Simple Square.*” to your card box/.test(await p.textContent('#saveNote')), 'Save to my card box (in the Dances panel) adds the dance as a card');
   await p.click('#dancesClose');
 
   // Check many dances: load files (one holding two dances), list problems first, step through them with ‹ ›.
@@ -277,7 +277,7 @@ const { chromium } = require('playwright');
       const box = await q.locator('#tourCard').boundingBox(), vp = q.viewportSize();
       if (!(box.x >= 0 && box.y >= 0 && box.x + box.width <= vp.width + 1 && box.y + box.height <= vp.height + 1)) onScreen = false;
     }
-    check(n === 8 && onScreen, `${label}: the tour has 8 steps, its card always fully on screen (${n})`);
+    check(n === 9 && onScreen, `${label}: the tour has 9 steps, its card always fully on screen (${n})`);
     await q.click('#tourNext'); await q.waitForTimeout(100);
     check(await q.isHidden('#tour'), `${label}: Done closes the tour`);
     await q.reload(); await q.waitForTimeout(1200);
@@ -288,6 +288,74 @@ const { chromium } = require('playwright');
     check(await q.isHidden('#helpDialog') && await q.isVisible('#tourCard'), `${label}: Help can show the tour again`);
     await q.keyboard.press('Escape');
     check(await q.isHidden('#tour'), `${label}: Escape closes the tour`);
+    await ctx.close();
+  }
+
+  // My card box (Christine Merryman's idea): the caller's own dances as index cards, kept on this device; added from the
+  // floor, a dance card or a file; searched, sorted, rated; exported one card or all as a text file. Dances saved the
+  // old way move in.
+  {
+    const ctx = await b.newContext({ viewport: { width: 1280, height: 900 }, acceptDownloads: true }), q = await ctx.newPage();
+    q.on('pageerror', e => errs.push(e.message));
+    await q.addInitScript(() => { try { localStorage.setItem('contra.toured', '1'); if (!sessionStorage.getItem('seeded')) { localStorage.setItem('contra.saved', JSON.stringify({ 'Old Favourite': 'Old Favourite\nby Someone\n\nFormation: Becket\n\nA1\n(8) Long lines forward and back\n(8) Robins chain\nA2\n(8) Circle left 3 places\n(8) Slide left along set\nB1\n(16) Neighbors balance & swing\nB2\n(16) Partners balance & swing\n' })); sessionStorage.setItem('seeded', '1'); } } catch (e) {} });
+    await q.goto('file://' + path.join(__dirname, '..', 'index.html')); await q.waitForTimeout(800);
+    await q.click('#boxOpen'); await q.waitForTimeout(300);
+    check(await q.isVisible('#cardBox') && (await q.locator('#boxGrid .icard').count()) === 1 && /Old Favourite/.test(await q.textContent('#boxGrid')), 'card box: a dance saved the old way has moved in as a card');
+    await q.click('#boxAdd'); await q.waitForTimeout(300);
+    check((await q.locator('#boxGrid .icard').count()) === 2 && /Added “111”/.test(await q.textContent('#boxNote')), 'card box: "Add the dance on the floor" adds 111 as a card');
+    const card = q.locator('#boxGrid .icard', { hasText: '111' });
+    check(/A1/.test(await card.textContent()) && /Chris Page/.test(await card.textContent()) && /Improper/.test(await card.textContent()), 'a card shows its title, type of dance, choreographer and the dance part by part');
+    await q.fill('#boxSearch', 'chris'); await q.waitForTimeout(100);
+    check((await q.locator('#boxGrid .icard').count()) === 1, 'search finds cards by choreographer');
+    await q.fill('#boxSearch', 'slide left'); await q.waitForTimeout(100);
+    check((await q.locator('#boxGrid .icard').count()) === 1 && /Old Favourite/.test(await q.textContent('#boxGrid')), 'search finds cards by their moves');
+    await q.fill('#boxSearch', ''); await q.selectOption('#boxForm', { label: 'Becket' }); await q.waitForTimeout(100);
+    check((await q.locator('#boxGrid .icard').count()) === 1, 'filter by type of dance');
+    await q.selectOption('#boxForm', ''); await q.selectOption('#boxSort', 'title'); await q.waitForTimeout(100);
+    check(/^111/.test((await q.locator('#boxGrid .icard .ititle').first().textContent()).trim()), 'sort by title');
+    await q.locator('#boxGrid .icard', { hasText: '111' }).click(); await q.waitForTimeout(200);
+    check(await q.isVisible('#boxDetail') && await q.isVisible('#detailCard .icard.full'), 'tapping a card opens it full size');
+    await q.locator('#detailDiff button').nth(2).click(); await q.locator('#detailFlow button').nth(4).click();
+    await q.fill('#detailTags', 'classic, easy'); await q.locator('#detailTags').dispatchEvent('change');
+    await q.fill('#detailNotes', 'Good first dance\nTeach the allemande'); await q.locator('#detailNotes').dispatchEvent('change'); await q.waitForTimeout(200);
+    const [dl] = await Promise.all([q.waitForEvent('download'), q.click('#detailExport')]);
+    const exported = require('fs').readFileSync(await dl.path(), 'utf8');
+    check(dl.suggestedFilename() === '111.txt' && /Difficulty: 3/.test(exported) && /Flow: 5/.test(exported) && /Tags: classic, easy/.test(exported) && /Notes: Teach the allemande/.test(exported) && /\(8\) In long lines/.test(exported),
+      'export one card: a text file with the dance, its ratings, tags and notes');
+    await q.click('#detailBack'); await q.selectOption('#boxSort', 'diff'); await q.selectOption('#boxTag', 'easy'); await q.waitForTimeout(100);
+    check((await q.locator('#boxGrid .icard').count()) === 1 && /★★★/.test(await q.textContent('#boxGrid')), 'filter by tag; the card shows its ratings');
+    await q.selectOption('#boxTag', '');
+    const [all] = await Promise.all([q.waitForEvent('download'), q.click('#boxExport')]);
+    const allText = require('fs').readFileSync(await all.path(), 'utf8');
+    check(/^card-box-\d{4}-\d\d-\d\d\.txt$/.test(all.suggestedFilename()) && (allText.match(/^=====/mg) || []).length === 1, 'Export all: every card in one text file, separated by =====');
+    // Import into a fresh box: the cards come back with their ratings, tags and notes.
+    const ctx2 = await b.newContext({ viewport: { width: 1280, height: 900 } }), r = await ctx2.newPage();
+    r.on('pageerror', e => errs.push(e.message));
+    await r.addInitScript(() => { try { localStorage.setItem('contra.toured', '1'); } catch (e) {} });
+    await r.goto('file://' + path.join(__dirname, '..', 'index.html')); await r.waitForTimeout(800);
+    await r.click('#boxOpen'); await r.setInputFiles('#boxImport', { name: 'box.txt', mimeType: 'text/plain', buffer: Buffer.from(allText) }); await r.waitForTimeout(500);
+    check(/Imported 2 cards/.test(await r.textContent('#boxNote')) && (await r.locator('#boxGrid .icard').count()) === 2, 'import the exported file into another card box: both cards');
+    await r.locator('#boxGrid .icard', { hasText: '111' }).click(); await r.waitForTimeout(200);
+    check((await r.inputValue('#detailTags')) === 'classic, easy' && (await r.inputValue('#detailNotes')) === 'Good first dance\nTeach the allemande' && (await r.locator('#detailDiff button[aria-pressed="true"]').count()) === 3,
+      'an imported card keeps its ratings, tags and notes');
+    await r.click('#detailDance'); await r.waitForTimeout(400);
+    check(!(await r.isVisible('#cardBox')) && (await r.evaluate(() => state.doc.title)) === '111', '"Dance it" puts the card\'s dance on the floor');
+    // From the Dance card tab, a typed card goes straight into the box.
+    await r.click('#tabCard'); await r.fill('#cardText', 'Sidmouth Swirl    4x4  Bob Isaacs\nA1 Lines F&B; all circle R ½\nA2 corner alle L; grand R&L (starting w/ P)\nB1 all 8 "spin the top": P alle R½, robins star, L orbit to meet P\n" " " " P alle R½, larks star, R " " "\nB2 P B&S');
+    await r.click('#cardSave'); await r.waitForTimeout(300);
+    await r.click('#boxOpen'); await r.waitForTimeout(300);
+    check(/Saved “Sidmouth Swirl”/.test(await r.textContent('#cardStatus')) && /Sidmouth Swirl/.test(await r.textContent('#boxGrid')) && /Four facing four/.test(await r.textContent('#boxGrid')), 'Dance card tab: "Save to my card box" adds the card');
+    await ctx.close(); await ctx2.close();
+  }
+  // The card box on a phone: full screen, one card per row.
+  {
+    const { devices } = require('playwright'), ctx = await b.newContext({ ...devices['iPhone 13'] }), q = await ctx.newPage();
+    q.on('pageerror', e => errs.push(e.message));
+    await q.addInitScript(() => { try { localStorage.setItem('contra.toured', '1'); } catch (e) {} });
+    await q.goto('file://' + path.join(__dirname, '..', 'index.html')); await q.waitForTimeout(800);
+    await q.click('#boxOpen'); await q.click('#boxAdd'); await q.waitForTimeout(300);
+    const box = await q.locator('#cardBox').boundingBox(), c1 = await q.locator('#boxGrid .icard').first().boundingBox(), vp = q.viewportSize();
+    check(box.width >= vp.width - 2 && c1.x >= 0 && c1.x + c1.width <= vp.width, 'card box on a phone: fills the screen, cards fit across');
     await ctx.close();
   }
 

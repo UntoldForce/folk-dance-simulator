@@ -577,3 +577,21 @@ each walking behind the next, facing the way they go, to the left (clockwise) or
 whole set ("whole set single file", "single file ... around the set"): everyone in each line, couples waiting at the ends
 included, walks one loop of the set: along their side, round the end of the set, down the other side. A place is one
 couple's spot along a side and going round an end is one place, so after whole places everyone stands on a spot again.
+
+**My card box (Christine Merryman's idea, November 2026).** A caller's own dances, each on a virtual index card (cream
+paper, a red line under the heading, blue rules, handwriting), in a library separate from the featured dances
+(🗂 Card box, and in ♫ Dances).
+- Kept on the device in the browser's database (IndexedDB), so a card can keep the photo it was read from; where that
+  isn't available, in plain browser storage without photos. Dances saved the old way ("My dances") move in once.
+- Cards come from the dance on the floor ("Add the dance on the floor", or "Save to my card box" in ♫ Dances, which
+  saves back onto its card a dance opened from the box), from the Dance card tab (typed or read from a photo, with the
+  photo kept), or from a text file (one dance or many, separated by =====).
+- Search (title, choreographer, type of dance, moves, tags, notes); sort by newest, title, choreographer, type of
+  dance, the caller's difficulty, flow, or the simulator's progression difficulty (worked out in the background);
+  filter by type of dance, choreographer or tag.
+- A card opens full size (or as its photo), with the caller's difficulty and flow (1-5 stars), tags, notes, Dance it,
+  Export this card and Delete.
+- Export: one card, or the whole box in one file, as text in The Caller's Box layout with extra lines for the card's
+  ratings, tags and notes ("Difficulty: 3", "Flow: 4", "Tags: ...", "Notes: ...", "Added: ..."), which import reads
+  back; the rest of the simulator ignores them. Inside Claude, files are offered through the page's downloads
+  capability; elsewhere as an ordinary download. Photos stay on the device.
