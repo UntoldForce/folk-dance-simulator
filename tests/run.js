@@ -589,5 +589,22 @@ for (const k of c.calls) {
   check(Math.abs(at('0.3L', 32).y - (y0 - 1)) < 0.15 && Contra.review(t).ok, '3, 33-33 comes back to swing the original neighbor, and runs with no problems');
 }
 
+// 3, 33-33 on every time through (Ryan): when couples wait out at the ends (the 2nd, 4th ... times), they switch sides
+// quickly and join the chain where it reaches them, so the 3rd neighbors still meet, side by side, for the box the gnat.
+{
+  const d = Contra.parseDance(fs.readFileSync(path.join(__dirname, '..', 'dances', '3-33-33.txt'), 'utf8'));
+  for (const [lines, sets] of [[1, 2], [1, 3], [1, 4], [2, 3], [1, 6]]) {
+    const c = Contra.compile(d, { lines, sets, passes: 8 });
+    const apart = c.warnings.filter(w => /apart|bump/.test(w.text) || w.hands);
+    // In every time through, each box the gnat is between two dancers side by side.
+    const boxes = c.calls.filter(k => k.fig === 'boxTheGnat'), far = boxes.flatMap(k => (k.holds || []).filter(h => h.b && Math.hypot(Contra.poseAt(c, h.a, k.t0).x - Contra.poseAt(c, h.b, k.t0).x, Contra.poseAt(c, h.a, k.t0).y - Contra.poseAt(c, h.b, k.t0).y) > 1.2));
+    check(c.progression.firstBad < 0 && !apart.length && !far.length && (sets < 3 || boxes.every(k => (k.holds || []).length)), `3, 33-33, ${lines} line(s) of ${sets}: every time through the chain meets side by side and progresses (${apart.map(w => w.text).join('; ') || 'no problems'})`);
+  }
+  // Couple 1, waiting at the top in the 2nd time through, still dances: the chain reaches them.
+  const c = Contra.compile(d, { lines: 1, sets: 3, passes: 2 }), out = c.passes[1].outs.map(o => o.couple);
+  const moved = out.every(id => { const k = c.couples.find(q => q.id === id); return c.calls.some(q => q.pass === 1 && /3rd neighbors box/.test(q.text) && (q.holds || []).some(h => h.a === k.lark || h.b === k.lark || h.a === k.robin || h.b === k.robin)); });
+  check(out.length === 2 && moved, `couples waiting at the ends (${out.join(', ')}) join the chain: the 3rd neighbors' box the gnat reaches them`);
+}
+
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll checks passed');
 process.exit(failures ? 1 : 0);

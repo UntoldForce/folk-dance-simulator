@@ -629,3 +629,14 @@ are the next dancers of that role along their side, on past the 1st (couples wai
 A line naming 2nd, 3rd or 4th neighbors pairs dancers that way, across hands-fours; anyone whose neighbor would be past
 the end of the set waits for the chain to come back. Before, 2nd and 3rd neighbors were read as the same neighbor, so a
 lark pulled by one robin back and forth instead of chaining down the set past three.
+
+**The chain along the set, every time through (Ryan, November 2026).** On the 2nd, 4th ... times through of 3, 33-33,
+with couples waiting at the ends, the box the gnat paired 3rd neighbors who were 3 m apart: dancers without a 2nd
+neighbor had stood still while the rest of the chain moved on. Now the chain is followed as dancers follow it, rather
+than by counting: from the start of the time through, each dancer's place along their side and the way they're going
+(toward their 1st neighbor); a pull by passes them on; at the box the gnat everyone turns back the way they came; at
+each step two dancers of opposite roles, next to each other and coming toward each other, take hands; anyone with
+nobody coming waits for the chain to come back. Couples waiting at the ends switch sides quickly (in 4 beats, while
+the 1st neighbors balance) and join the chain where it reaches them. Following a couple (tap a dancer) lists their
+1st, 2nd and 3rd neighbors this time through, and tags those dancers on the floor ("1st", "2nd", "3rd", blue for the
+lark's neighbors and red for the robin's).

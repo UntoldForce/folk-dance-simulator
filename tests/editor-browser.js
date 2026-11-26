@@ -424,6 +424,18 @@ const { chromium } = require('playwright');
     await ctx.close();
   }
 
+  // Following a couple in 3, 33-33 names their 1st, 2nd and 3rd neighbors, in the follow box and with tags on the floor.
+  {
+    const ctx = await b.newContext({ viewport: { width: 1280, height: 860 } }), q = await ctx.newPage();
+    q.on('pageerror', e => errs.push(e.message));
+    await q.addInitScript(() => { try { localStorage.setItem('contra.toured', '1'); localStorage.setItem('contra.set.lines', '1'); localStorage.setItem('contra.set.sets', '4'); } catch (e) {} });
+    await q.goto('file://' + path.join(__dirname, '..', 'index.html')); await q.waitForTimeout(800);
+    await q.evaluate(() => { state.highlight = state.c.couples.find(k => k.num === 3).id; showJourney(); seek(2); }); await q.waitForTimeout(200);
+    const txt = await q.textContent('#followNbrs');
+    check(/Lark 3's neighbors: 1st robin 4 · 2nd robin 6 · 3rd robin 8/.test(txt) && /Robin 3's neighbors: 1st lark 4/.test(txt), `following couple 3 names their 1st, 2nd and 3rd neighbors (${txt.replace(/\n/g, ' / ')})`);
+    await ctx.close();
+  }
+
   check(errs.length === 0, `no page errors ${errs.join(' | ')}`);
   await b.close();
   console.log(failures ? `\n${failures} check(s) failed` : '\nAll checks passed');
