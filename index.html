@@ -527,7 +527,7 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
 
 <header class="topbar">
   <h1>Folk Dance Simulator</h1>
-  <span class="nowplaying"><span class="nplabel">Now playing:</span> <b id="danceTitle">3, 33-33</b></span>
+  <span class="nowplaying"><span class="nplabel">Now playing:</span> <b id="danceTitle">111</b></span>
   <span class="tbtools">
     <span class="bulkstep" id="bulkStep" hidden><button type="button" id="bulkPrev" aria-label="Previous dance in the list">‹</button><span id="bulkPos"></span><button type="button" id="bulkNext" aria-label="Next dance in the list">›</button></span>
     <button type="button" id="checkDot" class="phoneonly checkdot" aria-label="Checks"><span></span></button>
@@ -601,7 +601,7 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
         <span class="tabtools"><button id="undo" title="Undo (Ctrl+Z)">Undo</button><button id="redo" title="Redo (Ctrl+Shift+Z)">Redo</button></span>
       </div>
       <div id="panelEditor" class="tabpanel" role="tabpanel" aria-labelledby="tabEditor">
-        <div class="row"><button id="newDance" class="primary">＋ New dance</button><button id="reset2">Load “3, 33-33”</button></div>
+        <div class="row"><button id="newDance" class="primary">＋ New dance</button><button id="reset2">Load “111”</button></div>
         <details class="fpbox" id="setupBox"><summary title="Change the formation or progression"><span class="sumpic" id="setupPic" aria-hidden="true"></span><span class="sumtext"><span class="sumlabel">Formation</span><span id="setupSum"></span></span><span class="sumchange" aria-hidden="true"></span></summary>
         <div class="dsettings">
           <label for="formation">Formation</label>
@@ -634,7 +634,7 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
       <div id="panelText" class="tabpanel" role="tabpanel" aria-labelledby="tabText" hidden>
         <p class="hint">The same dance as text, in the layout The Caller's Box uses: a part label, then one figure per line with its beats in brackets. It updates as you edit; paste a dance here and press Run.</p>
         <textarea id="danceText" wrap="off" spellcheck="false" aria-label="Dance text"></textarea>
-        <div class="row"><button id="run" class="primary">Run dance</button><button id="reset">Load “3, 33-33”</button></div>
+        <div class="row"><button id="run" class="primary">Run dance</button><button id="reset">Load “111”</button></div>
       </div>
       <div id="panelCard" class="tabpanel" role="tabpanel" aria-labelledby="tabCard" hidden>
         <p class="hint">Bring in a dance from a caller's card. Take or choose a photo of the card and Claude reads it for you; or type the card in as written. Shorthand is fine: “N B&amp;S”, “P alle R½”, “Lines F&amp;B”, ditto marks.</p>
@@ -642,7 +642,7 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
         <p class="hint" id="photoElsewhere">Reading a photo needs Claude: <a id="openInClaude" target="_blank" rel="noopener">open the simulator in Claude</a> to read photos. Here you can type or paste the card.</p>
         <div class="cardimport">
           <img id="photoPreview" alt="Your dance card photo" hidden>
-          <textarea id="cardText" spellcheck="false" aria-label="The dance card, as written" placeholder="Sidmouth Swirl   4x4   Bob Isaacs&#10;A1 Lines F&amp;B; all circle R ½&#10;A2 corner alle L; grand R&amp;L&#10;B1 ...&#10;B2 P B&amp;S"></textarea>
+          <textarea id="cardText" spellcheck="false" aria-label="The dance card, as written" placeholder="3, 33-33   imp   Steve Zakon-Anderson&#10;A1 1st N bal &amp; pull by R (4); 2nd N pull by L (4); 3rd N RH bal &amp; box the gnat (8)&#10;A2 3rd N pull by R (4); 2nd N pull by L (4); 1st N swing (8)&#10;B1 circle L 3/4; P swing&#10;B2 long lines F&amp;B; W dsd 1½"></textarea>
         </div>
         <ul id="cardUnsure" class="unsure" hidden></ul>
         <p class="hint" id="cardStatus" role="status"></p>
@@ -898,9 +898,9 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
   <dl>
     <dt><a href="https://www.ibiblio.org/contradance/thecallersbox/" target="_blank" rel="noopener">The Caller's Box</a>, by Chris Page and Michael Dyck</dt>
     <dd>The layout dances are written in, and the glossary every figure was checked against (formations too).
-      “111”, by Chris Page, is shared there with full permission.</dd>
+      The sample dance, “111”, is by Chris Page and shared there with full permission.</dd>
     <dt><a href="https://contradb.com/dances/203" target="_blank" rel="noopener">3, 33-33</a>, by <a href="https://contradb.com/choreographers/118" target="_blank" rel="noopener">Steve Zakon-Anderson</a></dt>
-    <dd>The sample dance, first published in CDS News, January 1993; Chris Page’s “111” is a remix of it. Shared on ContraDB;
+    <dd>One of the featured dances, first published in CDS News, January 1993; Chris Page’s “111” is a remix of it. Shared on ContraDB;
       the <a href="https://www.cambridgefolk.org.uk/contra/dances/steve_zakon/three_33_33.html" target="_blank" rel="noopener">original</a> is at the Cambridge Folk Club’s contra pages.</dd>
     <dt><a href="https://contralab.org/" target="_blank" rel="noopener">ContraLab</a></dt>
     <dd>The Contra Timing Chart: how many beats each figure usually takes, used for the timing checks.</dd>
@@ -3214,12 +3214,16 @@ const Contra = (() => {
     if (formName) out.push('Formation: ' + formName.charAt(0).toUpperCase() + formName.slice(1));
     out.push('');
     for (const p of parts) {
-      const figs = p.figs.map(expandShorthand), want = figs.map(f => {
+      // A count written after a move, "(4)", is its beats; the rest of the part's 16 are shared among the others.
+      const given = p.figs.map(f => { const m = f.match(/\(\s*(\d{1,2})\s*\)\s*$/); return m ? +m[1] : null; });
+      const figs = p.figs.map(f => expandShorthand(f.replace(/\s*\(\s*\d{1,2}\s*\)\s*$/, ''))), want = figs.map(f => {
         const k = parseFigure(f), b = k.fig && TYPICAL_BEATS[k.fig];
-        return /balance and swing/i.test(f) ? 16 : typeof b === 'function' ? b(k) : b || 8;
+        return /balance and swing/i.test(f) ? 16 : k.fig === 'swing' ? 8 : typeof b === 'function' ? b(k) : b || 8;
       });
-      const total = want.reduce((a, b) => a + b, 0), beats = want.map(w => Math.max(2, Math.round((w * 16) / total / 2) * 2));
-      beats[beats.length - 1] += 16 - beats.reduce((a, b) => a + b, 0);
+      const left = 16 - given.reduce((a, b) => a + (b || 0), 0), free = want.filter((w, i) => given[i] == null), total = free.reduce((a, b) => a + b, 0);
+      const beats = want.map((w, i) => given[i] != null ? given[i] : Math.max(2, Math.round((w * Math.max(0, left)) / Math.max(1, total) / 2) * 2));
+      const lastFree = given.lastIndexOf(null);
+      if (lastFree >= 0) beats[lastFree] += 16 - beats.reduce((a, b) => a + b, 0);
       out.push(p.name);
       figs.forEach((f, i) => out.push(`(${beats[i]}) ${f}`));
       out.push('');
@@ -4628,35 +4632,9 @@ const Contra = (() => {
 </script>
 
 <script>
-// The sample dance (Ryan): 3, 33-33 by Steve Zakon-Anderson, the original that 111 by Chris Page remixes.
-const SAMPLE = `3, 33-33
-by Steve Zakon-Anderson
-
-Permission: shared everywhere on ContraDB (https://contradb.com/dances/203)
-Source: CDS News, January 1993; the original is at https://www.cambridgefolk.org.uk/contra/dances/steve_zakon/three_33_33.html
-
-FormationBase:	Duple Minor - Improper
-Progression:	Single
-Figures:
-
-A1
-(4) 1st neighbors balance & pull by right
-(4) 2nd neighbors pull by left
-(8) 3rd neighbors right hand balance & box the gnat
-
-A2
-(4) 3rd neighbors pull by right
-(4) 2nd neighbors pull by left
-(8) 1st neighbors swing
-
-B1
-(8) circle left 3 places
-(8) partners swing
-
-B2
-(8) long lines forward & back
-(8) robins do si do 1½ ⁋`;
-const SAMPLE_111 = `111
+// The sample dance: 111 by Chris Page. (3, 33-33 by Steve Zakon-Anderson, which 111 remixes, is the next featured
+// dance; Ryan will make it the sample once a caller has checked it.)
+const SAMPLE = `111
 by Chris Page
 
 Permission: full
@@ -4684,6 +4662,33 @@ B1
 B2
 (6) Circle left 3/4
 (10) Neighbor swing`;
+const SAMPLE_33 = `3, 33-33
+by Steve Zakon-Anderson
+
+Permission: shared everywhere on ContraDB (https://contradb.com/dances/203)
+Source: CDS News, January 1993; the original is at https://www.cambridgefolk.org.uk/contra/dances/steve_zakon/three_33_33.html
+
+FormationBase:	Duple Minor - Improper
+Progression:	Single
+Figures:
+
+A1
+(4) 1st neighbors balance & pull by right
+(4) 2nd neighbors pull by left
+(8) 3rd neighbors right hand balance & box the gnat
+
+A2
+(4) 3rd neighbors pull by right
+(4) 2nd neighbors pull by left
+(8) 1st neighbors swing
+
+B1
+(8) circle left 3 places
+(8) partners swing
+
+B2
+(8) long lines forward & back
+(8) robins do si do 1½ ⁋`;
 
 const $ = id => document.getElementById(id);
 const canvas = $('floor'), ctx2d = canvas.getContext('2d');
@@ -4994,9 +4999,9 @@ function newCall(def, m = def.d, beats) {
 }
 const history = { list: [], at: -1 };
 
-// Example dances in the Dances panel: 3, 33-33 and 111, then one test dance for each other kind of formation (the same text as
+// Example dances in the Dances panel: 111 and 3, 33-33, then one test dance for each other kind of formation (the same text as
 // the files in dances/, which the tests check).
-const EXAMPLES = [SAMPLE, SAMPLE_111,
+const EXAMPLES = [SAMPLE, SAMPLE_33,
 `Simple Square (test dance)
 by the simulator
 

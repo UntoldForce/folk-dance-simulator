@@ -10,9 +10,7 @@ const { chromium } = require('playwright');
   const errs = []; p.on('pageerror', e => errs.push(e.message));
   await p.goto('file://' + path.join(__dirname, '..', 'index.html'));
   await p.evaluate(() => localStorage.clear()); await p.reload(); await p.waitForTimeout(300);
-  check(await p.evaluate(() => state.doc.title === '3, 33-33' && /3, 33-33 by Steve Zakon-Anderson/.test($('danceTitle').textContent)), 'the dance on the floor at first is 3, 33-33 by Steve Zakon-Anderson');
-  // (The editor tests below were written around 111, the featured dance after it.)
-  await p.evaluate(() => { $('danceText').value = EXAMPLES[1]; state.sel = null; build(); commit(true); }); await p.waitForTimeout(200);
+  check(await p.evaluate(() => state.doc.title === '111' && /111 by Chris Page/.test($('danceTitle').textContent)), 'the dance on the floor at first is 111 by Chris Page');
   await p.locator('#rows').scrollIntoViewIfNeeded();
   const lines = re => p.evaluate(r => $('danceText').value.split('\n').filter(l => new RegExp(r, 'i').test(l)), re);
 
@@ -112,7 +110,7 @@ const { chromium } = require('playwright');
   // Dances panel: the examples are the test dances in dances/; save and load your own; next end effect.
   const fs = require('fs'), files = ['square', 'grid-square', 'circle-mixer', 'triplet', 'tempest'].map(n => fs.readFileSync(path.join(__dirname, '..', 'dances', `${n}-test.txt`), 'utf8').trimEnd());
   check(await p.evaluate(f => EXAMPLES.slice(2).every((t, i) => t === f[i]), files), 'the example dances match the test dances in dances/');
-  check(await p.evaluate(f => EXAMPLES[0] === f[0] && EXAMPLES[1] === f[1], ['3-33-33', '111'].map(n => fs.readFileSync(path.join(__dirname, '..', 'dances', `${n}.txt`), 'utf8').trimEnd())), 'the featured dances start with 3, 33-33 (the default) and 111');
+  check(await p.evaluate(f => EXAMPLES[0] === f[0] && EXAMPLES[1] === f[1], ['111', '3-33-33'].map(n => fs.readFileSync(path.join(__dirname, '..', 'dances', `${n}.txt`), 'utf8').trimEnd())), 'the featured dances start with 111 (the default) and 3, 33-33');
   await p.click('#dancesOpen'); await p.click('#exampleList .dlist:has-text("Simple Square")'); await p.waitForTimeout(150);
   check(await p.evaluate(() => state.c.kind === 'square' && !$('dances').open), 'an example loads from the Dances panel');
   await p.click('#dancesOpen'); await p.click('#saveDance'); await p.waitForTimeout(300);
@@ -142,8 +140,8 @@ const { chromium } = require('playwright');
 
   // Journey chart: the timeline's second view; clicking a couple's line follows them and goes to that moment.
   await p.click('#reset2'); await p.waitForTimeout(150);
-  check(await p.evaluate(() => state.doc.title === '3, 33-33'), 'the Load button loads the sample dance, 3, 33-33');
-  await p.evaluate(() => { $('danceText').value = EXAMPLES[1]; state.sel = null; build(); commit(true); }); await p.waitForTimeout(150);
+  check(await p.evaluate(() => state.doc.title === '111'), 'the Load button loads the sample dance, 111');
+  await p.evaluate(() => { $('danceText').value = EXAMPLES[0]; state.sel = null; build(); commit(true); }); await p.waitForTimeout(150);
   await p.click('#viewJourney'); await p.waitForTimeout(150);
   check(await p.locator('#journeyCanvas').isVisible() && !(await p.locator('#rows').isVisible()), 'Journey swaps the part rows for the couple journey chart');
   const spot = await p.evaluate(() => { const d = journeyData(), v = journeyView($('journeyCanvas')), k = d.couples[2], [t, y] = k.pts[3]; return { id: k.id, x: v.r.left + v.X(t + 0.5 * state.c.perPass) , y: v.r.top + v.Y((y + k.pts[4][1]) / 2), t }; });
@@ -158,7 +156,7 @@ const { chromium } = require('playwright');
   await p.waitForTimeout(100);
   check(await p.evaluate(() => document.querySelectorAll('.fblk[data-part="0"]').length === 1 && moveOf(state.doc.parts[0].calls[0]).label === 'Balance and swing' && document.querySelector('.fblk[data-part="0"]').classList.contains('active')),
     'a balance & swing line is one block (the Balance and swing move), lit during its swing');
-  await p.evaluate(() => { $('danceText').value = EXAMPLES[1]; state.sel = null; build(); commit(true); }); await p.waitForTimeout(100);
+  await p.evaluate(() => { $('danceText').value = EXAMPLES[0]; state.sel = null; build(); commit(true); }); await p.waitForTimeout(100);
 
   // Formation and progression, with pictures of the common formations: folded under one line saying what they are.
   check(!(await p.locator('.fpick').first().isVisible()) && !(await p.locator('#formation').isVisible()) && await p.textContent('#setupSum') === 'Improper · single progression',
@@ -180,7 +178,7 @@ const { chromium } = require('playwright');
     'hands-four outlines and "out" labels are fixed for each time through');
 
   // Workspace: nothing scrolls on a computer screen; the timeline sits right under the floor.
-  await p.evaluate(() => { $('danceText').value = EXAMPLES[1]; state.sel = null; build(); commit(true); }); await p.waitForTimeout(200);
+  await p.evaluate(() => { $('danceText').value = EXAMPLES[0]; state.sel = null; build(); commit(true); }); await p.waitForTimeout(200);
   for (const [w, h] of [[1440, 900], [1366, 768], [1920, 1080]]) {
     await p.setViewportSize({ width: w, height: h }); await p.waitForTimeout(150);
     const lay = await p.evaluate(() => ({ sh: document.documentElement.scrollHeight, sw: document.documentElement.scrollWidth, fl: $('floor').getBoundingClientRect(), tl: document.querySelector('.timeline').getBoundingClientRect() }));
@@ -224,7 +222,7 @@ const { chromium } = require('playwright');
   check(!(await p.locator('#refsDialog').isVisible()), 'and it closes again');
 
   // The move card on a computer: pinned at the top of the editor, nothing dimmed; Add keeps it open (to add more).
-  await p.evaluate(() => { $('danceText').value = EXAMPLES[1]; state.sel = null; build(); commit(true); }); await p.waitForTimeout(100);
+  await p.evaluate(() => { $('danceText').value = EXAMPLES[0]; state.sel = null; build(); commit(true); }); await p.waitForTimeout(100);
   await p.click('.chip:has-text("Swing") >> nth=0'); await p.waitForTimeout(200);
   check(await p.evaluate(() => getComputedStyle($('builder')).position === 'sticky' && $('cardScrim').hidden), 'on a computer the move card is pinned above the move list, with nothing dimmed');
   await p.click('.seg button[data-who="neighbors"]'); await p.waitForTimeout(100);
@@ -313,25 +311,25 @@ const { chromium } = require('playwright');
     await q.click('#boxOpen'); await q.waitForTimeout(300);
     check(await q.isVisible('#cardBox') && (await q.locator('#boxGrid .icard').count()) === 1 && /Old Favourite/.test(await q.textContent('#boxGrid')), 'card box: a dance saved the old way has moved in as a card');
     await q.click('#boxAdd'); await q.waitForTimeout(300);
-    check((await q.locator('#boxGrid .icard').count()) === 2 && /Added “3, 33-33”/.test(await q.textContent('#boxNote')), 'card box: "Add the dance on the floor" adds 3, 33-33 as a card');
-    const card = q.locator('#boxGrid .icard', { hasText: '3, 33-33' });
-    check(/A1/.test(await card.textContent()) && /Steve Zakon-Anderson/.test(await card.textContent()) && /Improper/.test(await card.textContent()), 'a card shows its title, type of dance, choreographer and the dance part by part');
-    await q.fill('#boxSearch', 'steve'); await q.waitForTimeout(100);
+    check((await q.locator('#boxGrid .icard').count()) === 2 && /Added “111”/.test(await q.textContent('#boxNote')), 'card box: "Add the dance on the floor" adds 111 as a card');
+    const card = q.locator('#boxGrid .icard', { hasText: '111' });
+    check(/A1/.test(await card.textContent()) && /Chris Page/.test(await card.textContent()) && /Improper/.test(await card.textContent()), 'a card shows its title, type of dance, choreographer and the dance part by part');
+    await q.fill('#boxSearch', 'chris'); await q.waitForTimeout(100);
     check((await q.locator('#boxGrid .icard').count()) === 1, 'search finds cards by choreographer');
     await q.fill('#boxSearch', 'slide left'); await q.waitForTimeout(100);
     check((await q.locator('#boxGrid .icard').count()) === 1 && /Old Favourite/.test(await q.textContent('#boxGrid')), 'search finds cards by their moves');
     await q.fill('#boxSearch', ''); await q.selectOption('#boxForm', { label: 'Becket' }); await q.waitForTimeout(100);
     check((await q.locator('#boxGrid .icard').count()) === 1, 'filter by type of dance');
     await q.selectOption('#boxForm', ''); await q.selectOption('#boxSort', 'title'); await q.waitForTimeout(100);
-    check(/^3, 33-33/.test((await q.locator('#boxGrid .icard .ititle').first().textContent()).trim()), 'sort by title');
-    await q.locator('#boxGrid .icard', { hasText: '3, 33-33' }).click(); await q.waitForTimeout(200);
+    check(/^111/.test((await q.locator('#boxGrid .icard .ititle').first().textContent()).trim()), 'sort by title');
+    await q.locator('#boxGrid .icard', { hasText: '111' }).click(); await q.waitForTimeout(200);
     check(await q.isVisible('#boxDetail') && await q.isVisible('#detailCard .icard.full'), 'tapping a card opens it full size');
     await q.locator('#detailDiff button').nth(2).click(); await q.locator('#detailFlow button').nth(4).click();
     await q.fill('#detailTags', 'classic, easy'); await q.locator('#detailTags').dispatchEvent('change');
     await q.fill('#detailNotes', 'Good first dance\nTeach the allemande'); await q.locator('#detailNotes').dispatchEvent('change'); await q.waitForTimeout(200);
     const [dl] = await Promise.all([q.waitForEvent('download'), q.click('#detailExport')]);
     const exported = require('fs').readFileSync(await dl.path(), 'utf8');
-    check(dl.suggestedFilename() === '3-33-33.txt' && /Difficulty: 3/.test(exported) && /Flow: 5/.test(exported) && /Tags: classic, easy/.test(exported) && /Notes: Teach the allemande/.test(exported) && /\(8\) long lines forward/.test(exported),
+    check(dl.suggestedFilename() === '111.txt' && /Difficulty: 3/.test(exported) && /Flow: 5/.test(exported) && /Tags: classic, easy/.test(exported) && /Notes: Teach the allemande/.test(exported) && /\(8\) In long lines/.test(exported),
       'export one card: a text file with the dance, its ratings, tags and notes');
     await q.click('#detailBack'); await q.selectOption('#boxSort', 'diff'); await q.selectOption('#boxTag', 'easy'); await q.waitForTimeout(100);
     check((await q.locator('#boxGrid .icard').count()) === 1 && /★★★/.test(await q.textContent('#boxGrid')), 'filter by tag; the card shows its ratings');
@@ -346,11 +344,11 @@ const { chromium } = require('playwright');
     await r.goto('file://' + path.join(__dirname, '..', 'index.html')); await r.waitForTimeout(800);
     await r.click('#boxOpen'); await r.setInputFiles('#boxImport', { name: 'box.txt', mimeType: 'text/plain', buffer: Buffer.from(allText) }); await r.waitForTimeout(500);
     check(/Imported 2 cards/.test(await r.textContent('#boxNote')) && (await r.locator('#boxGrid .icard').count()) === 2, 'import the exported file into another card box: both cards');
-    await r.locator('#boxGrid .icard', { hasText: '3, 33-33' }).click(); await r.waitForTimeout(200);
+    await r.locator('#boxGrid .icard', { hasText: '111' }).click(); await r.waitForTimeout(200);
     check((await r.inputValue('#detailTags')) === 'classic, easy' && (await r.inputValue('#detailNotes')) === 'Good first dance\nTeach the allemande' && (await r.locator('#detailDiff button[aria-pressed="true"]').count()) === 3,
       'an imported card keeps its ratings, tags and notes');
     await r.click('#detailDance'); await r.waitForTimeout(400);
-    check(!(await r.isVisible('#cardBox')) && (await r.evaluate(() => state.doc.title)) === '3, 33-33', '"Dance it" puts the card\'s dance on the floor');
+    check(!(await r.isVisible('#cardBox')) && (await r.evaluate(() => state.doc.title)) === '111', '"Dance it" puts the card\'s dance on the floor');
     // From the Dance card tab, a typed card goes straight into the box.
     await r.click('#tabCard'); await r.fill('#cardText', 'Sidmouth Swirl    4x4  Bob Isaacs\nA1 Lines F&B; all circle R ½\nA2 corner alle L; grand R&L (starting w/ P)\nB1 all 8 "spin the top": P alle R½, robins star, L orbit to meet P\n" " " " P alle R½, larks star, R " " "\nB2 P B&S');
     await r.click('#cardSave'); await r.waitForTimeout(300);
@@ -388,7 +386,7 @@ const { chromium } = require('playwright');
     const bar2 = await q.locator('#playbar').boundingBox();
     check(Math.abs(bar2.y + bar2.height - vh) < 2, 'phone: the play bar stays there while scrolling');
     await q.tap('#pbFwd'); await q.tap('#pbFwd'); await q.waitForTimeout(100);
-    check(/A1 · beat 3/.test(await q.textContent('#pbWhere')) && /neighbors/i.test(await q.textContent('#pbWhat')), `phone: the play bar steps the dance and says where it is (${await q.textContent('#pbWhere')})`);
+    check(/A1 · beat 3/.test(await q.textContent('#pbWhere')) && /long lines/i.test(await q.textContent('#pbWhat')), `phone: the play bar steps the dance and says where it is (${await q.textContent('#pbWhere')})`);
     check(await q.isHidden('#loop') && await q.isHidden('#passStrip'), 'phone: the expert controls start hidden');
     await q.evaluate(() => window.scrollTo(0, 0)); await q.tap('#tbMore'); await q.waitForTimeout(100);
     check(await q.isVisible('#loop') && await q.isVisible('#passStrip'), 'phone: More shows them');
@@ -430,6 +428,7 @@ const { chromium } = require('playwright');
     q.on('pageerror', e => errs.push(e.message));
     await q.addInitScript(() => { try { localStorage.setItem('contra.toured', '1'); localStorage.setItem('contra.set.lines', '1'); localStorage.setItem('contra.set.sets', '4'); } catch (e) {} });
     await q.goto('file://' + path.join(__dirname, '..', 'index.html')); await q.waitForTimeout(800);
+    await q.evaluate(() => { $('danceText').value = EXAMPLES[1]; state.sel = null; build(); commit(true); }); await q.waitForTimeout(200);
     await q.evaluate(() => { state.highlight = state.c.couples.find(k => k.num === 3).id; showJourney(); seek(2); }); await q.waitForTimeout(200);
     const txt = await q.textContent('#followNbrs');
     check(/Lark 3's neighbors: 1st robin 4 · 2nd robin 6 · 3rd robin 8/.test(txt) && /Robin 3's neighbors: 1st lark 4/.test(txt), `following couple 3 names their 1st, 2nd and 3rd neighbors (${txt.replace(/\n/g, ' / ')})`);

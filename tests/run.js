@@ -606,5 +606,14 @@ for (const k of c.calls) {
   check(out.length === 2 && moved, `couples waiting at the ends (${out.join(', ')}) join the chain: the 3rd neighbors' box the gnat reaches them`);
 }
 
+// The Dance card tab's example card (3, 33-33): a count after a move, "(4)", is its beats; a swing on its own is 8.
+{
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8'), ph = html.match(/id="cardText"[^>]*placeholder="([^"]*)"/)[1]
+    .replace(/&#10;/g, '\n').replace(/&amp;/g, '&');
+  const d = Contra.parseDance(Contra.fromCard(ph)), beats = d.parts.map(p => p.calls.map(k => k.beats).join('+')).join(' | ');
+  check(d.title === '3, 33-33' && d.author === 'Steve Zakon-Anderson' && beats === '4+4+8 | 4+4+8 | 8+8 | 8+8' && d.parts.every(p => p.calls.every(k => k.fig)),
+    `the Dance card tab's example card is 3, 33-33, read with its counts (${beats})`);
+}
+
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll checks passed');
 process.exit(failures ? 1 : 0);

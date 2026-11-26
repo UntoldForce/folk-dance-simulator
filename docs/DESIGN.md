@@ -640,3 +640,8 @@ nobody coming waits for the chain to come back. Couples waiting at the ends swit
 the 1st neighbors balance) and join the chain where it reaches them. Following a couple (tap a dancer) lists their
 1st, 2nd and 3rd neighbors this time through, and tags those dancers on the floor ("1st", "2nd", "3rd", blue for the
 lark's neighbors and red for the robin's).
+
+**111 stays the sample for now (Ryan, November 2026).** Until a caller has checked 3, 33-33 in the simulator, 111 is
+the dance on the floor at first; 3, 33-33 is the next featured dance. The Dance card tab's example card is now
+3, 33-33 in caller's shorthand, with counts: a count after a move on a card, "(4)", is its beats (the rest of the
+part's 16 are shared among the others), and a swing on its own counts 8.
