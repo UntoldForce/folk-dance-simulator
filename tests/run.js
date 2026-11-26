@@ -578,5 +578,16 @@ for (const k of c.calls) {
   check(Math.abs(a1.x - (-0.6)) < 0.1 && Math.abs(a1.y - a0.y) < 0.15, `hands-four single file left 3 places: lark 1 ends three quarters of the way round, clockwise (${a1.x.toFixed(2)}, ${a1.y.toFixed(2)})`);
 }
 
+// 3, 33-33 by Steve Zakon-Anderson (the sample dance): 1st, 2nd and 3rd neighbors along the set. A lark chains down
+// his side past three different robins (box the gnat with the third), comes back, and swings his original neighbor.
+{
+  const t = fs.readFileSync(path.join(__dirname, '..', 'dances', '3-33-33.txt'), 'utf8'), c = Contra.compile(Contra.parseDance(t), { lines: 1, sets: 4, passes: 2 });
+  const at = (id, b) => Contra.poseAt(c, id, b), y0 = at('0.3L', 0).y;
+  check([4, 8, 16].map(b => Math.round(y0 - at('0.3L', b).y)).join() === '1,2,3', `lark 3 travels down the set one place at each neighbor: 1st, 2nd, 3rd (${[4, 8, 16].map(b => (y0 - at('0.3L', b).y).toFixed(1)).join(', ')})`);
+  const near = (b, who) => c.dancers.filter(d => d.id.endsWith('R')).sort((p, q) => Math.hypot(at(p.id, b).x - at('0.3L', b).x, at(p.id, b).y - at('0.3L', b).y) - Math.hypot(at(q.id, b).x - at('0.3L', b).x, at(q.id, b).y - at('0.3L', b).y))[0].id;
+  check([3, 6, 14].map(b => near(b)).join() === "0.4R,0.6R,0.8R", `and meets three different robins on the way: 4, 6 and 8 (${[3, 6, 14].map(b => near(b)).join(', ')})`);
+  check(Math.abs(at('0.3L', 32).y - (y0 - 1)) < 0.15 && Contra.review(t).ok, '3, 33-33 comes back to swing the original neighbor, and runs with no problems');
+}
+
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll checks passed');
 process.exit(failures ? 1 : 0);
