@@ -391,6 +391,12 @@ const { chromium } = require('playwright');
     await q.evaluate(() => window.scrollTo(0, 0)); await q.tap('#tbMore'); await q.waitForTimeout(100);
     check(await q.isVisible('#loop') && await q.isVisible('#passStrip'), 'phone: More shows them');
     check(await q.isVisible('#checkDot') && /warn|bad|ok/.test(await q.getAttribute('#checkDot', 'class')) && await q.isHidden('#checksOpen'), 'phone: the checks are one coloured dot');
+    // Tapping a move in the part rows opens its card, even with the editor folded away (Ryan found it only dimmed).
+    const blk = q.locator('#rows .fblk').nth(1); await blk.scrollIntoViewIfNeeded(); await blk.tap(); await q.waitForTimeout(400);
+    const card = await q.locator('#builder').boundingBox();
+    check(await q.isHidden('.side') && await q.isVisible('#builder') && card && card.y + card.height <= vh + 1 && await q.isVisible('#bDone') && !(await q.evaluate(() => $('explorer').open)), 'phone: tapping a move in the part rows opens its card (and nothing on it by mistake), with the editor still folded away');
+    await q.tap('#bDone'); await q.waitForTimeout(300);
+    check(await q.isHidden('#builder') && await q.isHidden('#cardScrim'), 'phone: Done closes the card and the dimming');
     await q.tap('#menuOpen'); await q.tap('#phoneMenu [data-go="callerOpen"]'); await q.waitForTimeout(300);
     check(await q.isVisible('#callerView') && (await q.locator('#cvCard .iline.cur').count()) === 1, 'phone: the Caller view opens from the menu, with the current line highlighted');
     await ctx.close();
