@@ -645,3 +645,9 @@ lark's neighbors and red for the robin's).
 the dance on the floor at first; 3, 33-33 is the next featured dance. The Dance card tab's example card is now
 3, 33-33 in caller's shorthand, with counts: a count after a move on a card, "(4)", is its beats (the rest of the
 part's 16 are shared among the others), and a swing on its own counts 8.
+
+**The move card on a phone, while watching (Ryan, November 2026).** The move card lived inside the editor, which a phone
+folds away until "Edit this dance", so tapping a move in the part rows only dimmed the screen. On a phone the card now
+lives outside the editor (it slides up from the bottom on its own anyway), and comes back into the editor on a wider
+screen. And the click a phone sends after the tap that opened the card, where the finger was, no longer lands on the
+card that just slid up under it (it could open Explore by mistake).

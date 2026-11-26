@@ -5853,7 +5853,9 @@ function renderBuilder() {
   let def, m, beats, editing = !!k;
   if (k) { def = moveOf(k); beats = k.beats; m = def ? readMods(def, k) : null; }
   else if (state.build) ({ def, m, beats } = state.build);
+  const wasHidden = box.hidden;
   box.hidden = !k && !state.build;
+  if (wasHidden && !box.hidden) state.cardShownAt = performance.now();
   const phone = cardIsSheet();
   $('cardScrim').hidden = box.hidden || !phone;
   document.querySelectorAll('#pool .chip').forEach(c => c.classList.toggle('cur', !box.hidden && !!def && c.dataset.label === def.label));
@@ -6728,6 +6730,19 @@ function setEditing(on) {
   if (on) requestAnimationFrame(() => document.querySelector('.side').scrollIntoView({ behavior: 'smooth', block: 'start' }));
 }
 $('editToggle').onclick = () => setEditing(!document.body.classList.contains('editing'));
+// On a phone the move card slides up from the bottom of the screen on its own, so it lives outside the editor: tapping a
+// move in the part rows opens it even while the editor is folded away (watching). Elsewhere it sits in the editor.
+// (A tap that opens the card is followed by the phone's own click where the finger was, which can land on the card that
+// just slid up under it, on Explore, say: the card ignores clicks for a moment after it opens.)
+document.addEventListener('pointerdown', e => { state.lastDown = { x: e.clientX, y: e.clientY, t: performance.now() }; }, true);
+$('builder').addEventListener('click', e => {
+  const d = state.lastDown, shown = state.cardShownAt || 0;
+  if (d && d.t < shown && performance.now() - shown < 600 && Math.hypot(e.clientX - d.x, e.clientY - d.y) < 24) { e.stopPropagation(); e.preventDefault(); }
+}, true);
+const builderHome = $('builder').parentNode, builderNext = $('builder').nextSibling;
+const placeBuilder = () => { if (PHONE.matches) document.body.appendChild($('builder')); else if ($('builder').parentNode !== builderHome) builderHome.insertBefore($('builder'), builderNext); };
+placeBuilder();
+PHONE.addEventListener('change', placeBuilder);
 $('checkDot').onclick = () => $('checksOpen').click();
 $('menuOpen').onclick = () => $('phoneMenu').showModal();
 $('menuClose').onclick = () => $('phoneMenu').close();
