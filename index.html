@@ -73,6 +73,7 @@ h1 { font: 600 24px/1.1 var(--font-display); margin: 0; letter-spacing: -0.01em;
 .fhead button { margin-left: auto; border: 0; background: none; padding: 0 4px; color: var(--muted); }
 #followNow { color: var(--ink); }
 #followNow .muted { color: var(--muted); }
+#followNbrs { white-space: pre-line; margin-top: 4px; color: var(--ink); }
 #followMore summary { cursor: pointer; font-size: 12px; color: var(--accent); }
 #followMore .journey { margin-top: 4px; max-height: 180px; overflow-y: auto; }
 .legend span { display: inline-flex; align-items: center; gap: 6px; }
@@ -553,6 +554,7 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
           <div id="followBox" hidden>
             <div class="fhead"><strong id="followTitle">Couple</strong><button type="button" id="followClose" aria-label="Stop following">✕</button></div>
             <div id="followNow"></div>
+            <div id="followNbrs" class="small" hidden></div>
             <details id="followMore"><summary>Every time through</summary><ol class="journey" id="journey"></ol></details>
           </div>
         </div>
@@ -640,7 +642,7 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
         <p class="hint" id="photoElsewhere">Reading a photo needs Claude: <a id="openInClaude" target="_blank" rel="noopener">open the simulator in Claude</a> to read photos. Here you can type or paste the card.</p>
         <div class="cardimport">
           <img id="photoPreview" alt="Your dance card photo" hidden>
-          <textarea id="cardText" spellcheck="false" aria-label="The dance card, as written" placeholder="Sidmouth Swirl   4x4   Bob Isaacs&#10;A1 Lines F&amp;B; all circle R ½&#10;A2 corner alle L; grand R&amp;L&#10;B1 ...&#10;B2 P B&amp;S"></textarea>
+          <textarea id="cardText" spellcheck="false" aria-label="The dance card, as written" placeholder="3, 33-33   imp   Steve Zakon-Anderson&#10;A1 1st N bal &amp; pull by R (4); 2nd N pull by L (4); 3rd N RH bal &amp; box the gnat (8)&#10;A2 3rd N pull by R (4); 2nd N pull by L (4); 1st N swing (8)&#10;B1 circle L 3/4; P swing&#10;B2 long lines F&amp;B; W dsd 1½"></textarea>
         </div>
         <ul id="cardUnsure" class="unsure" hidden></ul>
         <p class="hint" id="cardStatus" role="status"></p>
@@ -820,6 +822,7 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
     <ul>
       <li>You're looking down from above, with the band at the top of the hall. Each circle is a dancer, in the colours shown for larks and robins; the number is their couple.</li>
       <li><b>Tap or click a dancer</b> to follow their couple: the others fade, and a box shows where the couple is and, under <i>Every time through</i>, their whole journey. Tap them again (or ✕) to stop.</li>
+      <li>In a dance that names neighbors along the set (“2nd neighbors”, “3rd neighbors”, as in 3, 33-33), the box also lists the couple’s 1st, 2nd and 3rd neighbors this time through, and tags those dancers on the floor: blue tags for the lark’s neighbors, red for the robin’s.</li>
       <li>Couples at the ends of the line <b>wait out</b> and come back in, as on a real floor. <b>Next end effect ⏭</b> jumps to the next time that happens.</li>
       <li>A dancer with a <b>“?”</b> doesn't know what to do: the move isn't one the simulator knows yet, or it can't work out who they dance it with. An <b>“oof!”</b> means two dancers bumped. (Turn these off in Settings.)</li>
       <li>A <b>trail</b> shows where each dancer has just been; change its length in Settings.</li>
@@ -896,6 +899,9 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
     <dt><a href="https://www.ibiblio.org/contradance/thecallersbox/" target="_blank" rel="noopener">The Caller's Box</a>, by Chris Page and Michael Dyck</dt>
     <dd>The layout dances are written in, and the glossary every figure was checked against (formations too).
       The sample dance, “111”, is by Chris Page and shared there with full permission.</dd>
+    <dt><a href="https://contradb.com/dances/203" target="_blank" rel="noopener">3, 33-33</a>, by <a href="https://contradb.com/choreographers/118" target="_blank" rel="noopener">Steve Zakon-Anderson</a></dt>
+    <dd>One of the featured dances, first published in CDS News, January 1993; Chris Page’s “111” is a remix of it. Shared on ContraDB;
+      the <a href="https://www.cambridgefolk.org.uk/contra/dances/steve_zakon/three_33_33.html" target="_blank" rel="noopener">original</a> is at the Cambridge Folk Club’s contra pages.</dd>
     <dt><a href="https://contralab.org/" target="_blank" rel="noopener">ContraLab</a></dt>
     <dd>The Contra Timing Chart: how many beats each figure usually takes, used for the timing checks.</dd>
     <dt><a href="https://contrafusion.co.uk/" target="_blank" rel="noopener">Contrafusion</a></dt>
@@ -3208,12 +3214,16 @@ const Contra = (() => {
     if (formName) out.push('Formation: ' + formName.charAt(0).toUpperCase() + formName.slice(1));
     out.push('');
     for (const p of parts) {
-      const figs = p.figs.map(expandShorthand), want = figs.map(f => {
+      // A count written after a move, "(4)", is its beats; the rest of the part's 16 are shared among the others.
+      const given = p.figs.map(f => { const m = f.match(/\(\s*(\d{1,2})\s*\)\s*$/); return m ? +m[1] : null; });
+      const figs = p.figs.map(f => expandShorthand(f.replace(/\s*\(\s*\d{1,2}\s*\)\s*$/, ''))), want = figs.map(f => {
         const k = parseFigure(f), b = k.fig && TYPICAL_BEATS[k.fig];
-        return /balance and swing/i.test(f) ? 16 : typeof b === 'function' ? b(k) : b || 8;
+        return /balance and swing/i.test(f) ? 16 : k.fig === 'swing' ? 8 : typeof b === 'function' ? b(k) : b || 8;
       });
-      const total = want.reduce((a, b) => a + b, 0), beats = want.map(w => Math.max(2, Math.round((w * 16) / total / 2) * 2));
-      beats[beats.length - 1] += 16 - beats.reduce((a, b) => a + b, 0);
+      const left = 16 - given.reduce((a, b) => a + (b || 0), 0), free = want.filter((w, i) => given[i] == null), total = free.reduce((a, b) => a + b, 0);
+      const beats = want.map((w, i) => given[i] != null ? given[i] : Math.max(2, Math.round((w * Math.max(0, left)) / Math.max(1, total) / 2) * 2));
+      const lastFree = given.lastIndexOf(null);
+      if (lastFree >= 0) beats[lastFree] += 16 - beats.reduce((a, b) => a + b, 0);
       out.push(p.name);
       figs.forEach((f, i) => out.push(`(${beats[i]}) ${f}`));
       out.push('');
@@ -3908,7 +3918,10 @@ const Contra = (() => {
     // if more), and how far each change takes a couple waiting at the end.
     const changes = regroupAfter.size + (endChange ? 1 : 0), nProg = Math.max(dance.progression, changes), step = nProg / Math.max(1, changes);
     const firstChange = regroupAfter.size ? Math.min(...regroupAfter) : -1;
-    const crossBeats = Math.min(8, perPass);
+    // A dance with a chain along the set (2nd or 3rd neighbors, as in 3, 33-33): couples waiting at the ends switch
+    // sides quickly, while the 1st neighbors balance, so the chain can reach them on their new sides.
+    const alongSet = F.kind === 'longways' && flat.some(q => /\b(2nd|3rd|4th|second|third|fourth)\s+neighbou?rs?\b/i.test(q.call.text));
+    const crossBeats = Math.min(alongSet ? 4 : 8, perPass);
 
     // Everything about one time through that doesn't change call to call: its groups, who is out, which
     // way "in" is for each dancer, and the waiting couples' paths. A waiting couple moves at the start of its
@@ -4031,7 +4044,67 @@ const Contra = (() => {
           }
         }
       }
-      return { groups, outs, cross, inFn, t0 };
+      // Neighbors along the set ("1st, 2nd, 3rd neighbors", as in 3, 33-33): your 1st neighbor is your hands-four
+      // neighbor beside you on your side; your 2nd and 3rd are the next dancers of their role along your side, on past
+      // your 1st (only dancers in a hands-four: couples waiting at the ends are out of it).
+      const nth = {};
+      if (F.kind === 'longways') {
+        const inSet = new Set(groups.flatMap(g => Object.values(g.ids)));
+        for (const g of groups) { const { L1, R1, L2, R2 } = g.ids; if (!L2) continue;
+          for (const [a, b] of [[L1, R2], [L2, R1], [R2, L1], [R1, L2]]) {
+            const A = from[a], B = from[b], dir = Math.sign(B.y - A.y), other = a.endsWith('L') ? 'R' : 'L';
+            if (Math.abs(A.x - B.x) > 0.3 || !dir) continue;
+            nth[a] = dancers.map(d => d.id).filter(id => inSet.has(id) && id.endsWith(other) && Math.abs(from[id].x - A.x) < 0.3 && (from[id].y - A.y) * dir > 0.05)
+              .sort((p, q) => Math.abs(from[p].y - A.y) - Math.abs(from[q].y - A.y));
+          }
+        }
+      }
+      return { groups, outs, cross, inFn, t0, nth, from0: from };
+    };
+
+    // A chain along the set ("1st neighbors pull by right, 2nd neighbors pull by left, 3rd neighbors box the gnat", as in
+    // 3, 33-33): followed the way dancers follow it, rather than by counting. From the start of the time through, each
+    // dancer's place along their side and the way they're going: they set off toward their 1st neighbor; a pull by
+    // passes them on, a box the gnat swaps them and turns everyone back the way they came; at each later step two dancers
+    // of opposite roles, next to each other and coming toward each other, take hands. Anyone with nobody coming (near an
+    // end of the set, or when the couples there are out) waits for the chain to come back. null: the moves
+    // since the start of the time through aren't a chain, so it can't be followed.
+    const chainPairs = (k, pass) => {
+      if (!pass.from0 || F.kind !== 'longways' || pass.k0 == null || k < pass.k0) return null;
+      const waiting = new Set(pass.outs.flatMap(o => [o.couple.lark, o.couple.robin])), sides = [], dir = {};
+      // (Couples waiting at the ends join from where they go to wait, across the set from where they were.)
+      const from = { ...pass.from0 };
+      for (const o of pass.outs) if (o.to) { from[o.couple.lark] = o.to.lark; from[o.couple.robin] = o.to.robin; }
+      const first = {};
+      for (const g of pass.groups) { const { L1, R1, L2, R2 } = g.ids; if (!L2) continue; for (const [a, b] of [[L1, R2], [L2, R1]]) if (Math.abs(from[a].x - from[b].x) < 0.3) { first[a] = b; first[b] = a; } }
+      for (const L of lines) for (const sg of [-1, 1]) {
+        // (Couples waiting at the ends are still standing in the line: the chain reaches them too. They face into the set.)
+        const order = dancers.map(d => d.id).filter(id => (first[id] || waiting.has(id)) && lines.reduce((b, M) => (Math.abs(M.cx - from[id].x) < Math.abs(b.cx - from[id].x) ? M : b)) === L && Math.sign(from[id].x - L.cx) === sg)
+          .sort((a, b) => from[a].y - from[b].y);
+        const mid = order.length ? (from[order[0]].y + from[order[order.length - 1]].y) / 2 : 0;
+        for (const id of order) dir[id] = first[id] ? Math.sign(from[first[id]].y - from[id].y) : Math.sign(mid - from[id].y) || 1;
+        if (order.length) sides.push(order);
+      }
+      const role = id => id.slice(-1), ordOf = q => { const m = q.call.text.match(/\b(1st|first|2nd|3rd|4th|second|third|fourth)\s+neighbou?rs?\b/i); return m ? m[1] : null; };
+      const step = (q, apply) => {
+        const fig = q.call.fig, ord = ordOf(q), moves = fig === 'pullBy' || fig === 'boxTheGnat';
+        const pairs = new Map();
+        for (const order of sides) {
+          if (!ord || /^(1st|first)$/i.test(ord)) { for (let i = 0; i < order.length; i++) { const a = order[i], b = first[a]; const j = order.indexOf(b); if (j === i + 1 || j === i - 1) pairs.set(a, b); } }
+          else for (let i = 0; i + 1 < order.length; i++) { const a = order[i], b = order[i + 1]; if (role(a) !== role(b) && dir[a] > 0 && dir[b] < 0 && !pairs.has(a) && !pairs.has(b)) { pairs.set(a, b); pairs.set(b, a); } }
+          if (!apply) continue;
+          if (moves) for (let i = 0; i + 1 < order.length; i++) { const a = order[i], b = order[i + 1]; if (pairs.get(a) === b) { order[i] = b; order[i + 1] = a; i++; } }
+          // At the box the gnat everyone turns back the way they came, those waiting for it too.
+          if (fig === 'boxTheGnat') for (const id of order) dir[id] = -dir[id];
+        }
+        return pairs;
+      };
+      for (let j = pass.k0; j < k; j++) {
+        const q = flat[j], fig = q.call.fig;
+        if (!(fig === 'balance' || ((fig === 'pullBy' || fig === 'boxTheGnat') && /neighbou?rs?/i.test(q.call.text)))) return null;   // not a chain
+        step(q, true);
+      }
+      return step(flat[k], false);
     };
 
     // Plan one call: a path for every dancer. `notes` collects anything odd about where dancers start.
@@ -4225,6 +4298,26 @@ const Contra = (() => {
           for (const [a, b] of pairs) holds.push({ fig: call.fig, a, ah: 'near', b, bh: 'near', t0: t0 + u0 * call.beats, t1: t0 + call.beats });
         }
       }
+      // "2nd (3rd, 4th) neighbors": each pairs with that neighbor along their side, across hands-fours; anyone whose
+      // 2nd or 3rd neighbor would be past the end of the set waits for the chain to come back.
+      const ord = (call.text.match(/\b(2nd|3rd|4th|second|third|fourth)\s+neighbou?rs?\b/i) || [])[1];
+      const N = ord ? { '2nd': 2, second: 2, '3rd': 3, third: 3, '4th': 4, fourth: 4 }[ord.toLowerCase()] : 0;
+      if (N && fig && fig.group === 'pair' && pass.nth && Object.keys(pass.nth).length) {
+        const chain = chainPairs(k, pass), mate = id => (chain ? chain.get(id) : (pass.nth[id] || [])[N - 1]), done = new Set(), waiting = new Set(pass.outs.flatMap(o => [o.couple.lark, o.couple.robin]));
+        holds.length = 0;
+        for (const n of [...notes]) if (/start [\d.]+ m apart/.test(n)) notes.delete(n);   // (the hands-four's pairs, which aren't danced)
+        for (const d of dancers) {
+          const a = d.id, b = mate(a);
+          if (done.has(a) || (waiting.has(a) && !(chain && chain.has(a)))) continue;
+          done.add(a);
+          if (b && mate(b) === a && !done.has(b)) {
+            done.add(b);
+            const ps = [from[a], from[b]], ctx = { p: P, cx: lineCx[a], keys: [a.endsWith('L') ? 'L1' : 'R1', b.endsWith('L') ? 'L2' : 'R2'] };
+            FIGURES[call.fig].plan(ps, call, ctx).forEach((f, i) => (fns[[a, b][i]] = f));
+            addHolds(call.fig, ps, ctx, [a, b]);
+          } else fns[a] = standStill(from[a]);
+        }
+      }
       // Single file around the whole set: everyone in each line, couples waiting at the ends too.
       if (call.fig === 'singleFile' && call.scope === 'set' && (F.kind === 'longways' || F.kind === 'becket')) {
         for (let i = holds.length - 1; i >= 0; i--) if (holds[i].fig === 'singleFile') holds.splice(i, 1);
@@ -4281,6 +4374,7 @@ const Contra = (() => {
     };
 
     let t = 0, pass = startPass(pose, 0), regroupWant = null;
+    pass.k0 = 0;
     // Couples waiting out at an end: the one who came back in is in its group again; the waiting ones count a wait
     // and, if it's time, switch role (done when the hands-fours re-form).
     const endOfWait = pass => {
@@ -4320,13 +4414,13 @@ const Contra = (() => {
             // (The time through is checked from one first change to the next.)
             if (k === firstChange) { if (regroupWant) passInfo[p - 1].check = { ...checkPass(regroupWant, ends), at: t1 }; }
             endOfWait(pass);
-            nextPass = startPass(roundTheSet ? facing : ends, pass.t0, true, pass);
+            nextPass = startPass(roundTheSet ? facing : ends, pass.t0, true, pass); nextPass.k0 = k + 1;
             if (nextPass.outs.some(o => o.crossNow)) nextPass.crossFrom = t1;
             if (k === firstChange) regroupWant = expectAfter(nextPass, ends);
           }
           if (last) {
             if (endChange) endOfWait(pass);
-            nextPass = startPass(ends, t1, false, pass, !endChange);
+            nextPass = startPass(ends, t1, false, pass, !endChange); nextPass.k0 = 0;
           }
           // Couples waiting at the ends go forward and back with their line when the lines go forward and back (Ryan), so
           // they switch sides after it rather than during it, holding hands across the set.
@@ -4538,10 +4632,13 @@ const Contra = (() => {
 </script>
 
 <script>
+// The sample dance: 111 by Chris Page. (3, 33-33 by Steve Zakon-Anderson, which 111 remixes, is the next featured
+// dance; Ryan will make it the sample once a caller has checked it.)
 const SAMPLE = `111
 by Chris Page
 
 Permission: full
+Source: The Caller's Box (https://www.ibiblio.org/contradance/thecallersbox/), supplied by Ryan
 
 FormationBase:	Duple Minor - Improper
 Progression:	Single
@@ -4565,6 +4662,33 @@ B1
 B2
 (6) Circle left 3/4
 (10) Neighbor swing`;
+const SAMPLE_33 = `3, 33-33
+by Steve Zakon-Anderson
+
+Permission: shared everywhere on ContraDB (https://contradb.com/dances/203)
+Source: CDS News, January 1993; the original is at https://www.cambridgefolk.org.uk/contra/dances/steve_zakon/three_33_33.html
+
+FormationBase:	Duple Minor - Improper
+Progression:	Single
+Figures:
+
+A1
+(4) 1st neighbors balance & pull by right
+(4) 2nd neighbors pull by left
+(8) 3rd neighbors right hand balance & box the gnat
+
+A2
+(4) 3rd neighbors pull by right
+(4) 2nd neighbors pull by left
+(8) 1st neighbors swing
+
+B1
+(8) circle left 3 places
+(8) partners swing
+
+B2
+(8) long lines forward & back
+(8) robins do si do 1½ ⁋`;
 
 const $ = id => document.getElementById(id);
 const canvas = $('floor'), ctx2d = canvas.getContext('2d');
@@ -4606,6 +4730,32 @@ function build() {
 const passAt = t => (state.c.perPass ? Math.min(state.c.passes.length - 1, Math.floor(Math.min(t, state.c.total - 1e-6) / state.c.perPass)) : 0);
 
 // The followed couple's journey: who they meet each time through, and when they wait out at an end.
+// A dancer's 1st, 2nd, 3rd ... neighbors in a time through, from who they hold hands with in the moves that name them.
+const ORD = { '1st': 1, first: 1, '2nd': 2, second: 2, '3rd': 3, third: 3, '4th': 4, fourth: 4 };
+function namedNeighbors(c, id, p) {
+  const out = {};
+  for (const k of c.calls) {
+    if (k.pass !== p) continue;
+    const m = (k.text || '').match(/\b(1st|first|2nd|second|3rd|third|4th|fourth)\s+neighbou?rs?\b/i); if (!m) continue;
+    const n = ORD[m[1].toLowerCase()]; if (out[n]) continue;
+    for (const h of k.holds || []) { if (h.a === id && h.b) { out[n] = h.b; break; } if (h.b === id) { out[n] = h.a; break; } }
+  }
+  return out;
+}
+const dancerName = (c, id) => { const k = c.couples.find(q => q.lark === id || q.robin === id); return k ? `${(k.lark === id ? roleSet()[2] : roleSet()[3]).toLowerCase()} ${k.num}` : id; };
+const nthWord = n => ['', '1st', '2nd', '3rd', '4th'][n];
+// The followed couple's named neighbors this time through: listed in the follow box, tagged on the floor.
+function followTags() {
+  const c = state.c, id = state.highlight; if (!id) return null;
+  const k = c.couples.find(q => q.id === id), p = passAt(state.t), tags = [], lines = [];
+  for (const [who, color] of [[k.lark, tokens.lark], [k.robin, tokens.robin]]) {
+    const nb = namedNeighbors(c, who, p), ns = Object.keys(nb).map(Number).sort();
+    if (!ns.length) continue;
+    ns.forEach(n => tags.push({ id: nb[n], text: nthWord(n), color, row: 0 }));
+    lines.push(`${dancerName(c, who).replace(/^./, ch => ch.toUpperCase())}'s neighbors: ${ns.map(n => `${nthWord(n)} ${dancerName(c, nb[n])}`).join(' · ')}`);
+  }
+  return { tags, lines };
+}
 function showJourney() {
   const c = state.c, id = state.highlight;
   $('followBox').hidden = !id; $('followHint').hidden = !!id;
@@ -4625,6 +4775,8 @@ const journeyText = m => (m.place ? `In place ${m.place} <span class="muted">of 
 function updateFollowNow() {
   if (!state.highlight || !state.journey) return;
   const p = passAt(state.t), m = state.journey[p], next = state.journey[p + 1];
+  const ft = followTags();
+  $('followNbrs').textContent = ft && ft.lines.length ? ft.lines.join('\n') : ''; $('followNbrs').hidden = !(ft && ft.lines.length);
   $('followNow').innerHTML = `Time ${p + 1}: ${journeyText(m)}${next ? `<br><span class="muted">Next: ${next.place ? `place ${next.place}` : next.square ? `square ${next.square} as couple ${next.as}` : next.with ? `couple ${next.with}` : `out at the ${next.out}`}</span>` : ''}`;
 }
 
@@ -4847,9 +4999,9 @@ function newCall(def, m = def.d, beats) {
 }
 const history = { list: [], at: -1 };
 
-// Example dances in the Dances panel: "111", then one test dance for each other kind of formation (the same text as
+// Example dances in the Dances panel: 111 and 3, 33-33, then one test dance for each other kind of formation (the same text as
 // the files in dances/, which the tests check).
-const EXAMPLES = [SAMPLE,
+const EXAMPLES = [SAMPLE, SAMPLE_33,
 `Simple Square (test dance)
 by the simulator
 
@@ -6129,7 +6281,8 @@ function view(cv = canvas, b = state.c.bounds, pad) {
 }
 
 function draw() {
-  drawFloor(canvas, state.c, state.t, { trail: +$('trailLen').value, focus: state.highlight, full: true, hands: $('hands').checked, puzzled: $('puzzled').checked });
+  const ft = state.highlight ? followTags() : null;
+  drawFloor(canvas, state.c, state.t, { trail: +$('trailLen').value, focus: state.highlight, full: true, hands: $('hands').checked, puzzled: $('puzzled').checked, tags: ft && ft.tags });
   if (!$('journeyView').hidden) drawJourney();
 }
 
@@ -6145,6 +6298,18 @@ function drawFloor(cv, c, t, o) {
   g.clearRect(0, 0, v.w, v.h);
   if (o.full) drawSetting(g, v, c, t, P);
   drawDancers(g, v, c, t, o);
+  if (o.tags) drawTags(g, v, c, t, o.tags);
+}
+// Small tags beside dancers ("1st", "2nd", "3rd": the followed couple's neighbors along the set).
+function drawTags(g, v, c, t, tags) {
+  g.font = '700 11px "Instrument Sans", system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  for (const tg of tags) {
+    const p = Contra.poseAt(c, tg.id, t); if (!p || !isFinite(p.x)) continue;
+    const x = v.X(p.x) + 0.32 * v.s, y = v.Y(p.y) - 0.32 * v.s - tg.row * 15, w = g.measureText(tg.text).width + 10;
+    g.fillStyle = tg.color; g.beginPath(); g.roundRect ? g.roundRect(x - w / 2, y - 8, w, 16, 8) : g.rect(x - w / 2, y - 8, w, 16); g.fill();
+    g.fillStyle = '#fff'; g.fillText(tg.text, x, y + 0.5);
+  }
+  g.textBaseline = 'alphabetic';
 }
 
 function drawSetting(g, v, c, t, P) {

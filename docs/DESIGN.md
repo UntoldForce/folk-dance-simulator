@@ -619,3 +619,29 @@ one line.
 Caller view (🎤): the dance on a big index card as a caller reads it, the line being danced highlighted and the next
 marked; beside it "Now" and "Call next", with the beats until it, lighting up in the last few beats (up to 4, or half
 of a short move), when a caller gives the call. Play, step and speed are the floor's own.
+
+**The sample dance is 3, 33-33 (Ryan, November 2026).** A caller pointed out that "111" by Chris Page remixes 3, 33-33
+by Steve Zakon-Anderson (CDS News, January 1993; on ContraDB as dance 203; the original at the Cambridge Folk Club's
+contra pages). The original is now the dance on the floor at first and the first featured dance; 111 follows it, and
+both are credited in References and thanks. Its "1st, 2nd, 3rd neighbors" are read as neighbors along the set: at the
+start of each time through, a dancer's 1st neighbor is their hands-four neighbor on their side, and their 2nd and 3rd
+are the next dancers of that role along their side, on past the 1st (couples waiting at the ends aren't in the chain).
+A line naming 2nd, 3rd or 4th neighbors pairs dancers that way, across hands-fours; anyone whose neighbor would be past
+the end of the set waits for the chain to come back. Before, 2nd and 3rd neighbors were read as the same neighbor, so a
+lark pulled by one robin back and forth instead of chaining down the set past three.
+
+**The chain along the set, every time through (Ryan, November 2026).** On the 2nd, 4th ... times through of 3, 33-33,
+with couples waiting at the ends, the box the gnat paired 3rd neighbors who were 3 m apart: dancers without a 2nd
+neighbor had stood still while the rest of the chain moved on. Now the chain is followed as dancers follow it, rather
+than by counting: from the start of the time through, each dancer's place along their side and the way they're going
+(toward their 1st neighbor); a pull by passes them on; at the box the gnat everyone turns back the way they came; at
+each step two dancers of opposite roles, next to each other and coming toward each other, take hands; anyone with
+nobody coming waits for the chain to come back. Couples waiting at the ends switch sides quickly (in 4 beats, while
+the 1st neighbors balance) and join the chain where it reaches them. Following a couple (tap a dancer) lists their
+1st, 2nd and 3rd neighbors this time through, and tags those dancers on the floor ("1st", "2nd", "3rd", blue for the
+lark's neighbors and red for the robin's).
+
+**111 stays the sample for now (Ryan, November 2026).** Until a caller has checked 3, 33-33 in the simulator, 111 is
+the dance on the floor at first; 3, 33-33 is the next featured dance. The Dance card tab's example card is now
+3, 33-33 in caller's shorthand, with counts: a count after a move on a card, "(4)", is its beats (the rest of the
+part's 16 are shared among the others), and a swing on its own counts 8.

@@ -1,0 +1,27 @@
+3, 33-33
+by Steve Zakon-Anderson
+
+Permission: shared everywhere on ContraDB (https://contradb.com/dances/203)
+Source: CDS News, January 1993; the original is at https://www.cambridgefolk.org.uk/contra/dances/steve_zakon/three_33_33.html
+
+FormationBase:	Duple Minor - Improper
+Progression:	Single
+Figures:
+
+A1
+(4) 1st neighbors balance & pull by right
+(4) 2nd neighbors pull by left
+(8) 3rd neighbors right hand balance & box the gnat
+
+A2
+(4) 3rd neighbors pull by right
+(4) 2nd neighbors pull by left
+(8) 1st neighbors swing
+
+B1
+(8) circle left 3 places
+(8) partners swing
+
+B2
+(8) long lines forward & back
+(8) robins do si do 1½ ⁋

@@ -578,5 +578,42 @@ for (const k of c.calls) {
   check(Math.abs(a1.x - (-0.6)) < 0.1 && Math.abs(a1.y - a0.y) < 0.15, `hands-four single file left 3 places: lark 1 ends three quarters of the way round, clockwise (${a1.x.toFixed(2)}, ${a1.y.toFixed(2)})`);
 }
 
+// 3, 33-33 by Steve Zakon-Anderson (the sample dance): 1st, 2nd and 3rd neighbors along the set. A lark chains down
+// his side past three different robins (box the gnat with the third), comes back, and swings his original neighbor.
+{
+  const t = fs.readFileSync(path.join(__dirname, '..', 'dances', '3-33-33.txt'), 'utf8'), c = Contra.compile(Contra.parseDance(t), { lines: 1, sets: 4, passes: 2 });
+  const at = (id, b) => Contra.poseAt(c, id, b), y0 = at('0.3L', 0).y;
+  check([4, 8, 16].map(b => Math.round(y0 - at('0.3L', b).y)).join() === '1,2,3', `lark 3 travels down the set one place at each neighbor: 1st, 2nd, 3rd (${[4, 8, 16].map(b => (y0 - at('0.3L', b).y).toFixed(1)).join(', ')})`);
+  const near = (b, who) => c.dancers.filter(d => d.id.endsWith('R')).sort((p, q) => Math.hypot(at(p.id, b).x - at('0.3L', b).x, at(p.id, b).y - at('0.3L', b).y) - Math.hypot(at(q.id, b).x - at('0.3L', b).x, at(q.id, b).y - at('0.3L', b).y))[0].id;
+  check([3, 6, 14].map(b => near(b)).join() === "0.4R,0.6R,0.8R", `and meets three different robins on the way: 4, 6 and 8 (${[3, 6, 14].map(b => near(b)).join(', ')})`);
+  check(Math.abs(at('0.3L', 32).y - (y0 - 1)) < 0.15 && Contra.review(t).ok, '3, 33-33 comes back to swing the original neighbor, and runs with no problems');
+}
+
+// 3, 33-33 on every time through (Ryan): when couples wait out at the ends (the 2nd, 4th ... times), they switch sides
+// quickly and join the chain where it reaches them, so the 3rd neighbors still meet, side by side, for the box the gnat.
+{
+  const d = Contra.parseDance(fs.readFileSync(path.join(__dirname, '..', 'dances', '3-33-33.txt'), 'utf8'));
+  for (const [lines, sets] of [[1, 2], [1, 3], [1, 4], [2, 3], [1, 6]]) {
+    const c = Contra.compile(d, { lines, sets, passes: 8 });
+    const apart = c.warnings.filter(w => /apart|bump/.test(w.text) || w.hands);
+    // In every time through, each box the gnat is between two dancers side by side.
+    const boxes = c.calls.filter(k => k.fig === 'boxTheGnat'), far = boxes.flatMap(k => (k.holds || []).filter(h => h.b && Math.hypot(Contra.poseAt(c, h.a, k.t0).x - Contra.poseAt(c, h.b, k.t0).x, Contra.poseAt(c, h.a, k.t0).y - Contra.poseAt(c, h.b, k.t0).y) > 1.2));
+    check(c.progression.firstBad < 0 && !apart.length && !far.length && (sets < 3 || boxes.every(k => (k.holds || []).length)), `3, 33-33, ${lines} line(s) of ${sets}: every time through the chain meets side by side and progresses (${apart.map(w => w.text).join('; ') || 'no problems'})`);
+  }
+  // Couple 1, waiting at the top in the 2nd time through, still dances: the chain reaches them.
+  const c = Contra.compile(d, { lines: 1, sets: 3, passes: 2 }), out = c.passes[1].outs.map(o => o.couple);
+  const moved = out.every(id => { const k = c.couples.find(q => q.id === id); return c.calls.some(q => q.pass === 1 && /3rd neighbors box/.test(q.text) && (q.holds || []).some(h => h.a === k.lark || h.b === k.lark || h.a === k.robin || h.b === k.robin)); });
+  check(out.length === 2 && moved, `couples waiting at the ends (${out.join(', ')}) join the chain: the 3rd neighbors' box the gnat reaches them`);
+}
+
+// The Dance card tab's example card (3, 33-33): a count after a move, "(4)", is its beats; a swing on its own is 8.
+{
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8'), ph = html.match(/id="cardText"[^>]*placeholder="([^"]*)"/)[1]
+    .replace(/&#10;/g, '\n').replace(/&amp;/g, '&');
+  const d = Contra.parseDance(Contra.fromCard(ph)), beats = d.parts.map(p => p.calls.map(k => k.beats).join('+')).join(' | ');
+  check(d.title === '3, 33-33' && d.author === 'Steve Zakon-Anderson' && beats === '4+4+8 | 4+4+8 | 8+8 | 8+8' && d.parts.every(p => p.calls.every(k => k.fig)),
+    `the Dance card tab's example card is 3, 33-33, read with its counts (${beats})`);
+}
+
 console.log(failures ? `\n${failures} check(s) failed` : '\nAll checks passed');
 process.exit(failures ? 1 : 0);

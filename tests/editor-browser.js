@@ -10,6 +10,7 @@ const { chromium } = require('playwright');
   const errs = []; p.on('pageerror', e => errs.push(e.message));
   await p.goto('file://' + path.join(__dirname, '..', 'index.html'));
   await p.evaluate(() => localStorage.clear()); await p.reload(); await p.waitForTimeout(300);
+  check(await p.evaluate(() => state.doc.title === '111' && /111 by Chris Page/.test($('danceTitle').textContent)), 'the dance on the floor at first is 111 by Chris Page');
   await p.locator('#rows').scrollIntoViewIfNeeded();
   const lines = re => p.evaluate(r => $('danceText').value.split('\n').filter(l => new RegExp(r, 'i').test(l)), re);
 
@@ -108,7 +109,8 @@ const { chromium } = require('playwright');
 
   // Dances panel: the examples are the test dances in dances/; save and load your own; next end effect.
   const fs = require('fs'), files = ['square', 'grid-square', 'circle-mixer', 'triplet', 'tempest'].map(n => fs.readFileSync(path.join(__dirname, '..', 'dances', `${n}-test.txt`), 'utf8').trimEnd());
-  check(await p.evaluate(f => EXAMPLES.slice(1).every((t, i) => t === f[i]), files), 'the example dances match the test dances in dances/');
+  check(await p.evaluate(f => EXAMPLES.slice(2).every((t, i) => t === f[i]), files), 'the example dances match the test dances in dances/');
+  check(await p.evaluate(f => EXAMPLES[0] === f[0] && EXAMPLES[1] === f[1], ['111', '3-33-33'].map(n => fs.readFileSync(path.join(__dirname, '..', 'dances', `${n}.txt`), 'utf8').trimEnd())), 'the featured dances start with 111 (the default) and 3, 33-33');
   await p.click('#dancesOpen'); await p.click('#exampleList .dlist:has-text("Simple Square")'); await p.waitForTimeout(150);
   check(await p.evaluate(() => state.c.kind === 'square' && !$('dances').open), 'an example loads from the Dances panel');
   await p.click('#dancesOpen'); await p.click('#saveDance'); await p.waitForTimeout(300);
@@ -138,6 +140,8 @@ const { chromium } = require('playwright');
 
   // Journey chart: the timeline's second view; clicking a couple's line follows them and goes to that moment.
   await p.click('#reset2'); await p.waitForTimeout(150);
+  check(await p.evaluate(() => state.doc.title === '111'), 'the Load button loads the sample dance, 111');
+  await p.evaluate(() => { $('danceText').value = EXAMPLES[0]; state.sel = null; build(); commit(true); }); await p.waitForTimeout(150);
   await p.click('#viewJourney'); await p.waitForTimeout(150);
   check(await p.locator('#journeyCanvas').isVisible() && !(await p.locator('#rows').isVisible()), 'Journey swaps the part rows for the couple journey chart');
   const spot = await p.evaluate(() => { const d = journeyData(), v = journeyView($('journeyCanvas')), k = d.couples[2], [t, y] = k.pts[3]; return { id: k.id, x: v.r.left + v.X(t + 0.5 * state.c.perPass) , y: v.r.top + v.Y((y + k.pts[4][1]) / 2), t }; });
@@ -152,7 +156,7 @@ const { chromium } = require('playwright');
   await p.waitForTimeout(100);
   check(await p.evaluate(() => document.querySelectorAll('.fblk[data-part="0"]').length === 1 && moveOf(state.doc.parts[0].calls[0]).label === 'Balance and swing' && document.querySelector('.fblk[data-part="0"]').classList.contains('active')),
     'a balance & swing line is one block (the Balance and swing move), lit during its swing');
-  await p.click('#reset2'); await p.waitForTimeout(100);
+  await p.evaluate(() => { $('danceText').value = EXAMPLES[0]; state.sel = null; build(); commit(true); }); await p.waitForTimeout(100);
 
   // Formation and progression, with pictures of the common formations: folded under one line saying what they are.
   check(!(await p.locator('.fpick').first().isVisible()) && !(await p.locator('#formation').isVisible()) && await p.textContent('#setupSum') === 'Improper · single progression',
@@ -174,7 +178,7 @@ const { chromium } = require('playwright');
     'hands-four outlines and "out" labels are fixed for each time through');
 
   // Workspace: nothing scrolls on a computer screen; the timeline sits right under the floor.
-  await p.click('#reset2'); await p.waitForTimeout(200);
+  await p.evaluate(() => { $('danceText').value = EXAMPLES[0]; state.sel = null; build(); commit(true); }); await p.waitForTimeout(200);
   for (const [w, h] of [[1440, 900], [1366, 768], [1920, 1080]]) {
     await p.setViewportSize({ width: w, height: h }); await p.waitForTimeout(150);
     const lay = await p.evaluate(() => ({ sh: document.documentElement.scrollHeight, sw: document.documentElement.scrollWidth, fl: $('floor').getBoundingClientRect(), tl: document.querySelector('.timeline').getBoundingClientRect() }));
@@ -218,7 +222,7 @@ const { chromium } = require('playwright');
   check(!(await p.locator('#refsDialog').isVisible()), 'and it closes again');
 
   // The move card on a computer: pinned at the top of the editor, nothing dimmed; Add keeps it open (to add more).
-  await p.click('#reset2'); await p.waitForTimeout(100);
+  await p.evaluate(() => { $('danceText').value = EXAMPLES[0]; state.sel = null; build(); commit(true); }); await p.waitForTimeout(100);
   await p.click('.chip:has-text("Swing") >> nth=0'); await p.waitForTimeout(200);
   check(await p.evaluate(() => getComputedStyle($('builder')).position === 'sticky' && $('cardScrim').hidden), 'on a computer the move card is pinned above the move list, with nothing dimmed');
   await p.click('.seg button[data-who="neighbors"]'); await p.waitForTimeout(100);
@@ -401,6 +405,7 @@ const { chromium } = require('playwright');
     await q.fill('#poolSearch', 'chain'); await q.waitForTimeout(100);
     check((await q.locator('#pool details.pgroup[open]').count()) > 0, 'searching opens the groups with matches');
     await q.fill('#poolSearch', '');
+    await q.evaluate(t => { $('danceText').value = t; build(); }, require('fs').readFileSync(path.join(__dirname, '..', 'dances', '111.txt'), 'utf8')); await q.waitForTimeout(200);
     await q.click('#callerOpen'); await q.waitForTimeout(300);
     const lines = q.locator('#cvCard .iline');
     check(await q.isVisible('#callerView') && (await lines.count()) === 12 && /111/.test(await q.textContent('#cvCard header')), 'Caller view: the dance on a card, every line');
@@ -414,6 +419,19 @@ const { chromium } = require('playwright');
     await q.click('#cvPlay'); await q.waitForTimeout(600);
     check(await q.evaluate(() => state.playing) && (await q.textContent('#cvPlay')) === 'Pause', 'Caller view: Play plays the dance');
     await q.click('#cvPlay'); await q.click('#cvClose');
+    await ctx.close();
+  }
+
+  // Following a couple in 3, 33-33 names their 1st, 2nd and 3rd neighbors, in the follow box and with tags on the floor.
+  {
+    const ctx = await b.newContext({ viewport: { width: 1280, height: 860 } }), q = await ctx.newPage();
+    q.on('pageerror', e => errs.push(e.message));
+    await q.addInitScript(() => { try { localStorage.setItem('contra.toured', '1'); localStorage.setItem('contra.set.lines', '1'); localStorage.setItem('contra.set.sets', '4'); } catch (e) {} });
+    await q.goto('file://' + path.join(__dirname, '..', 'index.html')); await q.waitForTimeout(800);
+    await q.evaluate(() => { $('danceText').value = EXAMPLES[1]; state.sel = null; build(); commit(true); }); await q.waitForTimeout(200);
+    await q.evaluate(() => { state.highlight = state.c.couples.find(k => k.num === 3).id; showJourney(); seek(2); }); await q.waitForTimeout(200);
+    const txt = await q.textContent('#followNbrs');
+    check(/Lark 3's neighbors: 1st robin 4 · 2nd robin 6 · 3rd robin 8/.test(txt) && /Robin 3's neighbors: 1st lark 4/.test(txt), `following couple 3 names their 1st, 2nd and 3rd neighbors (${txt.replace(/\n/g, ' / ')})`);
     await ctx.close();
   }
 
