@@ -345,6 +345,11 @@ const { chromium } = require('playwright');
     await r.click('#cardSave'); await r.waitForTimeout(300);
     await r.click('#boxOpen'); await r.waitForTimeout(300);
     check(/Saved “Sidmouth Swirl”/.test(await r.textContent('#cardStatus')) && /Sidmouth Swirl/.test(await r.textContent('#boxGrid')) && /Four facing four/.test(await r.textContent('#boxGrid')), 'Dance card tab: "Save to my card box" adds the card');
+    // Backing up by email: the card box says the cards are kept only on this device, and offers to email a backup.
+    check(/only on this device/.test(await r.textContent('.boxlocal')) && await r.isVisible('#boxEmail'), 'the card box says cards are kept only on this device, with a button to email a backup');
+    const [bk] = await Promise.all([r.waitForEvent('download', { timeout: 3000 }).catch(() => null), r.click('#boxEmail')]);
+    const note = await r.textContent('#boxNote');
+    check((bk ? /attach that file/.test(note) : /email has opened with your cards/.test(note)), `email a backup: the file is saved (or put in the email) and a new email opens: ${note}`);
     await ctx.close(); await ctx2.close();
   }
   // The card box on a phone: full screen, one card per row.

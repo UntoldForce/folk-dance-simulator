@@ -595,3 +595,10 @@ paper, a red line under the heading, blue rules, handwriting), in a library sepa
   ratings, tags and notes ("Difficulty: 3", "Flow: 4", "Tags: ...", "Notes: ...", "Added: ..."), which import reads
   back; the rest of the simulator ignores them. Inside Claude, files are offered through the page's downloads
   capability; elsewhere as an ordinary download. Photos stay on the device.
+
+**Folk Dance Simulator; Now playing; backing up the card box (Ryan, November 2026).** Renamed from Contra Dance
+Simulator (it does English country dances, squares and more). The top bar says "Now playing: <title> by <author>".
+The card box says plainly that cards are kept only on this device, in this browser, and offers "email a backup to
+yourself": on a phone the share sheet offers the backup file to Mail; elsewhere the file is saved and a new email opens
+saying which file to attach (a few cards go straight into the email). Each card can also be emailed on its own. Help
+explains backing up and getting cards back with Import.

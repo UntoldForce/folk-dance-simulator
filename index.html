@@ -1,6 +1,6 @@
 <!doctype html><!--wrap-->
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><!--wrap-->
-<title>Contra Dance Simulator</title>
+<title>Folk Dance Simulator</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -52,6 +52,8 @@ body {
 header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; margin-bottom: 12px; }
 h1 { font: 600 24px/1.1 var(--font-display); margin: 0; letter-spacing: -0.01em; }
 .subtitle { color: var(--muted); }
+.nowplaying { color: var(--ink); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nowplaying .nplabel { color: var(--muted); }
 .app { display: grid; grid-template-columns: minmax(0, 1fr) 430px; gap: 16px; align-items: start; }
 .side { position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow-y: auto; }
 @media (max-width: 1000px) { .side { position: static; max-height: none; } }
@@ -290,6 +292,8 @@ ul.checks li.passed { color: var(--muted); }
 .box { width: min(1180px, 100vw); max-width: 100vw; height: min(92vh, 100%); max-height: 100vh; padding: 16px 20px; background: var(--bg); color: var(--ink); border: 1px solid var(--rule); border-radius: 12px; }
 .box[open] { display: flex; flex-direction: column; gap: 10px; }
 .box .grow { flex: 1; }
+.boxlocal { display: flex; gap: 8px; align-items: flex-start; margin: 0; padding: 8px 12px; border-radius: 8px; background: color-mix(in srgb, var(--accent) 10%, transparent); font-size: 14px; line-height: 1.45; }
+.textlink, .textlink:hover { border: 0; background: none; box-shadow: none; padding: 0; min-height: 0; font: inherit; color: var(--accent); text-decoration: underline; cursor: pointer; font-weight: 600; }
 .boxhead { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .boxhead h2 { margin: 0; font: 600 22px var(--font-display); }
 .boxtools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
@@ -327,7 +331,7 @@ ul.checks li.passed { color: var(--muted); }
 .icard footer { display: flex; gap: 10px; font: 500 12px var(--font-body); color: #5b6673; padding-top: 4px; flex-wrap: wrap; }
 .icard .itag { background: #eef2f7; border-radius: 999px; padding: 0 7px; }
 .icard .istar { color: #c99700; }
-@media (max-width: 640px) { .box { width: 100vw; height: 100dvh; max-height: 100dvh; margin: 0; border: 0; border-radius: 0; padding: 12px; } .boxgrid { grid-template-columns: 1fr; } }
+@media (max-width: 640px) { .boxhead h2, #boxCount { order: -2; } #boxClose { order: -1; margin-left: auto; } .boxhead .grow { display: none; } .box { width: 100vw; height: 100dvh; max-height: 100dvh; margin: 0; border: 0; border-radius: 0; padding: 12px; } .boxgrid { grid-template-columns: 1fr; } }
 .refs { width: min(760px, 94vw); max-height: 88vh; padding: 20px 24px; background: var(--panel); color: var(--ink); border: 1px solid var(--rule); border-radius: 12px; }
 .refs::backdrop { background: rgba(10, 16, 14, 0.45); }
 .refshead { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; }
@@ -470,8 +474,8 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
 </head><body><!--wrap-->
 
 <header class="topbar">
-  <h1>Contra Dance Simulator</h1>
-  <span class="subtitle" id="danceTitle">Phase 1 preview</span>
+  <h1>Folk Dance Simulator</h1>
+  <span class="nowplaying"><span class="nplabel">Now playing:</span> <b id="danceTitle">111</b></span>
   <span class="tbtools">
     <span class="bulkstep" id="bulkStep" hidden><button type="button" id="bulkPrev" aria-label="Previous dance in the list">‹</button><span id="bulkPos"></span><button type="button" id="bulkNext" aria-label="Next dance in the list">›</button></span>
     <button type="button" id="dancesOpen" class="pill" aria-haspopup="dialog">♫ Dances</button>
@@ -666,6 +670,7 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
       <option value="level">Progression (easiest first)</option></select></label>
     <select id="boxForm" aria-label="Type of dance"></select><select id="boxWho" aria-label="Choreographer"></select><select id="boxTag" aria-label="Tag"></select>
   </div>
+  <p class="boxlocal"><span aria-hidden="true">🔒</span> <span>Your cards are kept <b>only on this device</b>, in this browser. Clearing the browser’s data, or losing the device, loses them. To keep them safe, <button type="button" id="boxEmail" class="textlink">email a backup to yourself</button> now and then.</span></p>
   <p class="small" id="boxNote" role="status"></p>
   <div id="boxGrid" class="boxgrid"></div>
   <div id="boxDetail" class="boxdetail" hidden>
@@ -679,7 +684,7 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
         <label for="detailTags">Tags <span class="small">(commas between)</span></label><input type="text" id="detailTags" placeholder="e.g. easy, wedding, gender-free">
         <label for="detailNotes">Notes</label><textarea id="detailNotes" rows="4" placeholder="Teaching notes, tunes, where you called it…"></textarea>
         <p class="small" id="detailLevel"></p>
-        <div class="row"><button type="button" id="detailExport">Export this card</button><button type="button" id="detailDelete">Delete</button></div>
+        <div class="row"><button type="button" id="detailEmail">Email this card</button><button type="button" id="detailExport">Save as a file</button><button type="button" id="detailDelete">Delete</button></div>
       </div>
     </div>
   </div>
@@ -695,7 +700,7 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
 </div>
 <dialog id="helpDialog" class="refs help" aria-labelledby="helpTitle">
   <div class="refshead"><h2 id="helpTitle">How to use the simulator</h2><button type="button" id="helpClose" aria-label="Close">✕</button></div>
-  <p>Watch contra dances from above, build your own, and check that they work. <button type="button" id="helpTour">Show the quick tour again</button></p>
+  <p>Watch folk dances from above (contras, English country dances, squares and more), build your own, and check that they work. <button type="button" id="helpTour">Show the quick tour again</button></p>
   <details open><summary>Watching a dance</summary>
     <ul>
       <li><b>Play</b> starts and stops the dance (or press the space bar). <b>◀ ▶</b> step one beat back or forward (or the arrow keys).</li>
@@ -748,7 +753,10 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
       <li><b>Adding cards</b>: <i>Add the dance on the floor</i> (or <i>Save to my card box</i> in ♫ Dances); <i>Save to my card box</i> in the Dance card tab, which keeps the photo of your card too; or <i>Import…</i> a text file of dances (one or many, separated by a line of =====).</li>
       <li><b>Finding cards</b>: search titles, choreographers, moves, tags and notes; sort by title, choreographer, type of dance, your difficulty, flow or how hard the progression is; or show just one type of dance, choreographer or tag.</li>
       <li><b>On a card</b>: tap it to see it full size (and the photo, if it has one), rate its difficulty and flow, add tags and notes, <i>Dance it</i> on the floor, export it, or delete it. A dance you open from the box and change is saved back onto its card.</li>
-      <li><b>Export</b>: one card, or <i>Export all</i>, as a text file in The Caller's Box layout, with your ratings, tags and notes. Keep it as a backup, or email it: anyone can import it into their card box or paste it into the Text tab. Photos stay on your device.</li>
+      <li><b>Your cards are kept only on this device</b>, in this browser: nobody else can see them, and nothing is sent anywhere. But clearing the browser’s data, or losing the device, loses them, so back them up now and then.</li>
+      <li><b>Backing up by email</b>: in the card box, tap <i>email a backup to yourself</i>. On a phone your share sheet opens with the backup file: choose Mail and send it to yourself. On a computer the file is saved and a new email opens: attach the file and send it. <i>Email this card</i> on a card sends just that one, to yourself or to a friend.</li>
+      <li><b>Getting cards back</b> (or onto a new device): open the email, save the attached file, and use <i>Import…</i> in the card box. Your ratings, tags and notes come back too. Photos of cards aren't in the backup.</li>
+      <li><b>Saving a file</b>: <i>Export all</i>, or <i>Save as a file</i> on a card, saves the text file without emailing it, in The Caller's Box layout: anyone can import it, or paste a dance into the Text tab.</li>
     </ul>
   </details>
   <details><summary>Featured dances and checking many (♫ Dances)</summary>
@@ -4922,6 +4930,30 @@ const cardBox = (() => {
     a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
     return 'saved';
   }
+  // Email a backup (or one card) to yourself. A web page can't send email itself: on a phone the share sheet offers the
+  // file to Mail; elsewhere the file is saved and a new email opens, saying which file to attach (or, for a few cards,
+  // holding the cards themselves).
+  async function emailFile(name, text, what) {
+    const subject = `Folk Dance Simulator: ${what}`;
+    try {
+      const file = new File([text], name, { type: 'text/plain' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: subject, text: `${what} from the Folk Dance Simulator. To bring them back, use Import… in the card box.` });
+        return 'shared';
+      }
+    } catch (e) { if (e && e.name === 'AbortError') return 'cancelled'; }
+    const short = text.length < 1600;
+    const saved = short ? 'saved' : await saveFile(name, text);
+    const body = short ? `${what} from the Folk Dance Simulator. To bring them back, copy everything below into a text file and use Import… in the card box (or paste a dance into the Text tab).\n\n${text}`
+      : `${what} from the Folk Dance Simulator.\n\nAttach the file "${name}" that was just saved (usually in your Downloads folder).\nTo bring the cards back, use Import… in the card box and choose that file.`;
+    const a = document.createElement('a'); a.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`; a.target = '_blank'; a.rel = 'noopener';
+    document.body.appendChild(a); a.click(); a.remove();
+    return saved === 'saved' ? (short ? 'mailed' : 'mail-attach') : saved;
+  }
+  const emailNote = (r, name) => r === 'shared' ? 'Sent to your share sheet: choose Mail (or your email app) and send it to yourself.'
+    : r === 'mailed' ? 'A new email has opened with your cards in it: send it to yourself. (If nothing opened, use “Save as a file” and email the file.)'
+    : r === 'mail-attach' ? `Saved “${name}”, and a new email has opened: attach that file and send it to yourself. (If no email opened, attach the file in your email as usual.)`
+    : r === 'cancelled' || r === 'declined' ? '' : 'Couldn’t start an email here: use Export all to save the file, then attach it to an email.';
   const slug = t => (t || 'dance').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60) || 'dance';
   // An index card: title, type of dance and choreographer above the red line; the dance on the blue rules.
   function cardEl(c, full) {
@@ -5007,6 +5039,7 @@ const cardBox = (() => {
     $('detailLevel').textContent = c.level ? `Progression: works with ${c.level} dancers and up (Settings › Dancers' experience).` : c.levelFor === c.text ? 'Progression: the simulator can’t get this dance to progress yet.' : 'Progression: working it out…';
     $('detailDance').onclick = () => { $('cardBox').close(); loadDance(c.text, false, c.id); };
     $('detailExport').onclick = async () => { const r = await saveFile(`${slug(c.title)}.txt`, toText(c)); $('boxNote').textContent = r === 'saved' ? `Exported “${c.title}”.` : r === 'declined' ? '' : 'Couldn’t export here.'; };
+    $('detailEmail').onclick = async () => { const name = `${slug(c.title)}.txt`; $('boxNote').textContent = emailNote(await emailFile(name, toText(c), `“${c.title}”`), name); };
     $('detailDelete').onclick = async () => { if (!confirm(`Delete the card for “${c.title}”? This can’t be undone.`)) return; cards = cards.filter(x => x.id !== id); await store.del(id); lsSave(); closeCard(); };
   }
   function closeCard() { openId = null; showPhoto = false; $('boxDetail').hidden = true; $('boxGrid').hidden = false; document.querySelector('#cardBox .boxtools').hidden = false; render(); }
@@ -5039,6 +5072,11 @@ const cardBox = (() => {
     if (!cards.length) { $('boxNote').textContent = 'No cards to export yet.'; return; }
     const r = await saveFile(`card-box-${new Date().toISOString().slice(0, 10)}.txt`, cards.slice().sort((a, b) => a.title.localeCompare(b.title)).map(toText).join('\n=====\n\n'));
     $('boxNote').textContent = r === 'saved' ? `Exported ${cards.length} cards in one text file: keep it as a backup, or send it to someone to import.` : r === 'declined' ? '' : 'Couldn’t export here.';
+  };
+  $('boxEmail').onclick = async () => {
+    if (!cards.length) { $('boxNote').textContent = 'No cards to back up yet.'; return; }
+    const name = `card-box-${new Date().toISOString().slice(0, 10)}.txt`;
+    $('boxNote').textContent = emailNote(await emailFile(name, cards.slice().sort((a, b) => a.title.localeCompare(b.title)).map(toText).join('\n=====\n\n'), `My card box backup (${cards.length} card${cards.length === 1 ? '' : 's'})`), name);
   };
   $('boxImport').onchange = async e => {
     const files = [...e.target.files]; e.target.value = '';
@@ -6352,7 +6390,7 @@ function setupCardImport() {
 // ---------- First visit: a quick tour of the basics; Help has the rest ----------
 // Each step lights up one part of the page (none for the welcome) and says what it's for.
 const TOUR = [
-  [null, 'Welcome!', 'This simulator shows contra dances from above, so you can watch one, build your own, and check that it works. Here is a quick tour of the basics.'],
+  [null, 'Welcome!', 'This simulator shows folk dances (contras, English country dances, squares and more) from above, so you can watch one, build your own, and check that it works. Here is a quick tour of the basics.'],
   ['#floor', 'The dance floor', () => `You're looking down on the hall, with the band at the top. Each circle is a dancer: ${roleSet()[0].toLowerCase()} and ${roleSet()[1].toLowerCase()} in their own colours, numbered by couple. Tap a dancer to follow their couple through the dance.`],
   ['.tbar', 'Play the dance', 'Play starts the dance. ◀ ▶ step one beat at a time (or use the arrow keys). Slow it down with Speed, and use Loop to repeat one part or one move while you learn it.'],
   ['#rows', 'The dance, part by part', 'Each row is a part (A1, A2, B1, B2) of 16 beats, with its moves as coloured blocks. Tap a block to jump to that move.'],
