@@ -577,3 +577,45 @@ each walking behind the next, facing the way they go, to the left (clockwise) or
 whole set ("whole set single file", "single file ... around the set"): everyone in each line, couples waiting at the ends
 included, walks one loop of the set: along their side, round the end of the set, down the other side. A place is one
 couple's spot along a side and going round an end is one place, so after whole places everyone stands on a spot again.
+
+**My card box (Christine Merryman's idea, November 2026).** A caller's own dances, each on a virtual index card (cream
+paper, a red line under the heading, blue rules, handwriting), in a library separate from the featured dances
+(🗂 Card box, and in ♫ Dances).
+- Kept on the device in the browser's database (IndexedDB), so a card can keep the photo it was read from; where that
+  isn't available, in plain browser storage without photos. Dances saved the old way ("My dances") move in once.
+- Cards come from the dance on the floor ("Add the dance on the floor", or "Save to my card box" in ♫ Dances, which
+  saves back onto its card a dance opened from the box), from the Dance card tab (typed or read from a photo, with the
+  photo kept), or from a text file (one dance or many, separated by =====).
+- Search (title, choreographer, type of dance, moves, tags, notes); sort by newest, title, choreographer, type of
+  dance, the caller's difficulty, flow, or the simulator's progression difficulty (worked out in the background);
+  filter by type of dance, choreographer or tag.
+- A card opens full size (or as its photo), with the caller's difficulty and flow (1-5 stars), tags, notes, Dance it,
+  Export this card and Delete.
+- Export: one card, or the whole box in one file, as text in The Caller's Box layout with extra lines for the card's
+  ratings, tags and notes ("Difficulty: 3", "Flow: 4", "Tags: ...", "Notes: ...", "Added: ..."), which import reads
+  back; the rest of the simulator ignores them. Inside Claude, files are offered through the page's downloads
+  capability; elsewhere as an ordinary download. Photos stay on the device.
+
+**Folk Dance Simulator; Now playing; backing up the card box (Ryan, November 2026).** Renamed from Contra Dance
+Simulator (it does English country dances, squares and more). The top bar says "Now playing: <title> by <author>".
+The card box says plainly that cards are kept only on this device, in this browser, and offers "email a backup to
+yourself": on a phone the share sheet offers the backup file to Mail; elsewhere the file is saved and a new email opens
+saying which file to attach (a few cards go straight into the email). Each card can also be emailed on its own. Help
+explains backing up and getting cards back with Import.
+
+**Phone-friendly, and the Caller view (Ryan and Christine, November 2026).** Christine was overwhelmed opening the
+simulator on her phone: the floor and Play were buried under buttons, expert controls and a 100-move list. On a phone
+(640 px wide or less) it now opens for watching:
+- one ☰ Menu instead of six buttons (Dances, card box, Caller view, Edit this dance, Read a dance card, Checks,
+  Settings, Help, References), with the checks as one coloured dot beside it;
+- a play bar fixed at the bottom of the screen (◀ Play ▶, the part and beat, the move);
+- the expert playback controls (loop, hands, journey, next end effect, times through) behind More ▾;
+- the editor behind ✎ Edit this dance;
+- the floor's own "where" line hidden (the play bar says it) so the dancers draw bigger;
+- a four-step tour (welcome, the floor, the play bar, the menu).
+Everywhere, the move list starts folded: the most common moves, the groups closed until tapped or searched. On a
+computer, References moved into Help (and the check counters drop their words below 1440 px) to keep the top bar on
+one line.
+Caller view (🎤): the dance on a big index card as a caller reads it, the line being danced highlighted and the next
+marked; beside it "Now" and "Call next", with the beats until it, lighting up in the last few beats (up to 4, or half
+of a short move), when a caller gives the call. Play, step and speed are the floor's own.

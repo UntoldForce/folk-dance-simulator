@@ -1,10 +1,10 @@
 <!doctype html><!--wrap-->
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><!--wrap-->
-<title>Contra Dance Simulator</title>
+<title>Folk Dance Simulator</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Caveat:wght@500;700&display=swap">
 <style>
 /* Layout: the dance floor fills the left; the dance card and checks sit on the right; transport and timeline run under the floor. */
 :root {
@@ -52,6 +52,8 @@ body {
 header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; margin-bottom: 12px; }
 h1 { font: 600 24px/1.1 var(--font-display); margin: 0; letter-spacing: -0.01em; }
 .subtitle { color: var(--muted); }
+.nowplaying { color: var(--ink); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nowplaying .nplabel { color: var(--muted); }
 .app { display: grid; grid-template-columns: minmax(0, 1fr) 430px; gap: 16px; align-items: start; }
 .side { position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow-y: auto; }
 @media (max-width: 1000px) { .side { position: static; max-height: none; } }
@@ -287,6 +289,99 @@ ul.checks li.passed { color: var(--muted); }
 .help summary { cursor: pointer; font: 600 16px var(--font-display); padding: 4px 0; }
 .help ul { margin: 6px 0 4px; padding-left: 20px; line-height: 1.5; }
 .help li { margin: 3px 0; }
+.caller .cvbody { flex: 1; min-height: 0; display: flex; gap: 18px; align-items: stretch; }
+.icard.cvcard { flex: 1 1 auto; overflow-y: auto; font-size: 30px; --rule-h: 46px; cursor: default; min-height: 0; }
+.icard.cvcard .iline { white-space: normal; border-radius: 4px; transition: background .2s; }
+.cvcard .iline.cur { background: rgba(255, 225, 90, .55); }
+.cvcard .iline.next { box-shadow: inset 4px 0 0 #6aa0d8; }
+.cvprompt { flex: 0 0 300px; display: flex; flex-direction: column; gap: 12px; }
+.cvnow, .cvnext { border-radius: 10px; padding: 12px 14px; background: var(--panel); border: 1px solid var(--rule); display: flex; flex-direction: column; gap: 4px; }
+.cvnow small, .cvnext small { font: 600 12px var(--font-body); color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.cvnow span { font: 600 20px var(--font-display); }
+.cvnext span { font: 700 26px var(--font-display); }
+.cvnext.soon { background: #fff3c4; border-color: #e6b800; color: #2b2300; }
+.cvnext.soon small { color: #6b5600; }
+.cvcontrols { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.cvcontrols button { min-width: 44px; min-height: 40px; }
+.cvcontrols #cvPlay { min-width: 90px; }
+@media (max-width: 800px) { .caller .cvbody { flex-direction: column; } .cvprompt { flex: none; flex-direction: row; } .cvprompt > div { flex: 1; } .icard.cvcard { font-size: 24px; --rule-h: 38px; } .cvnext span { font-size: 20px; } .cvnow span { font-size: 16px; } .cvhint { display: none; } }
+@media (min-width: 641px) { .phoneonly, .checkdot, .playbar { display: none !important; } }
+.phoneonly { display: none; }
+.checkdot { width: 30px; height: 30px; border-radius: 50%; padding: 0; display: none; align-items: center; justify-content: center; }
+.checkdot span { width: 14px; height: 14px; border-radius: 50%; background: var(--ok); }
+.checkdot.warn span { background: var(--warn); } .checkdot.bad span { background: var(--bad); }
+.playbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 25; gap: 8px; align-items: center; padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); background: var(--panel); border-top: 1px solid var(--rule); box-shadow: 0 -4px 16px rgba(0,0,0,.08); }
+.playbar button { min-width: 44px; min-height: 44px; font-size: 16px; }
+.playbar #pbPlay { min-width: 86px; }
+.pbtext { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.pbtext span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#pbWhere { font: 500 12px var(--font-mono); color: var(--muted); }
+#pbWhat { font: 600 15px var(--font-display); }
+.editbtn { width: 100%; padding: 12px; font: 600 16px var(--font-display); border-radius: 10px; }
+.sheet { position: fixed; inset: auto 0 0 0; margin: 0; width: 100%; max-width: 100%; border: 0; border-radius: 14px 14px 0 0; padding: 14px 16px calc(16px + env(safe-area-inset-bottom)); background: var(--panel); color: var(--ink); box-shadow: 0 -8px 30px rgba(0,0,0,.2); }
+.sheet::backdrop { background: rgba(10, 14, 20, .35); }
+.menulist { display: flex; flex-direction: column; gap: 6px; }
+.menulist button { display: flex; flex-direction: column; align-items: flex-start; text-align: left; padding: 10px 14px; font: 600 16px var(--font-display); border-radius: 10px; }
+.menulist small { font: 400 13px var(--font-body); color: var(--muted); }
+@media (max-width: 640px) {
+  .phoneonly { display: revert; }
+  .playbar { display: flex; }
+  .checkdot { display: inline-flex; }
+  #dancesOpen, #boxOpen, #checksOpen, #settingsOpen, #helpOpen, #refsOpen, #callerOpen { display: none; }
+  .topbar { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+  .topbar .nowplaying { order: 3; flex: 1 1 100%; font-size: 15px; }
+  .tbtools { width: auto !important; margin-left: auto !important; flex-wrap: nowrap !important; }
+  .tbar > .grp:first-child { display: none; }
+  .timeline:not(.more) .adv { display: none !important; }
+  body:not(.editing) .side { display: none; }
+  body { padding-bottom: calc(76px + env(safe-area-inset-bottom)) !important; }
+  .floorwrap { height: 60vh !important; }
+  .floorwrap .now { display: none; }
+  .topright { top: 8px !important; }
+}
+.box { width: min(1180px, 100vw); max-width: 100vw; height: min(92vh, 100%); max-height: 100vh; padding: 16px 20px; background: var(--bg); color: var(--ink); border: 1px solid var(--rule); border-radius: 12px; }
+.box[open] { display: flex; flex-direction: column; gap: 10px; }
+.box .grow { flex: 1; }
+.boxlocal { display: flex; gap: 8px; align-items: flex-start; margin: 0; padding: 8px 12px; border-radius: 8px; background: color-mix(in srgb, var(--accent) 10%, transparent); font-size: 14px; line-height: 1.45; }
+.textlink, .textlink:hover { border: 0; background: none; box-shadow: none; padding: 0; min-height: 0; font: inherit; color: var(--accent); text-decoration: underline; cursor: pointer; font-weight: 600; }
+.boxhead { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.boxhead h2 { margin: 0; font: 600 22px var(--font-display); }
+.boxtools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.boxtools input[type=search] { flex: 1 1 240px; min-width: 0; }
+.boxgrid { flex: 1; overflow: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 18px; align-content: start; padding: 4px 4px 12px; }
+.boxgrid .empty { grid-column: 1 / -1; }
+.boxdetail { flex: 1; overflow: auto; display: flex; flex-direction: column; gap: 10px; }
+.detailbody { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
+#detailCard { flex: 1 1 420px; min-width: 0; max-width: 640px; }
+#detailCard img { width: 100%; border-radius: 6px; box-shadow: 0 2px 10px rgba(0,0,0,.25); }
+.detailside { flex: 0 1 280px; display: flex; flex-direction: column; gap: 6px; }
+.detailside textarea, .detailside input { width: 100%; }
+.detailside textarea { height: auto; min-height: 96px; resize: vertical; }
+.stars { display: flex; gap: 2px; }
+.stars button { border: 0; background: none; padding: 0 2px; font-size: 24px; line-height: 1; color: var(--muted); cursor: pointer; }
+.stars button[aria-pressed="true"] { color: #d9a400; }
+/* An index card: cream paper, a red line under the heading, blue rules, a caller's handwriting. It stays paper-coloured in dark mode. */
+.icard { --rule-h: 25px; position: relative; background: #fffdf5; color: #232a33; border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,.18), 0 6px 16px rgba(0,0,0,.12);
+  font: 500 18px/var(--rule-h) "Caveat", "Segoe Print", "Bradley Hand", cursive; padding: 10px 16px 12px; cursor: pointer; text-align: left; border: 0; width: 100%; height: 220px; overflow: hidden; display: flex; flex-direction: column; }
+.icard:hover, .icard:focus-visible { box-shadow: 0 1px 2px rgba(0,0,0,.2), 0 10px 24px rgba(0,0,0,.2); transform: translateY(-1px); }
+.icard.full { height: auto; min-height: 380px; cursor: default; font-size: 24px; --rule-h: 34px; }
+.icard.full header { flex-wrap: nowrap; }
+.icard.full .ititle { flex: 1 1 auto; }
+.icard.full:hover { transform: none; }
+.icard header { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 10px; border-bottom: 2px solid #e2898f; padding-bottom: 2px; line-height: 1.25; }
+.icard .ititle { font-weight: 700; font-size: 1.2em; flex: 1 1 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.icard .iform, .icard .iby { font-size: 0.85em; color: #4a5562; white-space: nowrap; }
+.icard:not(.full) .ilines { -webkit-mask-image: linear-gradient(to bottom, #000 70%, transparent); mask-image: linear-gradient(to bottom, #000 70%, transparent); }
+.icard .ilines { flex: 1; background: repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--rule-h) - 1px), #a9c6e8 calc(var(--rule-h) - 1px), #a9c6e8 var(--rule-h)); overflow: hidden; }
+.icard .iline { display: flex; gap: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.icard.full .iline { white-space: normal; }
+.icard .ipart { width: 1.6em; flex: none; color: #b2464e; font-weight: 700; }
+.icard .itext { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.icard .ibeats { color: #8a94a0; font-size: 0.8em; }
+.icard footer { display: flex; gap: 10px; font: 500 12px var(--font-body); color: #5b6673; padding-top: 4px; flex-wrap: wrap; }
+.icard .itag { background: #eef2f7; border-radius: 999px; padding: 0 7px; }
+.icard .istar { color: #c99700; }
+@media (max-width: 640px) { .boxhead h2, #boxCount { order: -2; } #boxClose { order: -1; margin-left: auto; } .boxhead .grow { display: none; } .box { width: 100vw; height: 100dvh; max-height: 100dvh; margin: 0; border: 0; border-radius: 0; padding: 12px; } .boxgrid { grid-template-columns: 1fr; } }
 .refs { width: min(760px, 94vw); max-height: 88vh; padding: 20px 24px; background: var(--panel); color: var(--ink); border: 1px solid var(--rule); border-radius: 12px; }
 .refs::backdrop { background: rgba(10, 16, 14, 0.45); }
 .refshead { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; }
@@ -308,6 +403,7 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
 .pill { border-radius: 999px; padding: 4px 12px; font: 500 13px var(--font-body); display: inline-flex; align-items: center; gap: 8px; background: var(--panel); }
 .pill .lights { gap: 4px; }
 .pill .light { padding: 0 7px; font-size: 12px; }
+@media (max-width: 1440px) { .pill .light small { display: none; } }
 .app { flex: 1 1 auto; min-height: 0; align-items: stretch; grid-template-rows: minmax(0, 1fr); }
 .stage { min-height: 0; gap: 8px; }
 .floorwrap { flex: 1 1 auto; height: auto; min-height: 200px; }
@@ -429,15 +525,19 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
 </head><body><!--wrap-->
 
 <header class="topbar">
-  <h1>Contra Dance Simulator</h1>
-  <span class="subtitle" id="danceTitle">Phase 1 preview</span>
+  <h1>Folk Dance Simulator</h1>
+  <span class="nowplaying"><span class="nplabel">Now playing:</span> <b id="danceTitle">111</b></span>
   <span class="tbtools">
     <span class="bulkstep" id="bulkStep" hidden><button type="button" id="bulkPrev" aria-label="Previous dance in the list">‹</button><span id="bulkPos"></span><button type="button" id="bulkNext" aria-label="Next dance in the list">›</button></span>
+    <button type="button" id="checkDot" class="phoneonly checkdot" aria-label="Checks"><span></span></button>
+    <button type="button" id="menuOpen" class="pill phoneonly" aria-haspopup="dialog">☰ Menu</button>
+    <button type="button" id="callerOpen" class="pill" aria-haspopup="dialog">🎤 Caller view</button>
     <button type="button" id="dancesOpen" class="pill" aria-haspopup="dialog">♫ Dances</button>
+    <button type="button" id="boxOpen" class="pill" aria-haspopup="dialog">🗂 Card box</button>
     <button type="button" id="checksOpen" class="pill" aria-haspopup="dialog"><span>Checks</span><span class="lights" id="lights"></span></button>
     <button type="button" id="settingsOpen" class="pill" aria-haspopup="dialog">⚙ Settings</button>
     <button type="button" id="helpOpen" class="pill" aria-haspopup="dialog">? Help</button>
-    <button type="button" id="refsOpen" class="pill">References</button>
+    <button type="button" id="refsOpen" class="pill" hidden>References</button>
   </span>
 </header>
 
@@ -470,15 +570,16 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
           <label class="small" for="speed">Speed</label>
           <select id="speed"><option value="0.25">¼×</option><option value="0.5">½×</option><option value="1" selected>1×</option><option value="1.5">1½×</option><option value="2">2×</option></select>
         </div>
-        <div class="grp">
+        <button type="button" id="tbMore" class="phoneonly" aria-expanded="false">More ▾</button>
+        <div class="grp adv">
           <label class="small" for="loop">Loop</label>
           <select id="loop"><option value="all">Whole dance</option><option value="pass">This time through</option><option value="part">This part</option><option value="figure">This figure</option></select>
         </div>
-        <label class="small"><input id="hands" type="checkbox" checked> Hands</label>
-        <span class="seg viewseg" role="group" aria-label="Timeline view"><button type="button" id="viewParts" aria-pressed="true">Parts</button><button type="button" id="viewJourney" aria-pressed="false">Journey</button></span>
-        <button type="button" id="nextEnd" title="Go to the next time a couple goes out at an end or comes back in">Next end effect ⏭</button>
+        <label class="small adv"><input id="hands" type="checkbox" checked> Hands</label>
+        <span class="seg viewseg adv" role="group" aria-label="Timeline view"><button type="button" id="viewParts" aria-pressed="true">Parts</button><button type="button" id="viewJourney" aria-pressed="false">Journey</button></span>
+        <button type="button" id="nextEnd" class="adv" title="Go to the next time a couple goes out at an end or comes back in">Next end effect ⏭</button>
       </div>
-      <div class="passes" id="passStrip" role="group" aria-label="Times through"></div>
+      <div class="passes adv" id="passStrip" role="group" aria-label="Times through"></div>
       <div class="prow rulerrow"><div class="plabel small">Beat</div><div class="ruler" id="ruler" title="Drag along here to move through this part"></div></div>
       <div class="journey" id="journeyView" hidden>
         <canvas id="journeyCanvas" aria-label="Where each couple is along the line, through the whole dance. Click to go to that moment; click a line to follow that couple."></canvas>
@@ -486,6 +587,7 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
       </div>
       <div class="rows" id="rows" title="Drag a figure to move it, drag its right edge to change its length (Shift for single beats), click it to change who dances it. Click an empty space to jump there."></div>
     </div>
+    <button type="button" id="editToggle" class="phoneonly editbtn" aria-expanded="false">✎ Edit this dance</button>
   </div>
 
   <aside class="side">
@@ -542,7 +644,7 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
         </div>
         <ul id="cardUnsure" class="unsure" hidden></ul>
         <p class="hint" id="cardStatus" role="status"></p>
-        <div class="row"><button id="cardLoad" class="primary">Load dance</button><button id="cardClear">Clear</button></div>
+        <div class="row"><button id="cardLoad" class="primary">Load dance</button><button id="cardSave">Save to my card box</button><button id="cardClear">Clear</button></div>
       </div>
     </section>
   </aside>
@@ -580,9 +682,11 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
 <div id="cardScrim" hidden></div>
 <dialog id="dances" class="drawer" aria-labelledby="dancesTitle">
   <div class="refshead"><h2 id="dancesTitle">Dances</h2><button type="button" id="dancesClose" aria-label="Close">✕</button></div>
-  <div class="row"><button type="button" id="saveDance" class="primary">Save this dance</button><span class="small" id="saveNote"></span></div>
-  <h3>My dances</h3><div id="myList"></div>
-  <h3>Examples</h3><div id="exampleList"></div>
+  <h3>My card box</h3>
+  <p class="hint">Your own dances, each on a card: import them from photos of your cards, search and sort them, rate them, and export them.</p>
+  <div class="row"><button type="button" id="saveDance" class="primary">Save to my card box</button><button type="button" id="boxOpen2">Open my card box</button></div>
+  <p class="small" id="saveNote" role="status"></p>
+  <h3>Featured dances</h3><div id="exampleList"></div>
   <h3>Check many dances</h3>
   <div id="bulkDrop" class="bulkdrop">
     <div class="row"><label class="pill" for="bulkFile">Load files…</label><input type="file" id="bulkFile" multiple accept=".txt,text/plain" hidden>
@@ -597,7 +701,7 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
   </div>
   <p class="small" id="bulkNote" aria-live="polite"></p>
   <div id="bulkList"></div>
-  <p class="hint">Saving keeps the dance under its title, on this device only. To share one, copy it from the Text tab.
+  <p class="hint">Your card box is kept on this device only: use Export in the card box to back it up or to send cards to someone.
   Checked dances are kept until you close the page; open one, then step through the list with ‹ › at the top.</p>
 </dialog>
 
@@ -606,6 +710,76 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
   <ul class="checks" id="checks"></ul>
 </dialog>
 
+<div id="playbar" class="playbar phoneonly" role="group" aria-label="Play the dance">
+  <button type="button" id="pbBack" aria-label="Back one beat">◀</button>
+  <button type="button" id="pbPlay" class="primary">Play</button>
+  <button type="button" id="pbFwd" aria-label="Forward one beat">▶</button>
+  <span class="pbtext"><span id="pbWhere"></span><span id="pbWhat"></span></span>
+</div>
+<dialog id="phoneMenu" class="sheet" aria-label="Menu">
+  <div class="refshead"><h2>Menu</h2><button type="button" id="menuClose" aria-label="Close">✕</button></div>
+  <nav class="menulist">
+    <button type="button" data-go="dancesOpen">♫ Dances <small>featured dances to watch</small></button>
+    <button type="button" data-go="boxOpen">🗂 My card box <small>your own dances</small></button>
+    <button type="button" data-go="callerOpen">🎤 Caller view <small>the card, as a caller reads it</small></button>
+    <button type="button" data-go="editToggle" id="menuEdit">✎ Edit this dance <small>build or change it</small></button>
+    <button type="button" data-go="cardImport">📷 Read a dance card <small>from a photo, or typed in</small></button>
+    <button type="button" data-go="checksOpen" id="menuChecks">✓ Checks <small id="menuChecksSum"></small></button>
+    <button type="button" data-go="settingsOpen">⚙ Settings <small>floor, music, dancers</small></button>
+    <button type="button" data-go="helpOpen">? Help <small>how everything works</small></button>
+    <button type="button" data-go="refsOpen">References and thanks</button>
+  </nav>
+</dialog>
+<dialog id="callerView" class="box caller" aria-labelledby="cvTitle">
+  <div class="boxhead"><h2 id="cvTitle">Caller view</h2><span class="small" id="cvWhere"></span><span class="grow"></span><button type="button" id="cvClose" aria-label="Close">✕</button></div>
+  <div class="cvbody">
+    <div id="cvCard" class="icard full cvcard"></div>
+    <div class="cvprompt" aria-live="polite">
+      <div class="cvnow"><small>Now</small><span id="cvNow"></span></div>
+      <div class="cvnext" id="cvNextBox"><small>Call next <b id="cvIn"></b></small><span id="cvNext"></span></div>
+    </div>
+  </div>
+  <div class="cvcontrols">
+    <button type="button" id="cvBack" aria-label="Back one beat">◀</button><button type="button" id="cvPlay" class="primary">Play</button><button type="button" id="cvFwd" aria-label="Forward one beat">▶</button>
+    <label class="small">Speed <select id="cvSpeed"><option value="0.25">¼×</option><option value="0.5">½×</option><option value="1">1×</option><option value="1.5">1½×</option><option value="2">2×</option></select></label>
+    <span class="small cvhint">The highlighted line is being danced. Give the next call in the last few beats, when its box lights up.</span>
+  </div>
+</dialog>
+<dialog id="cardBox" class="box" aria-labelledby="boxTitle">
+  <div class="boxhead">
+    <h2 id="boxTitle">My card box</h2><span class="small" id="boxCount"></span><span class="grow"></span>
+    <button type="button" id="boxAdd" class="primary">Add the dance on the floor</button>
+    <label class="pill" for="boxImport" tabindex="0">Import…</label><input type="file" id="boxImport" accept=".txt,text/plain" multiple hidden>
+    <button type="button" id="boxExport">Export all</button>
+    <button type="button" id="boxClose" aria-label="Close">✕</button>
+  </div>
+  <div class="boxtools">
+    <input type="search" id="boxSearch" placeholder="Search titles, choreographers, moves, tags, notes" aria-label="Search your cards">
+    <label class="small">Sort <select id="boxSort">
+      <option value="added">Newest first</option><option value="title">Title</option><option value="author">Choreographer</option>
+      <option value="form">Type of dance</option><option value="diff">Your difficulty (easiest first)</option><option value="flow">Flow (best first)</option>
+      <option value="level">Progression (easiest first)</option></select></label>
+    <select id="boxForm" aria-label="Type of dance"></select><select id="boxWho" aria-label="Choreographer"></select><select id="boxTag" aria-label="Tag"></select>
+  </div>
+  <p class="boxlocal"><span aria-hidden="true">🔒</span> <span>Your cards are kept <b>only on this device</b>, in this browser. Clearing the browser’s data, or losing the device, loses them. To keep them safe, <button type="button" id="boxEmail" class="textlink">email a backup to yourself</button> now and then.</span></p>
+  <p class="small" id="boxNote" role="status"></p>
+  <div id="boxGrid" class="boxgrid"></div>
+  <div id="boxDetail" class="boxdetail" hidden>
+    <div class="row"><button type="button" id="detailBack">← All cards</button><span class="grow"></span><button type="button" id="detailPhoto" hidden>Show the photo</button></div>
+    <div class="detailbody">
+      <div id="detailCard"></div>
+      <div class="detailside">
+        <button type="button" id="detailDance" class="primary">Dance it</button>
+        <span class="blabel">Your difficulty</span><div class="stars" id="detailDiff" role="group" aria-label="Your difficulty"></div>
+        <span class="blabel">Flow</span><div class="stars" id="detailFlow" role="group" aria-label="Flow"></div>
+        <label for="detailTags">Tags <span class="small">(commas between)</span></label><input type="text" id="detailTags" placeholder="e.g. easy, wedding, gender-free">
+        <label for="detailNotes">Notes</label><textarea id="detailNotes" rows="4" placeholder="Teaching notes, tunes, where you called it…"></textarea>
+        <p class="small" id="detailLevel"></p>
+        <div class="row"><button type="button" id="detailEmail">Email this card</button><button type="button" id="detailExport">Save as a file</button><button type="button" id="detailDelete">Delete</button></div>
+      </div>
+    </div>
+  </div>
+</dialog>
 <div id="tour" class="tour" hidden role="dialog" aria-modal="true" aria-labelledby="tourTitle">
   <div class="tourspot" id="tourSpot"></div>
   <div class="tourcard" id="tourCard">
@@ -617,7 +791,7 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
 </div>
 <dialog id="helpDialog" class="refs help" aria-labelledby="helpTitle">
   <div class="refshead"><h2 id="helpTitle">How to use the simulator</h2><button type="button" id="helpClose" aria-label="Close">✕</button></div>
-  <p>Watch contra dances from above, build your own, and check that they work. <button type="button" id="helpTour">Show the quick tour again</button></p>
+  <p>Watch folk dances from above (contras, English country dances, squares and more), build your own, and check that they work. <button type="button" id="helpTour">Show the quick tour again</button> <button type="button" id="helpRefs">References and thanks</button></p>
   <details open><summary>Watching a dance</summary>
     <ul>
       <li><b>Play</b> starts and stops the dance (or press the space bar). <b>◀ ▶</b> step one beat back or forward (or the arrow keys).</li>
@@ -625,6 +799,21 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
       <li>The line over the floor says where you are (<i>A1 · beat 5 of 16</i>) and what's being danced.</li>
       <li><b>Hands</b> shows who is holding hands with whom.</li>
       <li>Turn on <b>Music</b> in Settings to hear the beat; set the tempo there too.</li>
+    </ul>
+  </details>
+  <details><summary>Calling the dance (🎤 Caller view)</summary>
+    <ul>
+      <li>The dance on a big index card, as a caller reads it: the line being danced is highlighted, and the next one is marked.</li>
+      <li>Beside it (below it on a phone): <b>Now</b>, the move being danced, and <b>Call next</b>, the next move and how many beats until it starts. The Call next box lights up in the last few beats, when a caller gives the call.</li>
+      <li>Play, step a beat with ◀ ▶, and set the speed at the bottom (the space bar plays and pauses too). Set the tempo in Settings to match your band.</li>
+    </ul>
+  </details>
+  <details><summary>On a phone</summary>
+    <ul>
+      <li>The page opens for watching: the floor, the parts, and a play bar that stays at the bottom of the screen.</li>
+      <li><b>☰ Menu</b> has everything else: featured dances, your card box, the caller view, editing the dance, reading a dance card, checks, settings, help and references.</li>
+      <li>The coloured dot beside the menu sums up the checks: green is fine, amber is worth a look, red is a problem. Tap it to see them.</li>
+      <li><b>More ▾</b> under the floor shows the extra playback controls (loop, hands, journey, times through). <b>✎ Edit this dance</b> opens the editor.</li>
     </ul>
   </details>
   <details><summary>The dance floor</summary>
@@ -664,10 +853,22 @@ body { margin: 0; display: flex; flex-direction: column; height: 100vh; height: 
       <li>On the public website photos can't be read; use the link there to open the simulator in Claude.</li>
     </ul>
   </details>
-  <details><summary>Saving and loading dances (♫ Dances)</summary>
+  <details><summary>Your card box (🗂 Card box)</summary>
     <ul>
-      <li><b>Save this dance</b> keeps it under its title, on this device only. Your saved dances and some examples are listed to load.</li>
-      <li>To share a dance, copy it from the Text tab and send it; the other person pastes it into their Text tab.</li>
+      <li>Your own dances, each on its own index card, kept on this device and separate from the featured dances.</li>
+      <li><b>Adding cards</b>: <i>Add the dance on the floor</i> (or <i>Save to my card box</i> in ♫ Dances); <i>Save to my card box</i> in the Dance card tab, which keeps the photo of your card too; or <i>Import…</i> a text file of dances (one or many, separated by a line of =====).</li>
+      <li><b>Finding cards</b>: search titles, choreographers, moves, tags and notes; sort by title, choreographer, type of dance, your difficulty, flow or how hard the progression is; or show just one type of dance, choreographer or tag.</li>
+      <li><b>On a card</b>: tap it to see it full size (and the photo, if it has one), rate its difficulty and flow, add tags and notes, <i>Dance it</i> on the floor, export it, or delete it. A dance you open from the box and change is saved back onto its card.</li>
+      <li><b>Your cards are kept only on this device</b>, in this browser: nobody else can see them, and nothing is sent anywhere. But clearing the browser’s data, or losing the device, loses them, so back them up now and then.</li>
+      <li><b>Backing up by email</b>: in the card box, tap <i>email a backup to yourself</i>. On a phone your share sheet opens with the backup file: choose Mail and send it to yourself. On a computer the file is saved and a new email opens: attach the file and send it. <i>Email this card</i> on a card sends just that one, to yourself or to a friend.</li>
+      <li><b>Getting cards back</b> (or onto a new device): open the email, save the attached file, and use <i>Import…</i> in the card box. Your ratings, tags and notes come back too. Photos of cards aren't in the backup.</li>
+      <li><b>Saving a file</b>: <i>Export all</i>, or <i>Save as a file</i> on a card, saves the text file without emailing it, in The Caller's Box layout: anyone can import it, or paste a dance into the Text tab.</li>
+    </ul>
+  </details>
+  <details><summary>Featured dances and checking many (♫ Dances)</summary>
+    <ul>
+      <li>The featured dances are examples to load and watch.</li>
+      <li>To share a dance, export its card from your card box, or copy it from the Text tab; the other person imports it, or pastes it into their Text tab.</li>
       <li><b>Check many dances</b>: load text files or paste several dances (separated by a line of =====) and check them all at once. Open one, then step through the list with ‹ › at the top of the page.</li>
     </ul>
   </details>
@@ -4382,6 +4583,7 @@ function build() {
   $('progression').value = String(Math.min(3, dance.progression));
   setupSummary();
   const passes = Math.max(1, Math.min(30, Math.round(+$('passes').value) || 8));
+  if ($('callerView').open) setTimeout(() => callerView.build(), 0);
   state.c = Contra.compile(dance, { lines: +$('lines').value, sets: +$('sets').value, passes, params: { swingBeatsPerTurn: +$('swingRate').value, experience: +$('experience').value / 100 } });
   // How experienced dancers must be for the progression to work (shown in Checks): worked out after the floor is drawn.
   state.level = undefined; const levelFor = state.buildId;
@@ -4761,29 +4963,237 @@ B1
 B2
 (8) Partner balance
 (8) Partner swing`];
-// Your own dances, saved on this device by title.
-const savedDances = () => { try { return JSON.parse(recall('contra.saved') || '{}'); } catch (e) { return {}; } };
 function renderDances() {
-  const ex = $('exampleList'), mine = $('myList'), saved = savedDances(), titleOf = t => t.split('\n')[0].trim();
-  ex.innerHTML = ''; mine.innerHTML = '';
+  const ex = $('exampleList'), titleOf = t => t.split('\n')[0].trim();
+  ex.innerHTML = '';
   for (const text of EXAMPLES) {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'dlist'; b.textContent = titleOf(text).replace(/ \(test dance\)$/, '');
     b.onclick = () => loadDance(text); ex.appendChild(b);
   }
-  const names = Object.keys(saved).sort();
-  if (!names.length) mine.innerHTML = '<p class="hint">None yet. Saved dances stay on this device.</p>';
-  for (const name of names) {
-    const row = document.createElement('div'); row.className = 'drow';
-    const b = document.createElement('button'); b.type = 'button'; b.className = 'dlist'; b.textContent = name; b.onclick = () => loadDance(saved[name]);
-    const x = document.createElement('button'); x.type = 'button'; x.className = 'dx'; x.textContent = '✕'; x.title = `Remove “${name}”`; x.setAttribute('aria-label', x.title);
-    x.onclick = () => { if (!confirm(`Remove “${name}” from your dances?`)) return; const all = savedDances(); delete all[name]; store('contra.saved', JSON.stringify(all)); renderDances(); };
-    row.append(b, x); mine.appendChild(row);
-  }
 }
-function loadDance(text, fromList = false) {
+function loadDance(text, fromList = false, cardId = null) {
   if (!fromList) bulk.at = -1;
+  state.cardId = cardId;   // a dance from the card box is saved back onto its card
   $('danceText').value = text; state.sel = null; state.t = 0; build(); commit(true); $('dances').close(); renderBulkStep();
 }
+
+// ---------- My card box (Christine Merryman's idea): a caller's own dances, each on an index card ----------
+// Kept on this device (IndexedDB, so card photos fit; plain browser storage, without photos, if that isn't
+// available), separate from the featured dances. Searchable and sortable by type of dance, choreographer, tags and the
+// caller's own ratings; each card, or the whole box, exports as a text file in The Caller's Box layout, with the
+// card's ratings, tags and notes as extra lines ("Difficulty: 3"), which the importer reads back.
+const cardBox = (() => {
+  const LS = 'contra.box', META = /^(Difficulty|Flow|Tags|Notes|Added)\s*:/i;
+  let dbp = null, cards = [], loaded = false, openId = null, showPhoto = false;
+  const db = () => dbp || (dbp = new Promise((res, rej) => {
+    try { const r = indexedDB.open('contra-cardbox', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('cards', { keyPath: 'id' });
+      r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); } catch (e) { rej(e); }
+  }));
+  const req = (mode, fn) => db().then(d => new Promise((res, rej) => { const t = d.transaction('cards', mode), q = fn(t.objectStore('cards')); t.oncomplete = () => res(q && q.result); t.onerror = () => rej(t.error); }));
+  const lsAll = () => { try { return JSON.parse(localStorage.getItem(LS) || '[]'); } catch (e) { return []; } };
+  const lsSave = () => { try { localStorage.setItem(LS, JSON.stringify(cards.map(c => ({ ...c, photo: undefined })))); } catch (e) { /* storage unavailable */ } };
+  const store = {
+    all: () => req('readonly', st => st.getAll()).catch(() => lsAll()),
+    put: c => req('readwrite', st => st.put(c)).catch(() => lsSave()),
+    del: id => req('readwrite', st => st.delete(id)).catch(() => lsSave()),
+  };
+  const formName = key => { const o = $('formation').querySelector(`option[value="${key}"]`); return o ? o.textContent.replace(/ \(.*\)$/, '') : key; };
+  // A card from a dance's text: its ratings, tags and notes come from extra lines, if it has them (an imported card).
+  function fromText(text, extra = {}) {
+    const lines = String(text).replace(/\r/g, '').split('\n'), meta = {}, keep = [];
+    for (const l of lines) { const m = l.match(/^(Difficulty|Flow|Tags|Notes|Added)\s*:\s*(.*)$/i); if (m) { const k = m[1].toLowerCase(); meta[k] = k === 'notes' && meta[k] ? meta[k] + '\n' + m[2] : m[2]; } else keep.push(l); }
+    const clean = keep.join('\n').trim() + '\n', d = Contra.parseDance(clean);
+    return { id: extra.id || 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7), text: clean, title: d.title || 'Untitled dance', author: d.author || '',
+      form: d.formation, difficulty: +meta.difficulty || 0, flow: +meta.flow || 0, tags: (meta.tags || '').split(',').map(t => t.trim()).filter(Boolean), notes: meta.notes || '',
+      added: meta.added ? Date.parse(meta.added) || Date.now() : Date.now(), updated: Date.now(), ...extra, ...(extra.text ? {} : {}) };
+  }
+  // The card as text, for export: the dance, with its ratings, tags and notes after the heading.
+  function toText(c) {
+    const lines = c.text.trim().split('\n'), first = lines.findIndex(l => /^[A-D][1-4]?\b/.test(l.trim()) && !/^[A-D][1-4]?\s*:/.test(l.trim()));
+    const meta = [c.difficulty ? `Difficulty: ${c.difficulty}` : '', c.flow ? `Flow: ${c.flow}` : '', c.tags.length ? `Tags: ${c.tags.join(', ')}` : '',
+      ...(c.notes ? c.notes.split('\n').map(n => `Notes: ${n}`) : []), `Added: ${new Date(c.added).toISOString().slice(0, 10)}`].filter(Boolean);
+    const at = first < 0 ? lines.length : first;
+    return [...lines.slice(0, at), ...meta, '', ...lines.slice(at)].join('\n').replace(/\n{3,}/g, '\n\n') + '\n';
+  }
+  async function load() {
+    if (loaded) return;
+    cards = (await store.all()) || [];
+    // Dances saved the old way (by title, in "My dances") move into the card box once.
+    let old = {}; try { old = JSON.parse(localStorage.getItem('contra.saved') || '{}'); } catch (e) { /* none */ }
+    if (Object.keys(old).length && !cards.length) {
+      for (const text of Object.values(old)) { const c = fromText(text); cards.push(c); await store.put(c); }
+      try { localStorage.removeItem('contra.saved'); } catch (e) { /* storage unavailable */ }
+    }
+    loaded = true;
+  }
+  // Offer a text file to save: through Claude when the simulator is open there, else an ordinary download.
+  async function saveFile(name, text) {
+    if (window.claude && typeof window.claude.use === 'function') {
+      const dl = await window.claude.use('downloads').catch(() => null);
+      if (dl) { try { await dl.save({ filename: name, data: text }); return 'saved'; } catch (e) { return e && e.code === 'declined' ? 'declined' : 'failed'; } }
+    }
+    const url = URL.createObjectURL(new Blob([text], { type: 'text/plain' })), a = document.createElement('a');
+    a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
+    return 'saved';
+  }
+  // Email a backup (or one card) to yourself. A web page can't send email itself: on a phone the share sheet offers the
+  // file to Mail; elsewhere the file is saved and a new email opens, saying which file to attach (or, for a few cards,
+  // holding the cards themselves).
+  async function emailFile(name, text, what) {
+    const subject = `Folk Dance Simulator: ${what}`;
+    try {
+      const file = new File([text], name, { type: 'text/plain' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: subject, text: `${what} from the Folk Dance Simulator. To bring them back, use Import… in the card box.` });
+        return 'shared';
+      }
+    } catch (e) { if (e && e.name === 'AbortError') return 'cancelled'; }
+    const short = text.length < 1600;
+    const saved = short ? 'saved' : await saveFile(name, text);
+    const body = short ? `${what} from the Folk Dance Simulator. To bring them back, copy everything below into a text file and use Import… in the card box (or paste a dance into the Text tab).\n\n${text}`
+      : `${what} from the Folk Dance Simulator.\n\nAttach the file "${name}" that was just saved (usually in your Downloads folder).\nTo bring the cards back, use Import… in the card box and choose that file.`;
+    const a = document.createElement('a'); a.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`; a.target = '_blank'; a.rel = 'noopener';
+    document.body.appendChild(a); a.click(); a.remove();
+    return saved === 'saved' ? (short ? 'mailed' : 'mail-attach') : saved;
+  }
+  const emailNote = (r, name) => r === 'shared' ? 'Sent to your share sheet: choose Mail (or your email app) and send it to yourself.'
+    : r === 'mailed' ? 'A new email has opened with your cards in it: send it to yourself. (If nothing opened, use “Save as a file” and email the file.)'
+    : r === 'mail-attach' ? `Saved “${name}”, and a new email has opened: attach that file and send it to yourself. (If no email opened, attach the file in your email as usual.)`
+    : r === 'cancelled' || r === 'declined' ? '' : 'Couldn’t start an email here: use Export all to save the file, then attach it to an email.';
+  const slug = t => (t || 'dance').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60) || 'dance';
+  // An index card: title, type of dance and choreographer above the red line; the dance on the blue rules.
+  function cardEl(c, full) {
+    const el = document.createElement(full ? 'article' : 'button');
+    if (!full) el.type = 'button';
+    el.className = 'icard' + (full ? ' full' : '');
+    const head = document.createElement('header');
+    for (const [cls, t] of [['ititle', c.title], ['iform', formName(c.form)], ['iby', c.author]]) if (t) { const sp = document.createElement('span'); sp.className = cls; sp.textContent = roleWords(t); head.appendChild(sp); }
+    const body = document.createElement('div'); body.className = 'ilines';
+    let d; try { d = Contra.parseDance(c.text); } catch (e) { d = { parts: [] }; }
+    for (const part of d.parts) part.calls.forEach((k, i) => {
+      const line = document.createElement('div'); line.className = 'iline';
+      const pl = document.createElement('span'); pl.className = 'ipart'; pl.textContent = i ? '' : part.name;
+      const tx = document.createElement('span'); tx.className = 'itext'; tx.textContent = roleWords(k.text);
+      const bt = document.createElement('span'); bt.className = 'ibeats'; bt.textContent = k.beats;
+      line.append(pl, tx, bt); body.appendChild(line);
+    });
+    const foot = document.createElement('footer');
+    const bits = [c.difficulty ? `Difficulty <span class="istar">${'★'.repeat(c.difficulty)}</span>` : '', c.flow ? `Flow <span class="istar">${'★'.repeat(c.flow)}</span>` : '',
+      c.level ? `Progression: ${c.level}` : '', c.photo ? '📷' : ''].filter(Boolean);
+    foot.innerHTML = bits.join(' · ');
+    for (const t of c.tags) { const sp = document.createElement('span'); sp.className = 'itag'; sp.textContent = t; foot.appendChild(sp); }
+    el.append(head, body, foot);
+    if (!full) { el.setAttribute('aria-label', `${c.title}${c.author ? ' by ' + c.author : ''}`); el.onclick = () => openCard(c.id); }
+    return el;
+  }
+  const LEVEL_ORDER = { clueless: 0, beginner: 1, intermediate: 2, experienced: 3, expert: 4 };
+  function fillSelect(id, label, values, nice = v => v) {
+    const sel = $(id), was = sel.value;
+    sel.innerHTML = `<option value="">${label}</option>` + [...values].sort((a, b) => nice(a).localeCompare(nice(b))).map(v => `<option value="${String(v).replace(/"/g, '&quot;')}">${nice(v).replace(/</g, '&lt;')}</option>`).join('');
+    sel.value = [...values].includes(was) ? was : '';
+  }
+  function render() {
+    $('boxCount').textContent = `${cards.length} card${cards.length === 1 ? '' : 's'}`;
+    fillSelect('boxForm', 'All types', new Set(cards.map(c => c.form)), formName);
+    fillSelect('boxWho', 'All choreographers', new Set(cards.map(c => c.author).filter(Boolean)));
+    fillSelect('boxTag', 'All tags', new Set(cards.flatMap(c => c.tags)));
+    const q = $('boxSearch').value.trim().toLowerCase(), f = $('boxForm').value, w = $('boxWho').value, tg = $('boxTag').value, sort = $('boxSort').value;
+    const words = q.split(/\s+/).filter(Boolean);
+    let list = cards.filter(c => (!f || c.form === f) && (!w || c.author === w) && (!tg || c.tags.includes(tg))
+      && words.every(x => [c.title, c.author, formName(c.form), c.tags.join(' '), c.notes, c.text].join(' ').toLowerCase().includes(x)));
+    const by = { added: (a, b) => b.added - a.added, title: (a, b) => a.title.localeCompare(b.title), author: (a, b) => (a.author || '~').localeCompare(b.author || '~') || a.title.localeCompare(b.title),
+      form: (a, b) => formName(a.form).localeCompare(formName(b.form)) || a.title.localeCompare(b.title), diff: (a, b) => (a.difficulty || 9) - (b.difficulty || 9) || a.title.localeCompare(b.title),
+      flow: (a, b) => b.flow - a.flow || a.title.localeCompare(b.title), level: (a, b) => (LEVEL_ORDER[a.level] ?? 9) - (LEVEL_ORDER[b.level] ?? 9) || a.title.localeCompare(b.title) };
+    list = list.sort(by[sort] || by.added);
+    const grid = $('boxGrid'); grid.innerHTML = '';
+    if (!cards.length) grid.innerHTML = '<p class="hint empty">No cards yet. Add the dance on the floor, save one from the Dance card tab (a photo of your card works), or import a file of dances.</p>';
+    else if (!list.length) grid.innerHTML = '<p class="hint empty">No cards match.</p>';
+    for (const c of list) grid.appendChild(cardEl(c, false));
+    queueLevels();
+  }
+  // The simulator's own progression difficulty for each card, worked out a card at a time in the background.
+  let leveling = false;
+  function queueLevels() {
+    if (leveling) return;
+    const c = cards.find(x => x.levelFor !== x.text);
+    if (!c) return;
+    leveling = true;
+    setTimeout(async () => {
+      try { const L = Contra.progressionLevel(Contra.parseDance(c.text)); c.level = L ? L.name : null; } catch (e) { c.level = null; }
+      c.levelFor = c.text; await store.put(c); leveling = false;
+      if ($('cardBox').open && !openId) render(); else queueLevels();
+    }, 30);
+  }
+  function stars(id, value, set) {
+    const box = $(id); box.innerHTML = '';
+    for (let i = 1; i <= 5; i++) { const b = document.createElement('button'); b.type = 'button'; b.textContent = i <= value ? '★' : '☆'; b.setAttribute('aria-pressed', String(i <= value)); b.setAttribute('aria-label', `${i} of 5`);
+      b.onclick = () => set(i === value ? 0 : i); box.appendChild(b); }
+  }
+  function openCard(id) {
+    const c = cards.find(x => x.id === id); if (!c) return;
+    openId = id; $('boxGrid').hidden = true; $('boxDetail').hidden = false; document.querySelector('#cardBox .boxtools').hidden = true;
+    const holder = $('detailCard'); holder.innerHTML = '';
+    if (showPhoto && c.photo) { const img = document.createElement('img'); img.alt = `Photo of the card for ${c.title}`; img.src = URL.createObjectURL(c.photo); holder.appendChild(img); }
+    else holder.appendChild(cardEl(c, true));
+    $('detailPhoto').hidden = !c.photo; $('detailPhoto').textContent = showPhoto ? 'Show the card' : 'Show the photo';
+    const save = async () => { c.updated = Date.now(); await store.put(c); };
+    stars('detailDiff', c.difficulty, v => { c.difficulty = v; save(); openCard(id); });
+    stars('detailFlow', c.flow, v => { c.flow = v; save(); openCard(id); });
+    $('detailTags').value = c.tags.join(', '); $('detailNotes').value = c.notes;
+    $('detailTags').onchange = () => { c.tags = $('detailTags').value.split(',').map(t => t.trim()).filter(Boolean); save(); openCard(id); };
+    $('detailNotes').onchange = () => { c.notes = $('detailNotes').value; save(); };
+    $('detailLevel').textContent = c.level ? `Progression: works with ${c.level} dancers and up (Settings › Dancers' experience).` : c.levelFor === c.text ? 'Progression: the simulator can’t get this dance to progress yet.' : 'Progression: working it out…';
+    $('detailDance').onclick = () => { $('cardBox').close(); loadDance(c.text, false, c.id); };
+    $('detailExport').onclick = async () => { const r = await saveFile(`${slug(c.title)}.txt`, toText(c)); $('boxNote').textContent = r === 'saved' ? `Exported “${c.title}”.` : r === 'declined' ? '' : 'Couldn’t export here.'; };
+    $('detailEmail').onclick = async () => { const name = `${slug(c.title)}.txt`; $('boxNote').textContent = emailNote(await emailFile(name, toText(c), `“${c.title}”`), name); };
+    $('detailDelete').onclick = async () => { if (!confirm(`Delete the card for “${c.title}”? This can’t be undone.`)) return; cards = cards.filter(x => x.id !== id); await store.del(id); lsSave(); closeCard(); };
+  }
+  function closeCard() { openId = null; showPhoto = false; $('boxDetail').hidden = true; $('boxGrid').hidden = false; document.querySelector('#cardBox .boxtools').hidden = false; render(); }
+  async function add(c) { cards.push(c); await store.put(c); lsSave(); return c; }
+  // Save the dance on the floor: back onto its card if it came from the box, else as a new card.
+  async function saveFloor() {
+    await load();
+    const text = $('danceText').value, c = state.cardId && cards.find(x => x.id === state.cardId);
+    if (c) { const n = fromText(text, { id: c.id }); Object.assign(c, { text: n.text, title: n.title, author: n.author, form: n.form, updated: Date.now() }); await store.put(c); lsSave(); return `Saved “${c.title}” on its card.`; }
+    const n = await add(fromText(text)); state.cardId = n.id;
+    return `Added “${n.title}” to your card box.`;
+  }
+  async function importText(text) {
+    await load();
+    let added = 0, same = 0;
+    for (const t of Contra.splitDances(text)) { const c = fromText(t); if (cards.some(x => x.text === c.text)) { same++; continue; } await add(c); added++; }
+    return { added, same };
+  }
+  async function open() {
+    await load(); closeCard(); $('cardBox').showModal();
+  }
+  $('boxOpen').onclick = open; $('boxOpen2').onclick = () => { $('dances').close(); open(); };
+  $('boxClose').onclick = () => $('cardBox').close();
+  $('detailBack').onclick = closeCard;
+  $('detailPhoto').onclick = () => { showPhoto = !showPhoto; openCard(openId); };
+  for (const id of ['boxSearch']) $(id).oninput = render;
+  for (const id of ['boxSort', 'boxForm', 'boxWho', 'boxTag']) $(id).onchange = render;
+  $('boxAdd').onclick = async () => { $('boxNote').textContent = await saveFloor(); render(); };
+  $('boxExport').onclick = async () => {
+    if (!cards.length) { $('boxNote').textContent = 'No cards to export yet.'; return; }
+    const r = await saveFile(`card-box-${new Date().toISOString().slice(0, 10)}.txt`, cards.slice().sort((a, b) => a.title.localeCompare(b.title)).map(toText).join('\n=====\n\n'));
+    $('boxNote').textContent = r === 'saved' ? `Exported ${cards.length} cards in one text file: keep it as a backup, or send it to someone to import.` : r === 'declined' ? '' : 'Couldn’t export here.';
+  };
+  $('boxEmail').onclick = async () => {
+    if (!cards.length) { $('boxNote').textContent = 'No cards to back up yet.'; return; }
+    const name = `card-box-${new Date().toISOString().slice(0, 10)}.txt`;
+    $('boxNote').textContent = emailNote(await emailFile(name, cards.slice().sort((a, b) => a.title.localeCompare(b.title)).map(toText).join('\n=====\n\n'), `My card box backup (${cards.length} card${cards.length === 1 ? '' : 's'})`), name);
+  };
+  $('boxImport').onchange = async e => {
+    const files = [...e.target.files]; e.target.value = '';
+    let added = 0, same = 0;
+    for (const f of files) { const r = await importText(await f.text()); added += r.added; same += r.same; }
+    $('boxNote').textContent = `Imported ${added} card${added === 1 ? '' : 's'}${same ? ` (${same} already in your box)` : ''}.`; render();
+  };
+  document.querySelector('label[for="boxImport"]').onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('boxImport').click(); } };
+  return { open, saveFloor, add: async (text, photo) => { await load(); const c = await add(fromText(text, photo ? { photo } : {})); return c; }, toText, fromText, importText, all: () => cards };
+})();
 
 // Checking many dances at once: load text files (or paste), each holding one dance or several separated by a line of
 // =====. Each is run through Contra.review, one at a time so the page stays responsive, and listed with what's wrong;
@@ -4872,11 +5282,9 @@ const drop = $('bulkDrop');
 drop.ondragover = e => { e.preventDefault(); drop.classList.add('over'); };
 drop.ondragleave = () => drop.classList.remove('over');
 drop.ondrop = e => { e.preventDefault(); drop.classList.remove('over'); readFiles(e.dataTransfer.files); };
-function saveDance() {
-  const text = $('danceText').value, title = (state.doc && state.doc.title) || 'Untitled dance', all = savedDances();
-  if (all[title] && all[title] !== text && !confirm(`Replace your saved “${title}”?`)) return;
-  all[title] = text; store('contra.saved', JSON.stringify(all)); renderDances();
-  $('saveNote').textContent = `Saved “${title}”.`;
+async function saveDance() {
+  const r = await cardBox.saveFloor();
+  $('saveNote').textContent = r;
 }
 
 // Every edit goes through here: write the dance out as text, remember it for undo, and re-run it.
@@ -4943,6 +5351,7 @@ function moveMatches(def, query) {
   const hay = `${def.label} ${roleWords(def.label)} ${CATEGORIES.find(c => c.id === def.cat).name}`.toLowerCase();
   return q.split(/\s+/).every(w => hay.includes(w)) || !!(def.re && (def.re.test(q) || def.re.test(query.toLowerCase())));
 }
+const poolOpen = new Set();
 function renderPool() {
   const pool = $('pool'), query = $('poolSearch').value.trim();
   pool.innerHTML = '';
@@ -4966,7 +5375,9 @@ function renderPool() {
     const all = POOL.filter(d => d.cat === cat.id), moves = all.filter(d => moveMatches(d, query));
     if (!moves.length) continue;
     found += moves.length;
-    const group = document.createElement('details'); group.className = `pgroup cat${cat.id}`; group.open = true;
+    // (The groups stay folded, so the list starts short, unless searching or opened.)
+    const group = document.createElement('details'); group.className = `pgroup cat${cat.id}`; group.open = !!query || poolOpen.has(cat.id);
+    group.addEventListener('toggle', () => { if (query) return; if (group.open) poolOpen.add(cat.id); else poolOpen.delete(cat.id); });
     group.innerHTML = `<summary>${icon(cat.id)}<span>${cat.name}</span><small>${query ? moves.length + ' found' : `${all.filter(d => d.fig).length}/${all.length}`}</small></summary><div class="chips"></div>`;
     for (const def of moves) group.querySelector('.chips').appendChild(chipFor(def));
     pool.appendChild(group);
@@ -5447,6 +5858,10 @@ function showChecks() {
   if (!c.warnings.some(w => /beats long/.test(w.text))) items.push(['ok', 'Every part is 16 beats and the dance is 64.']);
   if (!c.warnings.some(w => /musical phrase/.test(w.text))) items.push(['ok', '8- and 16-beat figures start on a phrase.']);
   const count = l => items.filter(i => i[0] === l).length;
+  // (On a phone, one dot for the checks: red if there's a problem, amber for cautions, else green.)
+  $('checkDot').className = 'phoneonly checkdot ' + (count('bad') ? 'bad' : count('warn') ? 'warn' : 'ok');
+  $('checkDot').setAttribute('aria-label', `Checks: ${count('bad')} problems, ${count('warn')} cautions`);
+  $('menuChecksSum').textContent = `${count('bad')} problem${count('bad') === 1 ? '' : 's'}, ${count('warn')} caution${count('warn') === 1 ? '' : 's'}`;
   $('lights').innerHTML = [['bad', 'problem', 'problems'], ['warn', 'caution', 'cautions'], ['ok', 'passed', 'passed']]
     .map(([l, one, many]) => `<span class="light ${l}${count(l) ? '' : ' zero'}">${count(l)}<small>${count(l) === 1 ? one : many}</small></span>`).join('');
   $('checksOpen').setAttribute('aria-label', `Checks: ${count('bad')} problems, ${count('warn')} cautions, ${count('ok')} passed`);
@@ -5609,7 +6024,7 @@ function scrubFrom(e, partIndex) {
 
 function seek(t) { state.t = Math.max(0, Math.min(state.c.total, t)); music.next = null; }
 function setPlaying(on) {
-  state.playing = on; $('play').textContent = on ? 'Pause' : 'Play'; state.last = performance.now(); music.next = null;
+  state.playing = on; $('play').textContent = on ? 'Pause' : 'Play'; $('pbPlay').textContent = on ? 'Pause' : 'Play'; $('cvPlay').textContent = on ? 'Pause' : 'Play'; state.last = performance.now(); music.next = null;
   if (on) startAudio();
 }
 
@@ -5706,7 +6121,7 @@ const rgb = hex => { const h = hex.replace('#', ''); return [0, 2, 4].map(i => p
 // How metres on the floor map to pixels on a canvas: fit `b` (bounds in metres) with some room around it.
 function view(cv = canvas, b = state.c.bounds, pad) {
   const r = cv.getBoundingClientRect();
-  pad = pad || { l: 1.0, r: 1.0, t: r.width < 640 ? 2.4 : 1.6, b: 0.9 };   // more room at the top on a phone, for the key
+  pad = pad || { l: 0.8, r: 0.8, t: r.width < 640 ? 1.3 : 1.6, b: 0.7 };   // on a phone the play bar says where you are, so the floor keeps only the key at the top
   const W = b.maxX - b.minX + pad.l + pad.r, H = b.maxY - b.minY + pad.t + pad.b;
   const s = Math.min(r.width / W, r.height / H);
   const ox = (r.width - W * s) / 2 + pad.l * s, oy = (r.height - H * s) / 2 + pad.t * s;
@@ -5734,7 +6149,7 @@ function drawFloor(cv, c, t, o) {
 
 function drawSetting(g, v, c, t, P) {
   g.fillStyle = tokens.muted; g.font = '600 11px "Instrument Sans", system-ui, sans-serif'; g.textAlign = 'center';
-  g.fillText('BAND  ↑  TOP OF THE HALL', v.w / 2, Math.max(v.w < 640 ? 88 : 62, v.Y(c.bounds.maxY + 1.3)));   // on a phone the key sits above it
+  g.fillText('BAND  ↑  TOP OF THE HALL', v.w / 2, v.w < 640 ? Math.max(40, v.Y(c.bounds.maxY + 0.85)) : Math.max(62, v.Y(c.bounds.maxY + 1.3)));   // on a phone, just under the key
 
   // This time through's hands-fours, and a label beside couples waiting out at the ends. When the groups change at
   // the start of a time through, the old outlines fade out as the new ones fade in, over SETTING_FADE beats;
@@ -5907,6 +6322,8 @@ function updateReadout() {
   const passText = c.passes.length > 1 ? `Time ${p + 1} of ${c.passes.length} · ` : '';
   $('where').textContent = `${passText}${part.name} · beat ${beat} of ${part.t1 - part.t0} · bar ${Math.ceil(beat / 2)}`;
   $('what').textContent = roleWords(k.text);
+  $('pbWhere').textContent = `${part.name} · beat ${beat}`; $('pbWhat').textContent = roleWords(k.text);
+  if ($('callerView').open) callerView.update();
   $('passStrip').querySelectorAll('.pbox').forEach((el, j) => { el.classList.toggle('cur', j === p); if (j === p && state.passShown !== p) el.scrollIntoView({ block: 'nearest', inline: 'nearest' }); });
   state.passShown = p;
   for (const el of $('rows').querySelectorAll('.fblk')) el.classList.toggle('active', +el.dataset.flat === k.src);
@@ -5970,7 +6387,7 @@ $('back').onclick = () => { setPlaying(false); seek(Math.ceil(state.t - 1e-6) - 
 $('fwd').onclick = () => { setPlaying(false); seek(Math.floor(state.t + 1e-6) + 1); };
 $('music').onchange = () => { music.next = null; if ($('music').checked && state.playing) startAudio(); };
 $('run').onclick = () => { state.sel = null; build(); commit(true); };
-$('reset').onclick = $('reset2').onclick = () => { $('danceText').value = SAMPLE; state.sel = null; build(); commit(true); };
+$('reset').onclick = $('reset2').onclick = () => { state.cardId = null; $('danceText').value = SAMPLE; state.sel = null; build(); commit(true); };
 $('roleNames').onchange = () => {
   const v = $('roleNames').value, [L, R] = roleSet();
   store('contra.roles', v);
@@ -6014,7 +6431,7 @@ function setupCardImport() {
   $('openInClaude').href = CLAUDE_COPY;
   const status = (msg, busy) => { $('cardStatus').textContent = msg; $('cardStatus').classList.toggle('thinking', !!busy); };
   const unsure = list => { const ul = $('cardUnsure'); ul.replaceChildren(...(list || []).map(t => Object.assign(document.createElement('li'), { textContent: t }))); ul.hidden = !(list && list.length); };
-  let sample = null, maxCount = 0;
+  let sample = null, maxCount = 0, cardPhoto = null;
   if (window.claude && typeof window.claude.use === 'function') {
     window.claude.use('sample').then(async fn => {
       if (!fn) return;
@@ -6049,6 +6466,7 @@ function setupCardImport() {
     status('Claude is reading the card', true);
     try {
       const blob = await shrink(file);
+      cardPhoto = blob;   // kept with the card if it is saved to the card box
       const names = POOL.map(p => p.label).join(', ');
       const ans = await sample.json(CARD_PROMPT(names), { images: [blob].slice(0, maxCount), modelTier: 'default' });
       if (!ans || ans.isDanceCard === false || !ans.text) { status("Claude couldn't find a dance on this photo. Try a sharper photo, straight on, or type the card in."); return; }
@@ -6072,25 +6490,116 @@ function setupCardImport() {
     $('danceText').value = text; state.sel = null; build(); commit(true);
     status(unread.length ? `Loaded. The simulator can't do ${unread.length === 1 ? 'one move' : unread.length + ' moves'} yet; they stand still there: ${unread.join('; ')}.` : 'Loaded. Press play to watch it, or switch to the Editor to change it.');
   };
-  $('cardClear').onclick = () => { $('cardText').value = ''; const pv = $('photoPreview'); if (pv.src) URL.revokeObjectURL(pv.src); pv.removeAttribute('src'); pv.hidden = true; unsure([]); status(''); };
+  // Save the card (and its photo, if Claude read one) into the card box.
+  $('cardSave').onclick = async () => {
+    const raw = $('cardText').value.trim();
+    if (!raw) { status('Type the card in, or take a photo of it, first.'); return; }
+    const text = Contra.fromCard(raw), d = Contra.parseDance(text);
+    if (!d.parts.length) { status('No parts found. Start each part with its name: A1, A2, B1, B2.'); return; }
+    $('cardText').value = text;
+    const c = await cardBox.add(text, cardPhoto);
+    status(`Saved “${c.title}” to your card box${cardPhoto ? ', with its photo' : ''}.`);
+  };
+  $('cardClear').onclick = () => { cardPhoto = null; $('cardText').value = ''; const pv = $('photoPreview'); if (pv.src) URL.revokeObjectURL(pv.src); pv.removeAttribute('src'); pv.hidden = true; unsure([]); status(''); };
 }
+
+// ---------- Caller view (Ryan): the dance card as a caller reads it while calling ----------
+// The dance on a big index card; the line being danced is highlighted and the next call is prompted, lighting up in
+// its last few beats, when a caller gives it. Playing, stepping and the speed are the floor's own.
+const callerView = (() => {
+  let lines = [], last = '';
+  const formName = key => { const o = $('formation').querySelector(`option[value="${key}"]`); return o ? o.textContent : key; };
+  function build() {
+    const d = state.doc, card = $('cvCard'); card.innerHTML = ''; lines = [];
+    const head = document.createElement('header');
+    for (const [cls, t] of [['ititle', d.title || 'Untitled dance'], ['iform', formName(d.formation)], ['iby', d.author]]) if (t) { const sp = document.createElement('span'); sp.className = cls; sp.textContent = roleWords(t); head.appendChild(sp); }
+    const body = document.createElement('div'); body.className = 'ilines';
+    let t = 0;
+    for (const part of d.parts) part.calls.forEach((k, i) => {
+      const line = document.createElement('div'); line.className = 'iline';
+      line.innerHTML = `<span class="ipart"></span><span class="itext"></span><span class="ibeats"></span>`;
+      line.children[0].textContent = i ? '' : part.name; line.children[1].textContent = roleWords(k.text); line.children[2].textContent = k.beats;
+      body.appendChild(line); lines.push({ el: line, t0: t, t1: t + k.beats, text: roleWords(k.text), part: part.name }); t += k.beats;
+    });
+    card.append(head, body); last = '';
+    update();
+  }
+  function update() {
+    const c = state.c; if (!c || !lines.length) return;
+    const per = c.perPass || 1, pass = Math.min(Math.floor(state.t / per), (c.passes || []).length - 1), local = state.t - pass * per;
+    const i = Math.max(0, lines.findIndex(q => local >= q.t0 - 1e-6 && local < q.t1 - 1e-6)), cur = lines[i], nx = lines[(i + 1) % lines.length];
+    const left = Math.max(0, Math.ceil(cur.t1 - local - 1e-6)), soon = left <= Math.min(4, Math.max(2, (cur.t1 - cur.t0) / 2));
+    const key = `${pass}|${i}|${left}`;
+    if (key === last) return;
+    const moved = !last || last.split('|')[1] !== String(i); last = key;
+    lines.forEach((q, j) => { q.el.classList.toggle('cur', j === i); q.el.classList.toggle('next', j === (i + 1) % lines.length && lines.length > 1); });
+    $('cvWhere').textContent = `Time ${pass + 1} of ${(c.passes || []).length} · ${cur.part} · beat ${Math.floor(local - (c.parts.find(p => p.name === cur.part) || { t0: 0 }).t0) + 1}`;
+    $('cvNow').textContent = `${cur.part}: ${cur.text}`;
+    $('cvNext').textContent = `${nx.part}: ${nx.text}`;
+    $('cvIn').textContent = i === lines.length - 1 ? `(next time through) in ${left} beat${left === 1 ? '' : 's'}` : `in ${left} beat${left === 1 ? '' : 's'}`;
+    $('cvNextBox').classList.toggle('soon', soon);
+    if (moved) cur.el.scrollIntoView({ block: 'center', behavior: state.playing ? 'smooth' : 'auto' });
+  }
+  $('callerOpen').onclick = () => { $('cvSpeed').value = $('speed').value; build(); $('callerView').showModal(); update(); };
+  $('cvClose').onclick = () => $('callerView').close();
+  $('cvPlay').onclick = () => $('play').click();
+  $('cvBack').onclick = () => { $('back').click(); update(); };
+  $('cvFwd').onclick = () => { $('fwd').click(); update(); };
+  $('cvSpeed').onchange = () => { $('speed').value = $('cvSpeed').value; $('speed').dispatchEvent(new Event('change')); };
+  return { build, update };
+})();
+
+// ---------- On a phone (Christine's first visit): watch first, everything else in one menu ----------
+const PHONE = window.matchMedia('(max-width: 640px)');
+$('pbPlay').onclick = () => $('play').click();
+$('pbBack').onclick = () => $('back').click();
+$('pbFwd').onclick = () => $('fwd').click();
+$('tbMore').onclick = () => { const t = document.querySelector('.timeline'), on = t.classList.toggle('more'); $('tbMore').setAttribute('aria-expanded', String(on)); $('tbMore').textContent = on ? 'Less ▴' : 'More ▾'; };
+function setEditing(on) {
+  document.body.classList.toggle('editing', on);
+  $('editToggle').setAttribute('aria-expanded', String(on));
+  $('editToggle').textContent = on ? 'Done editing ▴' : '✎ Edit this dance';
+  $('menuEdit').firstChild.textContent = on ? '✎ Done editing ' : '✎ Edit this dance ';
+  if (on) requestAnimationFrame(() => document.querySelector('.side').scrollIntoView({ behavior: 'smooth', block: 'start' }));
+}
+$('editToggle').onclick = () => setEditing(!document.body.classList.contains('editing'));
+$('checkDot').onclick = () => $('checksOpen').click();
+$('menuOpen').onclick = () => $('phoneMenu').showModal();
+$('menuClose').onclick = () => $('phoneMenu').close();
+$('phoneMenu').addEventListener('click', e => { if (e.target === $('phoneMenu')) $('phoneMenu').close(); });
+for (const b of document.querySelectorAll('#phoneMenu [data-go]')) b.onclick = () => {
+  $('phoneMenu').close();
+  const go = b.dataset.go;
+  if (go === 'cardImport') { setEditing(true); $('tabCard').click(); }
+  else if (go === 'editToggle') setEditing(!document.body.classList.contains('editing'));
+  else $(go).click();
+};
 
 // ---------- First visit: a quick tour of the basics; Help has the rest ----------
 // Each step lights up one part of the page (none for the welcome) and says what it's for.
 const TOUR = [
-  [null, 'Welcome!', 'This simulator shows contra dances from above, so you can watch one, build your own, and check that it works. Here is a quick tour of the basics.'],
+  [null, 'Welcome!', 'This simulator shows folk dances (contras, English country dances, squares and more) from above, so you can watch one, build your own, and check that it works. Here is a quick tour of the basics.'],
   ['#floor', 'The dance floor', () => `You're looking down on the hall, with the band at the top. Each circle is a dancer: ${roleSet()[0].toLowerCase()} and ${roleSet()[1].toLowerCase()} in their own colours, numbered by couple. Tap a dancer to follow their couple through the dance.`],
   ['.tbar', 'Play the dance', 'Play starts the dance. ◀ ▶ step one beat at a time (or use the arrow keys). Slow it down with Speed, and use Loop to repeat one part or one move while you learn it.'],
   ['#rows', 'The dance, part by part', 'Each row is a part (A1, A2, B1, B2) of 16 beats, with its moves as coloured blocks. Tap a block to jump to that move.'],
   ['.dancecard', 'Change the dance', 'In the Editor, tap a move in the list to see it danced and add it to a part. Text shows the dance written out. Dance card brings in a dance from a caller’s card, or a photo of one.'],
-  ['#dancesOpen', 'Your dances', 'Save the dance you’re working on, load one you saved, or try an example.'],
+  ['#callerOpen', 'Calling the dance', 'Caller view shows the dance card as a caller reads it, with the line being danced highlighted and the next call prompted a few beats ahead.'],
+  ['#dancesOpen', 'Dances', 'Try one of the featured dances, or check many dances at once.'],
+  ['#boxOpen', 'Your card box', 'Your own dances, each on an index card: add them from the floor, from a typed card or a photo of one, then search, sort, rate and export them.'],
   ['#checksOpen', 'Does it work?', 'These lights show whether the dance works: green is fine, red is a problem, like dancers bumping or not progressing. Open Checks to see why.'],
   ['#helpOpen', 'Help is here', 'That’s the basics. Help explains everything in more depth, and can show this tour again. Enjoy the dance!'],
 ];
-const tour = { i: 0, el: null };
+// On a phone, a shorter tour: the floor, the play bar, and the menu with everything else.
+const TOUR_PHONE = [
+  [null, 'Welcome!', 'This simulator shows folk dances (contras, English country dances, squares and more) from above. Three quick things.'],
+  ['#floor', 'The dance floor', () => `Looking down on the hall, band at the top. ${roleSet()[0]} and ${roleSet()[1].toLowerCase()} in their own colours. Tap a dancer to follow their couple.`],
+  ['#playbar', 'Play the dance', 'Play starts the dance; ◀ ▶ step a beat at a time. It says which part and move you’re on.'],
+  ['#menuOpen', 'Everything else', 'Featured dances, your card box, the caller view, editing the dance, checks, settings and help are all in the menu. Enjoy!'],
+];
+const tour = { i: 0, el: null, steps: TOUR };
 function tourPlace() {
   if ($('tour').hidden) return;
-  const [sel] = TOUR[tour.i], el = sel && document.querySelector(sel), spot = $('tourSpot'), card = $('tourCard');
+  const [sel] = tour.steps[tour.i], el = sel && document.querySelector(sel), spot = $('tourSpot'), card = $('tourCard');
   const vw = window.innerWidth, vh = window.innerHeight, cw = card.offsetWidth, ch = card.offsetHeight;
   if (!el || !el.getClientRects().length) {
     spot.classList.add('none');
@@ -6106,14 +6615,14 @@ function tourPlace() {
   card.style.left = `${left}px`; card.style.top = `${y}px`;
 }
 function tourShow(i) {
-  tour.i = Math.max(0, Math.min(TOUR.length - 1, i));
-  const [sel, title, text] = TOUR[tour.i], el = sel && document.querySelector(sel);
-  $('tourStep').textContent = `${tour.i + 1} of ${TOUR.length}`;
+  tour.i = Math.max(0, Math.min(tour.steps.length - 1, i));
+  const [sel, title, text] = tour.steps[tour.i], el = sel && document.querySelector(sel);
+  $('tourStep').textContent = `${tour.i + 1} of ${tour.steps.length}`;
   $('tourTitle').textContent = title;
   $('tourText').textContent = typeof text === 'function' ? text() : text;
   $('tourBack').hidden = tour.i === 0;
-  $('tourNext').textContent = tour.i === TOUR.length - 1 ? 'Done' : tour.i === 0 ? 'Show me' : 'Next';
-  $('tourSkip').hidden = tour.i === TOUR.length - 1;
+  $('tourNext').textContent = tour.i === tour.steps.length - 1 ? 'Done' : tour.i === 0 ? 'Show me' : 'Next';
+  $('tourSkip').hidden = tour.i === tour.steps.length - 1;
   if (el && el.getClientRects().length) {
     const r = el.getBoundingClientRect();
     if (r.top < 0 || r.bottom > window.innerHeight) el.scrollIntoView({ block: r.height > window.innerHeight * 0.6 ? 'start' : 'center', behavior: 'instant' });
@@ -6122,9 +6631,9 @@ function tourShow(i) {
   requestAnimationFrame(tourPlace);
   $('tourNext').focus();
 }
-function tourStart() { if ($('helpDialog').open) $('helpDialog').close(); setPlaying(false); $('tour').hidden = false; tourShow(0); }
+function tourStart() { tour.steps = PHONE.matches ? TOUR_PHONE : TOUR; if ($('helpDialog').open) $('helpDialog').close(); if ($('phoneMenu').open) $('phoneMenu').close(); setPlaying(false); $('tour').hidden = false; tourShow(0); }
 function tourEnd() { $('tour').hidden = true; store('contra.toured', '1'); }
-$('tourNext').onclick = () => (tour.i === TOUR.length - 1 ? tourEnd() : tourShow(tour.i + 1));
+$('tourNext').onclick = () => (tour.i === tour.steps.length - 1 ? tourEnd() : tourShow(tour.i + 1));
 $('tourBack').onclick = () => tourShow(tour.i - 1);
 $('tourSkip').onclick = tourEnd;
 $('tour').addEventListener('keydown', e => {
@@ -6139,6 +6648,7 @@ window.addEventListener('scroll', tourPlace, true);
 $('helpOpen').onclick = () => $('helpDialog').showModal();
 $('helpClose').onclick = () => $('helpDialog').close();
 $('helpTour').onclick = tourStart;
+$('helpRefs').onclick = () => { $('helpDialog').close(); $('refsDialog').showModal(); };
 // (Shown once, on a first visit, after the page has drawn. "?notour" in the address skips it.)
 if (!recall('contra.toured') && !/[?&]notour\b/.test(location.search)) setTimeout(tourStart, 700);
 
@@ -6232,7 +6742,7 @@ $('setupBox').open = recall('contra.setupBox') === 'open';
 $('setupBox').addEventListener('toggle', () => store('contra.setupBox', $('setupBox').open ? 'open' : 'closed'));
 $('formation').onchange = e => { setMeta('FormationBase', Contra.FORMATIONS[e.target.value].name); state.sel = null; commit(true); };
 $('progression').onchange = e => { setMeta('Progression', ['Single', 'Double', 'Triple'][+e.target.value - 1]); commit(true); };
-$('newDance').onclick = () => { state.doc = { title: 'New dance', author: '', meta: {}, metaLines: [['FormationBase', 'Duple Minor - Improper'], ['Progression', 'Single']], parts: [], warnings: [] }; ensureParts(state.doc); state.sel = null; state.t = 0; commit(true); };
+$('newDance').onclick = () => { state.cardId = null; state.doc = { title: 'New dance', author: '', meta: {}, metaLines: [['FormationBase', 'Duple Minor - Improper'], ['Progression', 'Single']], parts: [], warnings: [] }; ensureParts(state.doc); state.sel = null; state.t = 0; commit(true); };
 $('undo').onclick = () => undoTo(history.at - 1);
 $('redo').onclick = () => undoTo(history.at + 1);
 
